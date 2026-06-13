@@ -24,16 +24,16 @@
 
 **الهدف:** تجهيز مشروع Next.js شغّال ومربوط بكل الأدوات الأساسية قبل ما نبدأ نبني features.
 
-- [ ] إنشاء مشروع Next.js (App Router) مع TypeScript.
-- [ ] تثبيت وإعداد Tailwind CSS.
-- [ ] ضبط الموقع ليكون **عربي بالكامل و RTL أساسي**: `<html lang="ar" dir="rtl">`، خط عربي مناسب، وكل المكوّنات تُبنى باتجاه RTL افتراضيًا (بدون نسخة إنجليزية).
-- [ ] إعداد بنية المجلدات (`app/`, `components/`, `lib/`, `types/`, `hooks/`).
-- [ ] إعداد ESLint + Prettier + Husky (pre-commit hooks).
-- [ ] إنشاء مشروع على Supabase وأخذ مفاتيح الـ API.
-- [ ] إعداد ملف `.env.local` مع المتغيرات (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
-- [ ] إنشاء Supabase clients (browser client + server client) في `lib/supabase`.
-- [ ] إعداد ريبو Git وربطه بـ GitHub.
-- [ ] إعداد ملف design tokens أساسي (ألوان، خطوط، spacing) متوافق مع هوية "تمكين".
+- [x] إنشاء مشروع Next.js (App Router) مع TypeScript.
+- [x] تثبيت وإعداد Tailwind CSS.
+- [x] ضبط الموقع ليكون **عربي بالكامل و RTL أساسي**: `<html lang="ar" dir="rtl">`، خط عربي مناسب، وكل المكوّنات تُبنى باتجاه RTL افتراضيًا (بدون نسخة إنجليزية).
+- [x] إعداد بنية المجلدات (`app/`, `components/`, `lib/`, `types/`, `hooks/`).
+- [x] إعداد ESLint + Prettier + Husky (pre-commit hooks).
+- [x] إنشاء مشروع على Supabase وأخذ مفاتيح الـ API.
+- [x] إعداد ملف `.env.local` مع المتغيرات (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+- [x] إنشاء Supabase clients (browser client + server client) في `lib/supabase`.
+- [x] إعداد ريبو Git وربطه بـ GitHub.
+- [x] إعداد ملف design tokens أساسي (ألوان، خطوط، spacing) متوافق مع هوية "تمكين".
 
 ---
 
@@ -41,40 +41,42 @@
 
 **الهدف:** تصميم الـ Schema الكامل مع تفعيل عزل البيانات (RLS) من البداية.
 
+> تم تنفيذ Phase 1 كـ migration محلية في `supabase/migrations/20260614012854_phase_1_schema_rls.sql`، مع تحديث `types/database.ts`. الخطوة التالية هي تطبيق الـ SQL على مشروع Supabase أو تشغيله عبر Supabase CLI عند توفره.
+
 ### 1.1 تصميم الجداول (Tables)
 
-- [ ] جدول `profiles` (مرتبط بـ `auth.users`): `id`, `full_name` (رباعي), `role` (`student` | `teacher` | `admin`), `avatar_url`, `phone`.
-- [ ] جدول `students` (بيانات الطالب الإضافية، مرتبط بـ `profiles`): `id`, `profile_id`, `student_phone`, `father_phone`, `school_name`, `gender` (`male` | `female`), `grade` (`first_secondary` | `second_secondary` | `third_secondary`), `section` (`general` | `scientific` | `literary` | `science` | `mathematics`), `photo_url`.
-- [ ] جدول `teachers`: `id`, `profile_id`, `slug` (unique), `bio`, `subject`, `avatar_url`, `is_active`.
-- [ ] جدول `courses`: `id`, `teacher_id`, `title`, `description`, `price`, `thumbnail_url`, `is_published`, `created_at`.
-- [ ] جدول `lessons`: `id`, `course_id`, `title`, `order_index`, `vdocipher_video_id`, `duration`, `is_free_preview`.
-- [ ] جدول `orders`: `id`, `student_id`, `total_amount`, `status` (`pending` | `completed` | `rejected`), `fawry_ref_no`, `rejection_reason`, `created_at`.
-- [ ] جدول `order_items`: `id`, `order_id`, `course_id`, `price_at_purchase`.
-- [ ] جدول `enrollments`: `id`, `student_id`, `course_id`, `order_id`, `enrolled_at`.
-- [ ] جدول `coupons`: `id`, `teacher_id`, `code`, `discount_type` (`percentage` | `fixed`), `discount_value`, `usage_limit`, `used_count`, `is_active`, `expires_at`.
-- [ ] جدول `reviews` (آراء الطلاب): `id`, `student_id`, `course_id`, `rating`, `comment`, `created_at`.
-- [ ] جدول `teacher_earnings` (أرباح المدرسين): `id`, `teacher_id`, `order_id`, `amount`, `created_at`.
+- [x] جدول `profiles` (مرتبط بـ `auth.users`): `id`, `full_name` (رباعي), `role` (`student` | `teacher` | `admin`), `avatar_url`, `phone`.
+- [x] جدول `students` (بيانات الطالب الإضافية، مرتبط بـ `profiles`): `id`, `profile_id`, `student_phone`, `father_phone`, `school_name`, `gender` (`male` | `female`), `grade` (`first_secondary` | `second_secondary` | `third_secondary`), `section` (`general` | `scientific` | `literary` | `science` | `mathematics`), `photo_url`.
+- [x] جدول `teachers`: `id`, `profile_id`, `slug` (unique), `bio`, `subject`, `avatar_url`, `is_active`.
+- [x] جدول `courses`: `id`, `teacher_id`, `title`, `description`, `price`, `thumbnail_url`, `is_published`, `created_at`.
+- [x] جدول `lessons`: `id`, `course_id`, `title`, `order_index`, `vdocipher_video_id`, `duration`, `is_free_preview`.
+- [x] جدول `orders`: `id`, `student_id`, `total_amount`, `status` (`pending` | `completed` | `rejected`), `fawry_ref_no`, `rejection_reason`, `created_at`.
+- [x] جدول `order_items`: `id`, `order_id`, `course_id`, `price_at_purchase`.
+- [x] جدول `enrollments`: `id`, `student_id`, `course_id`, `order_id`, `enrolled_at`.
+- [x] جدول `coupons`: `id`, `teacher_id`, `code`, `discount_type` (`percentage` | `fixed`), `discount_value`, `usage_limit`, `used_count`, `is_active`, `expires_at`.
+- [x] جدول `reviews` (آراء الطلاب): `id`, `student_id`, `course_id`, `rating`, `comment`, `created_at`.
+- [x] جدول `teacher_earnings` (أرباح المدرسين): `id`, `teacher_id`, `order_id`, `amount`, `created_at`.
 
 ### 1.2 العلاقات والـ Indexes
 
-- [ ] تعريف Foreign Keys بين كل الجداول.
-- [ ] إضافة Indexes على الأعمدة الأكثر استخدامًا في الفلترة (`teacher_id`, `course_id`, `student_id`, `status`, `slug`).
-- [ ] إضافة Unique constraints (مثل `slug`, `coupons.code` لكل مدرس).
+- [x] تعريف Foreign Keys بين كل الجداول.
+- [x] إضافة Indexes على الأعمدة الأكثر استخدامًا في الفلترة (`teacher_id`, `course_id`, `student_id`, `status`, `slug`).
+- [x] إضافة Unique constraints (مثل `slug`, `coupons.code` لكل مدرس).
 
 ### 1.3 تفعيل Row Level Security (RLS)
 
-- [ ] تفعيل RLS على كل الجداول الحساسة.
-- [ ] Policy: المدرس يقدر يقرأ/يعدّل كورساته وحصصه فقط.
-- [ ] Policy: الطالب يقدر يقرأ الكورسات المنشورة فقط، والحصص بتاعت الكورسات اللي مشترك فيها.
-- [ ] Policy: الطالب يقدر يقرأ طلباته (`orders`) الخاصة به فقط.
-- [ ] Policy: الأدمن عنده صلاحيات كاملة (عبر service role أو policy خاصة).
-- [ ] Policy: حماية الـ `enrollments` بحيث متتعملش إلا من خلال السيرفر بعد اكتمال الطلب.
+- [x] تفعيل RLS على كل الجداول الحساسة.
+- [x] Policy: المدرس يقدر يقرأ/يعدّل كورساته وحصصه فقط.
+- [x] Policy: الطالب يقدر يقرأ الكورسات المنشورة فقط، والحصص بتاعت الكورسات اللي مشترك فيها.
+- [x] Policy: الطالب يقدر يقرأ طلباته (`orders`) الخاصة به فقط.
+- [x] Policy: الأدمن عنده صلاحيات كاملة (عبر service role أو policy خاصة).
+- [x] Policy: حماية الـ `enrollments` بحيث متتعملش إلا من خلال السيرفر بعد اكتمال الطلب.
 
 ### 1.4 الـ Triggers والمنطق الخلفي
 
-- [ ] Trigger/Function: عند تحوّل `orders.status` إلى `completed` → إنشاء صفوف في `enrollments` لكل `order_item` + إضافة صف في `teacher_earnings`.
-- [ ] Function لتوليد `slug` تلقائي وفريد للمدرس.
-- [ ] إعداد Supabase Storage buckets (`avatars`, `thumbnails`) مع policies مناسبة.
+- [x] Trigger/Function: عند تحوّل `orders.status` إلى `completed` → إنشاء صفوف في `enrollments` لكل `order_item` + إضافة صف في `teacher_earnings`.
+- [x] Function لتوليد `slug` تلقائي وفريد للمدرس.
+- [x] إعداد Supabase Storage buckets (`avatars`, `thumbnails`) مع policies مناسبة.
 
 ---
 
@@ -82,37 +84,37 @@
 
 **الهدف:** نظام تسجيل دخول آمن مع تمييز الأدوار (Role-Based Access).
 
-- [ ] إعداد Supabase Auth (Email/Password).
-- [ ] صفحة تسجيل الدخول (Login) بالإيميل والباسورد.
-- [ ] إعداد جلسات آمنة باستخدام HttpOnly Cookies (Supabase SSR).
-- [ ] بناء Middleware للتحقق من الجلسة وحماية المسارات (`/dashboard/**`).
-- [ ] منطق توجيه حسب الدور: `student` → بوابة الطالب، `teacher` → `/dashboard/teacher`، `admin` → `/dashboard/admin`.
-- [ ] صفحة "نسيت كلمة المرور" وإعادة التعيين.
-- [ ] صفحة تعديل الملف الشخصي (الاسم، الصورة، رقم الهاتف، باقي بيانات الطالب).
-- [ ] Helper functions للتحقق من الدور في الـ Server Components والـ Server Actions.
+- [x] إعداد Supabase Auth (Email/Password). _(يتطلب تفعيل Email/Password من Supabase Auth Dashboard عند التشغيل الفعلي)_
+- [x] صفحة تسجيل الدخول (Login) بالإيميل والباسورد.
+- [x] إعداد جلسات آمنة باستخدام HttpOnly Cookies (Supabase SSR).
+- [x] بناء Middleware للتحقق من الجلسة وحماية المسارات (`/dashboard/**`).
+- [x] منطق توجيه حسب الدور: `student` → بوابة الطالب، `teacher` → `/dashboard/teacher`، `admin` → `/dashboard/admin`.
+- [x] صفحة "نسيت كلمة المرور" وإعادة التعيين.
+- [x] صفحة تعديل الملف الشخصي (الاسم، الصورة، رقم الهاتف، باقي بيانات الطالب).
+- [x] Helper functions للتحقق من الدور في الـ Server Components والـ Server Actions.
 
 ### 2.1 صفحة تسجيل الطالب (Student Sign Up)
 
 فورم التسجيل بياخد البيانات دي (كلها مطلوبة) مع فالديشن على الكلاينت والسيرفر (Zod + React Hook Form):
 
-- [ ] **اسم الطالب (رباعي):** نص، مطلوب، 4 مقاطع على الأقل، حروف عربي/إنجليزي بس (بدون أرقام/رموز).
-- [ ] **رقم تليفون الطالب:** مطلوب، رقم مصري صحيح (11 رقم يبدأ بـ `01`)، نمط `^01[0-2,5]\d{8}$`.
-- [ ] **رقم تليفون الأب:** مطلوب، نفس فالديشن الموبايل المصري، ولازم يكون مختلف عن رقم الطالب.
-- [ ] **اسم المدرسة:** نص، مطلوب.
-- [ ] **النوع (Gender):** Select مطلوب — (ذكر `male` / أنثى `female`).
-- [ ] **السنة الدراسية (Grade):** Select مطلوب — (أولى ثانوي / تانية ثانوي / تالتة ثانوي).
-- [ ] **الشعبة (Section):** Select مطلوب ومرتبط بالسنة الدراسية (Dependent / Cascading):
+- [x] **اسم الطالب (رباعي):** نص، مطلوب، 4 مقاطع على الأقل، حروف عربي/إنجليزي بس (بدون أرقام/رموز).
+- [x] **رقم تليفون الطالب:** مطلوب، رقم مصري صحيح (11 رقم يبدأ بـ `01`)، نمط `^01[0-2,5]\d{8}$`.
+- [x] **رقم تليفون الأب:** مطلوب، نفس فالديشن الموبايل المصري، ولازم يكون مختلف عن رقم الطالب.
+- [x] **اسم المدرسة:** نص، مطلوب.
+- [x] **النوع (Gender):** Select مطلوب — (ذكر `male` / أنثى `female`).
+- [x] **السنة الدراسية (Grade):** Select مطلوب — (أولى ثانوي / تانية ثانوي / تالتة ثانوي).
+- [x] **الشعبة (Section):** Select مطلوب ومرتبط بالسنة الدراسية (Dependent / Cascading):
   - أولى ثانوي → (عام `general`) فقط.
   - تانية ثانوي → (علمي `scientific` / أدبي `literary`).
   - تالتة ثانوي → (علمي علوم `science` / علمي رياضة `mathematics` / أدبي `literary`).
   - يتقفل/يتمسح اختيار الشعبة لو اتغيرت السنة، ويتم التحقق على السيرفر إن الشعبة متوافقة مع السنة.
-- [ ] **الإيميل:** مطلوب، صيغة إيميل صحيحة، وفريد (مش متسجّل قبل كده).
-- [ ] **الباسورد:** مطلوب، 8 حروف على الأقل، يحتوي حرف كبير وصغير ورقم على الأقل.
-- [ ] **تأكيد الباسورد:** مطلوب، لازم يطابق الباسورد بالظبط.
-- [ ] **صورة الطالب:** مطلوبة، صورة (jpg/png/webp)، حجم أقصى (مثلاً 2MB)، تترفع على Supabase Storage (`avatars`/`students`).
-- [ ] إظهار رسائل خطأ واضحة بالعربي تحت كل حقل.
-- [ ] عند نجاح التسجيل: إنشاء مستخدم في Supabase Auth + صف في `profiles` (role = `student`) + صف في `students` بالبيانات.
-- [ ] رفع صورة الطالب وحفظ الـ `photo_url`.
+- [x] **الإيميل:** مطلوب، صيغة إيميل صحيحة، وفريد (مش متسجّل قبل كده).
+- [x] **الباسورد:** مطلوب، 8 حروف على الأقل، يحتوي حرف كبير وصغير ورقم على الأقل.
+- [x] **تأكيد الباسورد:** مطلوب، لازم يطابق الباسورد بالظبط.
+- [x] **صورة الطالب:** مطلوبة، صورة (jpg/png/webp)، حجم أقصى (مثلاً 2MB)، تترفع على Supabase Storage (`avatars`/`students`).
+- [x] إظهار رسائل خطأ واضحة بالعربي تحت كل حقل.
+- [x] عند نجاح التسجيل: إنشاء مستخدم في Supabase Auth + صف في `profiles` (role = `student`) + صف في `students` بالبيانات.
+- [x] رفع صورة الطالب وحفظ الـ `photo_url`.
 
 ---
 
@@ -122,34 +124,34 @@
 
 ### 3.1 الصفحة الرئيسية (`/`)
 
-- [ ] Hero section تسويقي بهوية "تمكين".
-- [ ] قسم "أبرز المدرسين" (يسحب من `teachers` المفعّلين).
-- [ ] قسم "أحدث الكورسات".
-- [ ] قسم "آراء وتقييمات الطلاب" (من `reviews`).
-- [ ] Footer + Navbar متجاوبين (Responsive) مع دعم RTL.
+- [x] Hero section تسويقي بهوية "تمكين".
+- [x] قسم "أبرز المدرسين" (يسحب من `teachers` المفعّلين).
+- [x] قسم "أحدث الكورسات".
+- [x] قسم "آراء وتقييمات الطلاب" (من `reviews`).
+- [x] Footer + Navbar متجاوبين (Responsive) مع دعم RTL.
 
 ### 3.2 صفحة استكشاف المواد (`/courses`)
 
-- [ ] عرض كل الكورسات المنشورة في شكل Grid (Course Cards).
-- [ ] فلترة بالبحث النصي (اسم المادة).
-- [ ] فلترة باسم المدرس.
-- [ ] فلترة/ترتيب بالسعر (من الأقل للأعلى والعكس).
-- [ ] Pagination أو Infinite scroll.
-- [ ] حالة فاضية (Empty state) لو مفيش نتائج.
+- [x] عرض كل الكورسات المنشورة في شكل Grid (Course Cards).
+- [x] فلترة بالبحث النصي (اسم المادة).
+- [x] فلترة باسم المدرس.
+- [x] فلترة/ترتيب بالسعر (من الأقل للأعلى والعكس).
+- [x] Pagination أو Infinite scroll.
+- [x] حالة فاضية (Empty state) لو مفيش نتائج.
 
 ### 3.3 صفحة المدرس (`/teachers/[slug]`)
 
-- [ ] جلب بيانات المدرس بالـ `slug` (SSR للـ SEO).
-- [ ] عرض الصورة والنبذة والمادة.
-- [ ] عرض كورسات المدرس فقط.
-- [ ] صفحة 404 مخصصة لو الـ slug مش موجود.
+- [x] جلب بيانات المدرس بالـ `slug` (SSR للـ SEO).
+- [x] عرض الصورة والنبذة والمادة.
+- [x] عرض كورسات المدرس فقط.
+- [x] صفحة 404 مخصصة لو الـ slug مش موجود.
 
 ### 3.4 صفحة تفاصيل الكورس (`/courses/[id]`)
 
-- [ ] عرض تفاصيل الكورس والسعر وقائمة الحصص.
-- [ ] عرض حصة Preview مجانية لو متاحة.
-- [ ] زرار "أضف للسلة".
-- [ ] عرض التقييمات الخاصة بالكورس.
+- [x] عرض تفاصيل الكورس والسعر وقائمة الحصص.
+- [x] عرض حصة Preview مجانية لو متاحة.
+- [x] زرار "أضف للسلة".
+- [x] عرض التقييمات الخاصة بالكورس.
 
 ---
 
