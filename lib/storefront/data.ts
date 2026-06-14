@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
@@ -8,7 +9,7 @@ type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
 
 export type TeacherSummary = Pick<
   TeacherRow,
-  "id" | "slug" | "bio" | "subject" | "avatar_url" | "is_active"
+  "id" | "slug" | "bio" | "subject" | "avatar_url" | "cover_url" | "is_active"
 > & {
   profile: {
     full_name: string;
@@ -71,7 +72,18 @@ type CourseFilters = {
   sort?: "price_asc" | "price_desc" | "newest";
 };
 
+type TeacherFilters = {
+  query?: string;
+  subject?: string;
+  sort?: "newest" | "name";
+};
+
 type CoursePageOptions = CourseFilters & {
+  page?: number;
+  pageSize?: number;
+};
+
+type TeacherPageOptions = TeacherFilters & {
   page?: number;
   pageSize?: number;
 };
@@ -80,6 +92,50 @@ function logStorefrontError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[storefront:${label}]`, error);
   }
+}
+
+function getAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+}
+
+async function isCurrentStudentBlockedFromTeacher(teacherId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return false;
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return false;
+  }
+
+  const { data: student } = await admin
+    .from("students")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (!student) {
+    return false;
+  }
+
+  const { data } = await admin
+    .from("student_blocks")
+    .select("id")
+    .eq("student_id", student.id)
+    .or(`teacher_id.is.null,teacher_id.eq.${teacherId}`)
+    .limit(1);
+
+  return (data ?? []).length > 0;
 }
 
 export function formatPrice(price: number) {
@@ -114,12 +170,37 @@ export async function getFeaturedTeachers(limit = 6) {
     return [];
   }
 
-  return (data ?? []) as TeacherSummary[];
+  return (data ?? []).map((teacher) => ({
+    ...teacher,
+    cover_url: null,
+  })) as TeacherSummary[];
 }
 
 export async function getTeacherBySlug(slug: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const withCover = await supabase
+    .from("teachers")
+    .select(
+      "id, slug, bio, subject, avatar_url, cover_url, is_active, profile:profiles(full_name, avatar_url)",
+    )
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!withCover.error) {
+    return withCover.data as TeacherSummary | null;
+  }
+
+  const missingCoverColumn =
+    withCover.error.message.includes("cover_url") &&
+    withCover.error.message.includes("does not exist");
+
+  if (!missingCoverColumn) {
+    logStorefrontError("teacher-by-slug", withCover.error.message);
+    return null;
+  }
+
+  const withoutCover = await supabase
     .from("teachers")
     .select(
       "id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
@@ -128,12 +209,105 @@ export async function getTeacherBySlug(slug: string) {
     .eq("is_active", true)
     .maybeSingle();
 
-  if (error) {
-    logStorefrontError("teacher-by-slug", error.message);
+  if (withoutCover.error) {
+    logStorefrontError("teacher-by-slug-fallback", withoutCover.error.message);
     return null;
   }
 
-  return data as TeacherSummary | null;
+  return withoutCover.data
+    ? ({ ...withoutCover.data, cover_url: null } as TeacherSummary)
+    : null;
+}
+
+export async function getTeacherSubjects() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("teachers")
+    .select("subject")
+    .eq("is_active", true)
+    .order("subject", { ascending: true });
+
+  if (error) {
+    logStorefrontError("teacher-subjects", error.message);
+    return [];
+  }
+
+  return Array.from(
+    new Set((data ?? []).map((teacher) => teacher.subject).filter(Boolean)),
+  );
+}
+
+export async function getTeachersPage(options: TeacherPageOptions = {}) {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(24, Math.max(6, options.pageSize ?? 12));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const supabase = await createClient();
+  let query = supabase
+    .from("teachers")
+    .select(
+      "id, slug, bio, subject, avatar_url, is_active, created_at, profile:profiles(full_name, avatar_url)",
+      { count: "exact" },
+    )
+    .eq("is_active", true)
+    .range(from, to);
+
+  if (options.query) {
+    const { data: matchingProfiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("full_name", `%${options.query}%`);
+    const profileIds = (matchingProfiles ?? []).map((profile) => profile.id);
+
+    if (profilesError) {
+      logStorefrontError("teacher-profile-search", profilesError.message);
+    }
+
+    if (profileIds.length > 0) {
+      query = query.or(
+        `subject.ilike.%${options.query}%,profile_id.in.(${profileIds.join(",")})`,
+      );
+    } else {
+      query = query.ilike("subject", `%${options.query}%`);
+    }
+  }
+
+  if (options.subject) {
+    query = query.eq("subject", options.subject);
+  }
+
+  if (options.sort === "name") {
+    query = query.order("full_name", {
+      ascending: true,
+      referencedTable: "profiles",
+    });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    logStorefrontError("teachers-page", error.message);
+    return {
+      teachers: [] as TeacherSummary[],
+      totalCount: 0,
+      totalPages: 1,
+      page,
+    };
+  }
+
+  const totalCount = count ?? 0;
+
+  return {
+    teachers: (data ?? []).map((teacher) => ({
+      ...teacher,
+      cover_url: null,
+    })) as TeacherSummary[],
+    totalCount,
+    totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    page,
+  };
 }
 
 export async function getLatestCourses(limit = 6) {
@@ -276,6 +450,13 @@ export async function getCourseById(id: string) {
 
   if (error) {
     logStorefrontError("course-by-id", error.message);
+    return null;
+  }
+
+  if (
+    data?.teacher_id &&
+    (await isCurrentStudentBlockedFromTeacher(data.teacher_id))
+  ) {
     return null;
   }
 

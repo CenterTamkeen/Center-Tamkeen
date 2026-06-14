@@ -111,6 +111,7 @@ export type Database = {
           bio: string | null;
           subject: string;
           avatar_url: string | null;
+          cover_url: string | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -122,6 +123,7 @@ export type Database = {
           bio?: string | null;
           subject: string;
           avatar_url?: string | null;
+          cover_url?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -133,6 +135,7 @@ export type Database = {
           bio?: string | null;
           subject?: string;
           avatar_url?: string | null;
+          cover_url?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -494,6 +497,55 @@ export type Database = {
             columns: ["order_id"];
             isOneToOne: false;
             referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      student_blocks: {
+        Row: {
+          id: string;
+          student_id: string;
+          teacher_id: string | null;
+          blocked_by: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          teacher_id?: string | null;
+          blocked_by?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          student_id?: string;
+          teacher_id?: string | null;
+          blocked_by?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "student_blocks_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_blocks_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_blocks_blocked_by_fkey";
+            columns: ["blocked_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

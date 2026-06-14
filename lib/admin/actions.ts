@@ -35,6 +35,16 @@ function getString(formData: FormData, key: string) {
   return typeof value === "string" ? value : "";
 }
 
+function getOptionalImage(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  if (!(value instanceof File) || value.size === 0) {
+    return null;
+  }
+
+  return value;
+}
+
 function getCheckbox(formData: FormData, key: string) {
   return formData.get(key) === "on" || formData.get(key) === "true";
 }
@@ -90,6 +100,75 @@ async function deletePartialUser(userId: string) {
   }
 }
 
+async function deletePartialAvatar(path: string) {
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return;
+  }
+
+  const { error } = await admin.storage.from("avatars").remove([path]);
+
+  if (error) {
+    console.error("Failed to delete partial teacher avatar.", error);
+  }
+}
+
+function validateAvatar(file: File | null) {
+  if (!file) {
+    return null;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(file.type)) {
+    return "الصورة لازم تكون JPG أو PNG أو WebP.";
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    return "حجم الصورة لا يزيد عن 2MB.";
+  }
+
+  return null;
+}
+
+function getAvatarExtension(file: File) {
+  if (file.type === "image/png") {
+    return "png";
+  }
+
+  if (file.type === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
+}
+
+async function uploadTeacherAvatar(userId: string, file: File) {
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return {
+      error: "إعدادات الأدمن غير مكتملة. تأكد من SUPABASE_SERVICE_ROLE_KEY.",
+    };
+  }
+
+  const path = `${userId}/teacher-${crypto.randomUUID()}.${getAvatarExtension(file)}`;
+  const { error } = await admin.storage.from("avatars").upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (error) {
+    console.error("Failed to upload teacher avatar.", error);
+    return { error: "تعذر رفع صورة المدرس. جرّب صورة أخرى.", path };
+  }
+
+  const { data } = admin.storage.from("avatars").getPublicUrl(path);
+
+  return { avatarUrl: data.publicUrl, path };
+}
+
 export async function createTeacherAction(
   _previousState: ActionState,
   formData: FormData,
@@ -102,12 +181,18 @@ export async function createTeacherAction(
     "email",
     "password",
   ]);
+  const avatar = getOptionalImage(formData, "avatar");
+  const avatarError = validateAvatar(avatar);
   const parsed = teacherCreateSchema.safeParse({
     fullName: getString(formData, "fullName"),
     subject: getString(formData, "subject"),
     email: getString(formData, "email"),
     password: getString(formData, "password"),
   });
+
+  if (avatarError) {
+    return failure("راجع صورة المدرس.", { avatar: [avatarError] }, values);
+  }
 
   if (!parsed.success) {
     return failure("راجع بيانات المدرس.", fieldErrors(parsed.error), values);
@@ -141,14 +226,33 @@ export async function createTeacherAction(
     return failure(createFailure.message, createFailure.fieldErrors, values);
   }
 
+  let avatarUrl: string | null = null;
+  let avatarPath: string | null = null;
+
+  if (avatar) {
+    const uploadResult = await uploadTeacherAvatar(authData.user.id, avatar);
+
+    if (uploadResult.error) {
+      await deletePartialUser(authData.user.id);
+      return failure(uploadResult.error, undefined, values);
+    }
+
+    avatarUrl = uploadResult.avatarUrl ?? null;
+    avatarPath = uploadResult.path ?? null;
+  }
+
   const { error: profileError } = await admin.from("profiles").upsert({
     id: authData.user.id,
     full_name: parsed.data.fullName,
     role: "teacher",
+    avatar_url: avatarUrl,
   });
 
   if (profileError) {
     console.error("Failed to save teacher profile.", profileError);
+    if (avatarPath) {
+      await deletePartialAvatar(avatarPath);
+    }
     await deletePartialUser(authData.user.id);
     return failure("تعذر حفظ ملف المدرس.", undefined, values);
   }
@@ -156,11 +260,15 @@ export async function createTeacherAction(
   const { error: teacherError } = await admin.from("teachers").insert({
     profile_id: authData.user.id,
     subject: parsed.data.subject,
+    avatar_url: avatarUrl,
     is_active: true,
   });
 
   if (teacherError) {
     console.error("Failed to save teacher record.", teacherError);
+    if (avatarPath) {
+      await deletePartialAvatar(avatarPath);
+    }
     await deletePartialUser(authData.user.id);
     return failure(
       "تعذر حفظ بيانات المدرس. تأكد إن Trigger توليد slug مطبق.",
@@ -194,6 +302,102 @@ export async function toggleTeacherActiveAction(formData: FormData) {
   revalidatePath("/courses");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/teachers");
+}
+
+export async function deleteTeacherAction(formData: FormData) {
+  await requireRole("admin", "/dashboard/admin/teachers");
+
+  const teacherId = getString(formData, "teacherId");
+  const admin = getAdminClient();
+
+  if (!admin || !teacherId) {
+    return;
+  }
+
+  const { data: teacher, error: teacherError } = await admin
+    .from("teachers")
+    .select("id, profile_id, slug")
+    .eq("id", teacherId)
+    .maybeSingle();
+
+  if (teacherError || !teacher) {
+    console.error("Failed to load teacher before deletion.", teacherError);
+    return;
+  }
+
+  const { data: courses, error: coursesError } = await admin
+    .from("courses")
+    .select("id")
+    .eq("teacher_id", teacher.id);
+
+  if (coursesError) {
+    console.error(
+      "Failed to load teacher courses before deletion.",
+      coursesError,
+    );
+    return;
+  }
+
+  const courseIds = (courses ?? []).map((course) => course.id);
+
+  if (courseIds.length > 0) {
+    const { error: orderItemsError } = await admin
+      .from("order_items")
+      .delete()
+      .in("course_id", courseIds);
+
+    if (orderItemsError) {
+      console.error("Failed to delete teacher order items.", orderItemsError);
+      return;
+    }
+  }
+
+  const { error: earningsError } = await admin
+    .from("teacher_earnings")
+    .delete()
+    .eq("teacher_id", teacher.id);
+
+  if (earningsError) {
+    console.error("Failed to delete teacher earnings.", earningsError);
+    return;
+  }
+
+  const { data: avatarFiles } = await admin.storage
+    .from("avatars")
+    .list(teacher.profile_id);
+
+  if (avatarFiles?.length) {
+    await admin.storage
+      .from("avatars")
+      .remove(avatarFiles.map((file) => `${teacher.profile_id}/${file.name}`));
+  }
+
+  const { data: coverFiles } = await admin.storage
+    .from("thumbnails")
+    .list(teacher.id);
+
+  if (coverFiles?.length) {
+    await admin.storage
+      .from("thumbnails")
+      .remove(coverFiles.map((file) => `${teacher.id}/${file.name}`));
+  }
+
+  const { error: deleteUserError } = await admin.auth.admin.deleteUser(
+    teacher.profile_id,
+  );
+
+  if (deleteUserError) {
+    console.error("Failed to delete teacher auth user.", deleteUserError);
+    return;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath(`/teachers/${teacher.slug}`);
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/teachers");
+  revalidatePath("/dashboard/admin/courses");
+  revalidatePath("/dashboard/admin/reports");
 }
 
 export async function rejectOrderAction(

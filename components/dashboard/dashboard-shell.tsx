@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { BackButton } from "@/components/navigation/back-button";
 import { signOutAction } from "@/lib/auth/actions";
 
 type DashboardShellProps = {
@@ -52,6 +53,7 @@ export function DashboardShell({
           </Link>
 
           <nav className="flex items-center gap-3 text-sm font-semibold">
+            <BackButton fallbackHref="/" label="رجوع" />
             <Link
               href="/profile"
               className="group text-primary-700 hover:bg-primary-50/60 flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all duration-300"

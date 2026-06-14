@@ -22,6 +22,14 @@ export default async function ProfilePage() {
           .eq("profile_id", profile.id)
           .maybeSingle()
       : { data: null };
+  const { data: teacher } =
+    profile.role === "teacher"
+      ? await supabase
+          .from("teachers")
+          .select("subject, bio, avatar_url, cover_url, slug")
+          .eq("profile_id", profile.id)
+          .maybeSingle()
+      : { data: null };
 
   return (
     <DashboardShell title="الملف الشخصي" eyebrow="بيانات الحساب">
@@ -29,7 +37,7 @@ export default async function ProfilePage() {
         className="card-modern animate-fade-up p-6"
         style={{ animationDelay: "0.1s" }}
       >
-        <ProfileForm profile={profile} student={student} />
+        <ProfileForm profile={profile} student={student} teacher={teacher} />
       </div>
     </DashboardShell>
   );

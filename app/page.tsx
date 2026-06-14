@@ -1,19 +1,57 @@
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { CourseCard } from "@/components/storefront/course-card";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { ReviewCard } from "@/components/storefront/review-card";
-import { TeacherCard } from "@/components/storefront/teacher-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import {
   getFeaturedTeachers,
   getLatestCourses,
   getLatestReviews,
+  type TeacherSummary,
 } from "@/lib/storefront/data";
+
+const subjects = [
+  { title: "الفيزياء", tone: "bg-[#eef7ff]", icon: "Φ" },
+  { title: "الكيمياء", tone: "bg-[#eefbf5]", icon: "K" },
+  { title: "الرياضيات", tone: "bg-[#fff8df]", icon: "∑" },
+  { title: "الأحياء", tone: "bg-[#f0f9f1]", icon: "DNA" },
+  { title: "العربي", tone: "bg-[#fff1f1]", icon: "ض" },
+  { title: "الإنجليزي", tone: "bg-[#f3f0ff]", icon: "EN" },
+];
+
+const features = [
+  {
+    title: "مدرسين متخصصين",
+    text: "اختار مدرسك وشوف كورساته وتفاصيله قبل الاشتراك.",
+    icon: "👥",
+  },
+  {
+    title: "محتوى منظم",
+    text: "كل كورس متقسم لحصص واضحة ومتابعة سهلة.",
+    icon: "▷",
+  },
+  {
+    title: "حساب طالب",
+    text: "بوابة للطالب لمتابعة الاشتراكات والطلبات.",
+    icon: "▣",
+  },
+  {
+    title: "إدارة قوية",
+    text: "لوحات للمدرس والإدارة لمتابعة الكورسات والطلاب.",
+    icon: "↗",
+  },
+];
+
+const steps = [
+  ["01", "سجّل حسابك", "أنشئ حساب طالب وادخل على المنصة."],
+  ["02", "اختار كورسك", "تصفح المواد والمدرسين واختار المناسب."],
+  ["03", "ابدأ التعلم", "تابع الحصص والمحتوى من مكان واحد."],
+];
 
 export default async function Home() {
   const [teachers, courses, reviews] = await Promise.all([
@@ -25,658 +63,306 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main>
-        {/* ═══ Hero Section ═══ */}
-        <section
-          className="relative overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(165deg, #f0f9f6 0%, #f5faf8 30%, #fefcf4 60%, #f5faf8 100%)",
-          }}
-        >
-          {/* Decorative background elements */}
-          <div
-            className="absolute inset-0 opacity-[0.035]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, var(--primary-700) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-          <div
-            className="deco-circle animate-float-soft"
-            style={{
-              width: 600,
-              height: 600,
-              top: -250,
-              right: -250,
-              background: "rgb(22 138 117 / 0.07)",
-            }}
-          />
-          <div
-            className="deco-circle animate-float-soft"
-            style={{
-              width: 400,
-              height: 400,
-              bottom: -150,
-              left: -150,
-              background: "rgb(245 197 24 / 0.06)",
-              animationDelay: "2.5s",
-            }}
-          />
-          <div
-            className="deco-circle"
-            style={{
-              width: 200,
-              height: 200,
-              top: "30%",
-              left: "55%",
-              background: "rgb(22 138 117 / 0.04)",
-            }}
-          />
-          {/* Animated ring decoration */}
-          <div
-            className="absolute top-[20%] left-[15%] hidden h-20 w-20 rounded-full border-2 opacity-[0.07] lg:block"
-            style={{
-              borderColor: "var(--primary-400)",
-              animation: "rotate-subtle 20s linear infinite",
-            }}
-          />
-          <div
-            className="absolute right-[10%] bottom-[25%] hidden h-12 w-12 rounded-full border-2 opacity-[0.05] lg:block"
-            style={{
-              borderColor: "var(--accent-400)",
-              animation: "rotate-subtle 15s linear infinite reverse",
-            }}
-          />
-
-          {/* Bottom gradient fade */}
-          <div
-            className="absolute right-0 bottom-0 left-0 h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, rgb(22 138 117 / 0.15), rgb(245 197 24 / 0.1), transparent)",
-            }}
-          />
-
-          <div className="container-page relative grid min-h-[calc(100vh-76px)] items-center gap-10 py-14 lg:grid-cols-[1fr_460px] lg:gap-16">
-            {/* ── Text content ── */}
-            <div className="animate-fade-up space-y-8">
-              <div className="chip">
-                <span className="relative ml-2 flex h-2 w-2">
-                  <span className="bg-primary-400 absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-                  <span className="bg-primary-500 relative inline-flex h-2 w-2 rounded-full" />
-                </span>
-                منصة تعليمية لطلاب الثانوية العامة
-              </div>
-
-              <div className="space-y-5">
-                <h1
-                  className="max-w-3xl text-4xl leading-[1.15] font-black text-balance sm:text-5xl lg:text-6xl"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--foreground) 0%, var(--primary-800) 50%, var(--primary-600) 100%)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  منصة تمكين التعليمية
+      <main className="bg-white">
+        <section className="border-border/60 relative overflow-hidden border-b bg-[linear-gradient(180deg,#ffffff_0%,#f5faf8_100%)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgb(22_138_117/0.08),transparent_28%),radial-gradient(circle_at_78%_30%,rgb(245_197_24/0.12),transparent_24%)]" />
+          <div className="container-page relative grid min-h-[860px] items-center gap-14 py-24 lg:grid-cols-[1fr_500px] lg:py-32">
+            <div className="max-w-4xl space-y-8">
+              <div className="chip">منصة تعليمية لطلاب الثانوية العامة</div>
+              <div className="space-y-4">
+                <h1 className="heading-gradient text-5xl leading-tight font-black sm:text-6xl lg:text-7xl">
+                  ابدأ رحلتك في تمكين بثقة وتنظيم
                 </h1>
-                <p className="text-foreground/60 max-w-xl text-lg leading-9">
-                  كورسات منظمة، مدرسين متخصصين، وبوابة طالب جاهزة لإدارة
-                  الاشتراكات والطلبات مع تجهيز كامل للدفع وفيديوهات محمية.
+                <p className="text-foreground/65 max-w-3xl text-xl leading-10">
+                  كورسات منظمة، مدرسين متخصصين، وتجربة عربية بسيطة تساعدك توصل
+                  للمادة والمدرس المناسب بسرعة.
                 </p>
               </div>
-
               <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/courses"
-                  className="btn-primary gap-2 px-7 py-3.5 text-base"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                  </svg>
+                <Link href="/courses" className="btn-primary px-7 py-3.5">
                   تصفح الكورسات
                 </Link>
-                <Link
-                  href="/signup"
-                  className="btn-secondary gap-2 px-7 py-3.5 text-base"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="19" y1="8" x2="19" y2="14" />
-                    <line x1="22" y1="11" x2="16" y2="11" />
-                  </svg>
+                <Link href="/signup" className="btn-secondary px-7 py-3.5">
                   إنشاء حساب طالب
                 </Link>
               </div>
-
-              {/* Stats */}
-              <dl className="grid max-w-lg grid-cols-3 gap-3 pt-2">
-                {[
-                  {
-                    value: teachers.length,
-                    label: "مدرس",
-                    icon: (
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    value: courses.length,
-                    label: "كورس",
-                    icon: (
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    label: "عربي بالكامل",
-                    text: "RTL",
-                    icon: (
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                      </svg>
-                    ),
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="group rounded-xl p-4 transition-all duration-400"
-                    style={{
-                      background: "rgb(255 255 255 / 0.6)",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
-                      border: "1px solid rgb(208 227 218 / 0.5)",
-                      boxShadow: "0 2px 8px rgb(13 37 31 / 0.04)",
-                    }}
-                  >
-                    <div className="text-primary-500/60 group-hover:text-primary-500 mb-2 transition-colors duration-300">
-                      {stat.icon}
-                    </div>
-                    <dt
-                      className="text-2xl font-black"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, var(--primary-700), var(--primary-400))",
-                        WebkitBackgroundClip: "text",
-                        backgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                      }}
-                    >
-                      {stat.text ?? <AnimatedCounter target={stat.value!} />}
-                    </dt>
-                    <dd className="text-foreground/50 mt-0.5 text-xs">
-                      {stat.label}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
             </div>
 
-            {/* ── Bento Grid — Platform Showcase ── */}
-            <div
-              className="animate-blur-in relative"
-              style={{ animationDelay: "0.3s" }}
-            >
-              {/* Glow behind card */}
-              <div
-                className="absolute inset-4 -z-10 rounded-3xl opacity-40 blur-2xl"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgb(22 138 117 / 0.15), rgb(245 197 24 / 0.08))",
-                }}
-              />
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* ─ Tile 1: Video Player Preview ─ */}
-                <div
-                  className="animate-slide-right group col-span-2 overflow-hidden rounded-2xl p-5 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary-800), var(--primary-900))",
-                    animationDelay: "0.35s",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="white"
-                          opacity="0.9"
-                        >
-                          <polygon points="5 3 19 12 5 21 5 3" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-white/95">
-                          حصص مرئية محمية
-                        </p>
-                        <p className="text-[11px] text-white/50">
-                          محتوى مشفر وآمن بالكامل
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="h-1.5 w-6 rounded-full bg-white/20" />
-                      <span className="h-1.5 w-10 rounded-full bg-white/30" />
-                      <span className="bg-accent-400/60 h-1.5 w-4 rounded-full" />
-                    </div>
-                  </div>
-                  {/* Mini waveform / timeline */}
-                  <div className="mt-4 flex items-end gap-[3px]">
-                    {[
-                      40, 65, 35, 80, 55, 70, 45, 90, 60, 75, 50, 85, 40, 70,
-                      55, 80, 45, 65, 75, 50, 60, 85, 40, 55,
-                    ].map((h, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 rounded-sm transition-all duration-300"
-                        style={{
-                          height: `${h * 0.35}px`,
-                          background:
-                            i < 14
-                              ? "linear-gradient(180deg, var(--primary-300), var(--primary-500))"
-                              : "rgb(255 255 255 / 0.12)",
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* ─ Tile 2: Teacher Profile ─ */}
-                <div
-                  className="animate-slide-right group overflow-hidden rounded-2xl p-4 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background: "rgb(255 255 255 / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    border: "1px solid rgb(208 227 218 / 0.5)",
-                    animationDelay: "0.45s",
-                  }}
-                >
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div
-                      className="text-primary-foreground flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, var(--primary-400), var(--primary-600))",
-                      }}
-                    >
-                      م
-                    </div>
-                    <div>
-                      <p className="text-foreground/85 text-[13px] font-bold">
-                        نخبة المدرسين
-                      </p>
-                      <p className="text-foreground/45 text-[11px]">
-                        متخصصين ومعتمدين
-                      </p>
-                    </div>
-                  </div>
-                  {/* Mini avatars stack */}
-                  <div className="flex items-center">
-                    <div className="flex -space-x-2 space-x-reverse">
-                      {["أ", "ع", "م", "ه"].map((letter, i) => (
-                        <div
-                          key={i}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-[10px] font-black text-white"
-                          style={{
-                            background: [
-                              "linear-gradient(135deg, #2ca088, #168a75)",
-                              "linear-gradient(135deg, #57b9a3, #2ca088)",
-                              "linear-gradient(135deg, #f7c724, #d4a40c)",
-                              "linear-gradient(135deg, #8fd2c2, #57b9a3)",
-                            ][i],
-                            zIndex: 4 - i,
-                          }}
-                        >
-                          {letter}
-                        </div>
-                      ))}
-                    </div>
-                    <span className="text-primary-600 mr-2 text-[11px] font-bold">
-                      +{teachers.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* ─ Tile 3: Live Students ─ */}
-                <div
-                  className="animate-slide-right group flex flex-col justify-between overflow-hidden rounded-2xl p-4 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgb(254 248 224 / 0.8), rgb(253 238 179 / 0.5))",
-                    border: "1px solid rgb(245 197 24 / 0.15)",
-                    animationDelay: "0.5s",
-                  }}
-                >
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ background: "rgb(245 197 24 / 0.2)" }}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--accent-700)"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-accent-700 text-2xl font-black">
-                      <AnimatedCounter target={courses.length * 15} />+
+            <div className="grid gap-4">
+              <div className="bg-primary-900 rounded-2xl p-7 text-white shadow-[var(--shadow-card-hover)]">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-white/70">
+                      درس اليوم
                     </p>
-                    <p className="text-accent-700/60 text-[11px] font-bold">
-                      طالب مسجّل
-                    </p>
+                    <h2 className="mt-1 text-xl font-black">
+                      محتوى محمي ومنظم
+                    </h2>
+                  </div>
+                  <div className="bg-primary-500 flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
+                    ▶
                   </div>
                 </div>
-
-                {/* ─ Tile 4: Subjects ─ */}
-                <div
-                  className="animate-slide-right group overflow-hidden rounded-2xl p-4 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background: "rgb(255 255 255 / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    border: "1px solid rgb(208 227 218 / 0.5)",
-                    animationDelay: "0.55s",
-                  }}
-                >
-                  <p className="text-foreground/80 text-[13px] font-bold">
-                    المواد المتاحة
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {["فيزياء", "كيمياء", "رياضيات", "أحياء", "عربي"].map(
-                      (subject) => (
-                        <span
-                          key={subject}
-                          className="text-primary-700 rounded-lg px-2 py-1 text-[10px] font-bold"
-                          style={{ background: "rgb(231 245 241 / 0.7)" }}
-                        >
-                          {subject}
-                        </span>
-                      ),
-                    )}
-                  </div>
-                </div>
-
-                {/* ─ Tile 5: Security ─ */}
-                <div
-                  className="animate-slide-right group overflow-hidden rounded-2xl p-4 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgb(231 245 241 / 0.7), rgb(197 232 223 / 0.4))",
-                    border: "1px solid rgb(22 138 117 / 0.1)",
-                    animationDelay: "0.6s",
-                  }}
-                >
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ background: "rgb(22 138 117 / 0.12)" }}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--primary-600)"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                  </div>
-                  <p className="text-primary-700 mt-2 text-[12px] font-bold">
-                    محتوى محمي
-                  </p>
-                  <p className="text-primary-600/50 text-[10px]">
-                    تشفير وحماية كاملة
-                  </p>
-                </div>
-
-                {/* ─ Tile 6: Brand Stamp ─ */}
-                <div
-                  className="animate-slide-right group flex items-center justify-center overflow-hidden rounded-2xl p-4 transition-all duration-400 hover:shadow-[var(--shadow-card-hover)]"
-                  style={{
-                    background: "rgb(255 255 255 / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    border: "1px solid rgb(208 227 218 / 0.5)",
-                    animationDelay: "0.65s",
-                  }}
-                >
-                  <div className="text-center">
-                    <Image
-                      src="/Logo/tamkeen-transparent.png"
-                      alt="شعار منصة تمكين"
-                      width={48}
-                      height={48}
-                      priority
-                      className="mx-auto h-12 w-12 object-contain"
+                <div className="mt-8 grid grid-cols-12 gap-1.5">
+                  {Array.from({ length: 24 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="rounded-full bg-white/20"
+                      style={{ height: `${18 + (index % 6) * 9}px` }}
                     />
-                    <p
-                      className="mt-1.5 text-[11px] font-black"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, var(--primary-600), var(--primary-400))",
-                        WebkitBackgroundClip: "text",
-                        backgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                      }}
-                    >
-                      تمكين التعليمية
-                    </p>
-                  </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-[#eefbf5] p-5">
+                  <p className="text-primary-700 text-3xl font-black">
+                    <AnimatedCounter target={teachers.length} />+
+                  </p>
+                  <p className="text-foreground/55 mt-1 text-sm font-bold">
+                    مدرس متاح
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[#fff8df] p-5">
+                  <p className="text-accent-700 text-3xl font-black">
+                    <AnimatedCounter target={courses.length} />+
+                  </p>
+                  <p className="text-foreground/55 mt-1 text-sm font-bold">
+                    كورس منشور
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ═══ Teachers Section ═══ */}
-        <section id="teachers" className="container-page section-pad">
-          <ScrollReveal>
-            <div className="mb-8 flex items-end justify-between gap-4">
-              <div className="section-accent pt-5">
-                <p className="eyebrow">أبرز المدرسين</p>
-                <h2 className="heading-gradient mt-2 text-2xl font-black sm:text-3xl">
-                  مدرسين تمكين المفعّلين
-                </h2>
-              </div>
-              <Link
-                href="/courses"
-                className="group text-primary-700 hover:text-primary-500 flex items-center gap-1.5 text-sm font-black transition-colors duration-300"
-              >
-                كل الكورسات
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform duration-300 group-hover:translate-x-[-3px]"
-                >
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </Link>
-            </div>
-          </ScrollReveal>
-
+        <section id="teachers" className="container-page py-20">
+          <SectionTitle eyebrow="المدرسين" title="اختار مدرسك وابدأ" />
           {teachers.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {teachers.map((teacher, i) => (
-                <ScrollReveal key={teacher.id} delay={i * 0.08}>
-                  <TeacherCard teacher={teacher} />
-                </ScrollReveal>
-              ))}
-            </div>
+            <TeachersMarquee teachers={teachers} />
           ) : (
-            <ScrollReveal>
-              <EmptyState
-                title="لسه مفيش مدرسين ظاهرين"
-                description="بعد إضافة المدرسين وتفعيلهم من قاعدة البيانات، هيظهروا هنا تلقائيًا."
-              />
-            </ScrollReveal>
+            <EmptyState
+              title="لسه مفيش مدرسين ظاهرين"
+              description="بعد إضافة المدرسين وتفعيلهم، هيظهروا هنا تلقائيًا."
+            />
           )}
         </section>
 
-        {/* ═══ Courses Section ═══ */}
-        <section className="surface-band">
-          <div className="container-page section-pad">
-            <ScrollReveal>
-              <div className="mb-8 flex items-end justify-between gap-4">
-                <div className="section-accent pt-5">
-                  <p className="eyebrow">أحدث الكورسات</p>
-                  <h2 className="heading-gradient mt-2 text-2xl font-black sm:text-3xl">
-                    كورسات منشورة مؤخرًا
-                  </h2>
-                </div>
-                <Link
-                  href="/courses"
-                  className="group text-primary-700 hover:text-primary-500 flex items-center gap-1.5 text-sm font-black transition-colors duration-300"
-                >
-                  تصفح الكل
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="transition-transform duration-300 group-hover:translate-x-[-3px]"
-                  >
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
-                  </svg>
-                </Link>
-              </div>
-            </ScrollReveal>
-
+        <section className="bg-[#f6f8fa] py-20">
+          <div className="container-page">
+            <SectionTitle eyebrow="الكورسات" title="أحدث الكورسات المنشورة" />
             {courses.length > 0 ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {courses.map((course, i) => (
-                  <ScrollReveal key={course.id} delay={i * 0.08}>
+                  <ScrollReveal key={course.id} delay={i * 0.06}>
                     <CourseCard course={course} />
                   </ScrollReveal>
                 ))}
               </div>
             ) : (
-              <ScrollReveal>
-                <EmptyState
-                  title="لسه مفيش كورسات منشورة"
-                  description="أول ما المدرسين ينشروا كورساتهم، هتظهر هنا وفي صفحة تصفح الكورسات."
-                />
-              </ScrollReveal>
+              <EmptyState
+                title="لسه مفيش كورسات منشورة"
+                description="أول ما المدرسين ينشروا كورساتهم، هتظهر هنا."
+              />
             )}
           </div>
         </section>
 
-        {/* ═══ Reviews Section ═══ */}
-        <section id="reviews" className="container-page section-pad">
+        <section className="container-page py-14">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              ["500+", "طالب مستهدف"],
+              ["50+", "حصة تعليمية"],
+              ["24/7", "وصول للمحتوى"],
+            ].map(([value, label]) => (
+              <ScrollReveal key={label}>
+                <div className="group hover:bg-primary-50 relative overflow-hidden rounded-2xl bg-[#f6f8fa] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
+                  <div className="bg-primary-500 absolute inset-x-6 top-0 h-1 origin-center scale-x-0 rounded-b-full transition-transform duration-300 group-hover:scale-x-100" />
+                  <p className="text-primary-900 text-3xl font-black">
+                    {value}
+                  </p>
+                  <p className="text-foreground/55 group-hover:text-primary-700 mt-2 text-sm font-semibold transition-colors duration-300">
+                    {label}
+                  </p>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+
+        <section className="container-page py-16">
           <ScrollReveal>
-            <div className="mb-8">
-              <div className="section-accent pt-5">
-                <p className="eyebrow">آراء وتقييمات الطلاب</p>
-                <h2 className="heading-gradient mt-2 text-2xl font-black sm:text-3xl">
-                  تجربة الطلاب مع الكورسات
-                </h2>
-              </div>
+            <div className="mb-9 text-center">
+              <p className="eyebrow">المواد</p>
+              <h2 className="text-primary-950 mt-2 text-3xl font-black">
+                تعلم المادة المناسبة لك
+              </h2>
+              <p className="text-foreground/55 mt-3">
+                كل المواد الأساسية في مكان واحد، ومع كل مدرس كورساته.
+              </p>
             </div>
           </ScrollReveal>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {subjects.map((subject, index) => (
+              <ScrollReveal key={subject.title} delay={index * 0.05}>
+                <div
+                  className={`${subject.tone} group hover:border-primary-200 flex items-center justify-between rounded-2xl border border-black/5 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]`}
+                >
+                  <p className="font-black">{subject.title}</p>
+                  <span className="text-primary-700 flex h-12 min-w-12 items-center justify-center rounded-xl bg-white text-sm font-black shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-2">
+                    {subject.icon}
+                  </span>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/courses" className="btn-secondary px-5 py-3">
+              استعراض كل الكورسات
+            </Link>
+          </div>
+        </section>
 
+        <section className="bg-[#f6f8fa] py-20">
+          <div className="container-page">
+            <ScrollReveal>
+              <div className="mb-10 text-center">
+                <p className="eyebrow">لماذا تمكين؟</p>
+                <h2 className="text-primary-950 mt-2 text-3xl font-black">
+                  كل ما تحتاجه في مكان واحد
+                </h2>
+              </div>
+            </ScrollReveal>
+            <div className="grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {features.map((feature, index) => (
+                <ScrollReveal key={feature.title} delay={index * 0.06}>
+                  <article className="group flex h-full flex-col rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
+                    <div className="bg-primary-50 text-primary-700 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl text-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
+                      {feature.icon}
+                    </div>
+                    <h3 className="group-hover:text-primary-700 text-lg font-black transition-colors duration-300">
+                      {feature.title}
+                    </h3>
+                    <p className="text-foreground/55 mt-3 text-sm leading-7">
+                      {feature.text}
+                    </p>
+                  </article>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="container-page py-20">
+          <ScrollReveal>
+            <div className="mb-12 text-center">
+              <p className="eyebrow">كيف تبدأ؟</p>
+              <h2 className="text-primary-950 mt-2 text-3xl font-black">
+                ثلاث خطوات فقط
+              </h2>
+            </div>
+          </ScrollReveal>
+          <div className="relative grid gap-6 md:grid-cols-3">
+            <div className="from-primary-900/10 via-primary-900/35 to-primary-900/10 absolute top-15 right-[16.5%] left-[16.5%] hidden h-px bg-gradient-to-l md:block" />
+            {steps.map(([number, title, text], index) => (
+              <ScrollReveal key={number} delay={index * 0.08}>
+                <div className="group hover:bg-primary-50/60 rounded-2xl p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card)]">
+                  <div className="bg-primary-900 relative z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-full text-2xl font-black text-white shadow-[var(--shadow-card)] ring-8 ring-white transition-transform duration-300 group-hover:scale-110">
+                    {number}
+                  </div>
+                  <h3 className="group-hover:text-primary-700 mt-5 text-xl font-black transition-colors duration-300">
+                    {title}
+                  </h3>
+                  <p className="text-foreground/55 mt-3 leading-7">{text}</p>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+
+        <section id="reviews" className="container-page py-20">
+          <SectionTitle eyebrow="التقييمات" title="آراء الطلاب" />
           {reviews.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-3">
               {reviews.map((review, i) => (
-                <ScrollReveal key={review.id} delay={i * 0.1}>
+                <ScrollReveal key={review.id} delay={i * 0.08}>
                   <ReviewCard review={review} />
                 </ScrollReveal>
               ))}
             </div>
           ) : (
-            <ScrollReveal>
-              <EmptyState
-                title="لسه مفيش تقييمات"
-                description="بعد اشتراك الطلاب وكتابة تقييماتهم، هنستعرض أحدث الآراء هنا."
-              />
-            </ScrollReveal>
+            <EmptyState
+              title="لسه مفيش تقييمات"
+              description="بعد اشتراك الطلاب وكتابة تقييماتهم، هنستعرض أحدث الآراء هنا."
+            />
           )}
         </section>
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+function TeachersMarquee({ teachers }: { teachers: TeacherSummary[] }) {
+  const marqueeTeachers = [...teachers, ...teachers];
+
+  return (
+    <ScrollReveal>
+      <div className="relative overflow-hidden py-5">
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
+        <div className="tamkeen-marquee flex w-max gap-6 hover:[animation-play-state:paused]">
+          {marqueeTeachers.map((teacher, index) => {
+            const name = teacher.profile?.full_name ?? "مدرس تمكين";
+            const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
+
+            return (
+              <Link
+                key={`${teacher.id}-${index}`}
+                href={`/teachers/${teacher.slug}`}
+                className="group relative flex w-56 shrink-0 flex-col items-center px-4 py-5 text-center transition-all duration-300 hover:-translate-y-1"
+              >
+                <span className="bg-primary-600 absolute top-0 z-10 rounded-full px-4 py-1.5 text-xs font-black text-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:-translate-y-1">
+                  {teacher.subject}
+                </span>
+                <div className="bg-primary-50 relative mt-5 h-40 w-40 overflow-hidden rounded-full border-4 border-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:scale-110">
+                  {avatar ? (
+                    <Image
+                      src={avatar}
+                      alt={name}
+                      fill
+                      sizes="160px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="bg-primary-600 flex h-full items-center justify-center text-3xl font-black text-white">
+                      {name.slice(0, 1)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-foreground group-hover:text-primary-700 mt-5 line-clamp-2 min-h-14 text-lg leading-7 font-black transition-colors duration-300">
+                  {name}
+                </h3>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </ScrollReveal>
+  );
+}
+
+function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <ScrollReveal>
+      <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 className="text-primary-950 mt-2 text-3xl font-black">{title}</h2>
+        </div>
+        <Link href="/courses" className="btn-secondary px-4 py-2 text-xs">
+          تصفح الكل
+        </Link>
+      </div>
+    </ScrollReveal>
   );
 }

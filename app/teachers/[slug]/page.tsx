@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { BackButton } from "@/components/navigation/back-button";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { CourseCard } from "@/components/storefront/course-card";
@@ -44,70 +45,72 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
   const courses = await getCoursesByTeacher(teacher.id);
   const name = teacher.profile?.full_name ?? "مدرس تمكين";
   const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
+  const cover = teacher.cover_url;
 
   return (
     <>
       <SiteHeader />
       <main>
         {/* Hero */}
-        <section
-          className="relative overflow-hidden border-b"
-          style={{
-            borderColor: "rgb(208 227 218 / 0.4)",
-            background:
-              "linear-gradient(180deg, rgb(236 245 241 / 0.5) 0%, rgb(255 255 255 / 0.3) 100%)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          <div
-            className="deco-circle"
-            style={{
-              width: 300,
-              height: 300,
-              top: -100,
-              left: -80,
-              background: "rgb(22 138 117 / 0.05)",
-            }}
-          />
-
-          <div className="container-page relative grid gap-8 py-14 sm:grid-cols-[180px_1fr]">
-            <div className="animate-scale-up avatar-ring relative h-40 w-40 overflow-hidden rounded-2xl shadow-[var(--shadow-card)]">
-              {avatar ? (
-                <Image
-                  src={avatar}
-                  alt={name}
-                  fill
-                  sizes="160px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div
-                  className="text-primary-foreground flex h-full items-center justify-center text-5xl font-black"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary-400), var(--primary-600))",
-                  }}
-                >
-                  {name.slice(0, 1)}
-                </div>
-              )}
+        <section className="border-border/50 relative overflow-hidden border-b bg-white/60">
+          <div className="relative h-56 sm:h-72 lg:h-80">
+            {cover ? (
+              <Image
+                src={cover}
+                alt={`خلفية ${name}`}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="h-full bg-[linear-gradient(135deg,var(--primary-800),var(--primary-500),var(--accent-300))]" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+            <div className="container-page absolute inset-x-0 top-6">
+              <BackButton fallbackHref="/" label="رجوع للرئيسية" />
             </div>
+          </div>
 
-            <div
-              className="animate-fade-up space-y-4"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <p className="eyebrow">{teacher.subject}</p>
-              <h1 className="heading-gradient text-3xl font-black sm:text-4xl">
-                {name}
-              </h1>
-              <p className="text-foreground/65 max-w-3xl leading-8">
-                {teacher.bio ?? "نبذة المدرس هتظهر هنا قريبًا."}
-              </p>
-              <div className="chip">
-                {courses.length.toLocaleString("ar-EG")} كورس منشور
+          <div className="container-page relative pb-10">
+            <div className="-mt-20 grid gap-6 sm:grid-cols-[180px_1fr] sm:items-end">
+              <div className="animate-scale-up avatar-ring relative h-40 w-40 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-[var(--shadow-card)]">
+                {avatar ? (
+                  <Image
+                    src={avatar}
+                    alt={name}
+                    fill
+                    sizes="160px"
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div
+                    className="text-primary-foreground flex h-full items-center justify-center text-5xl font-black"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--primary-400), var(--primary-600))",
+                    }}
+                  >
+                    {name.slice(0, 1)}
+                  </div>
+                )}
+              </div>
+
+              <div
+                className="animate-fade-up space-y-4 rounded-2xl bg-white/80 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl"
+                style={{ animationDelay: "0.15s" }}
+              >
+                <p className="eyebrow">{teacher.subject}</p>
+                <h1 className="heading-gradient text-3xl font-black sm:text-4xl">
+                  {name}
+                </h1>
+                <p className="text-foreground/65 max-w-3xl leading-8">
+                  {teacher.bio ?? "نبذة المدرس هتظهر هنا قريبًا."}
+                </p>
+                <div className="chip">
+                  {courses.length.toLocaleString("ar-EG")} كورس منشور
+                </div>
               </div>
             </div>
           </div>

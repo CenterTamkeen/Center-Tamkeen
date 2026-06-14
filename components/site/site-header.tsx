@@ -63,8 +63,9 @@ export function SiteHeader() {
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           {[
+            { href: "/", label: "الرئيسية" },
             { href: "/courses", label: "الكورسات" },
-            { href: "/#teachers", label: "المدرسين" },
+            { href: "/teachers", label: "المدرسين" },
             { href: "/#reviews", label: "التقييمات" },
           ].map((link) => (
             <Link
@@ -135,8 +136,9 @@ export function SiteHeader() {
       >
         <nav className="container-page flex flex-col gap-1 py-4">
           {[
+            { href: "/", label: "الرئيسية" },
             { href: "/courses", label: "الكورسات" },
-            { href: "/#teachers", label: "المدرسين" },
+            { href: "/teachers", label: "المدرسين" },
             { href: "/#reviews", label: "التقييمات" },
             { href: "/login", label: "تسجيل الدخول" },
           ].map((link, i) => (

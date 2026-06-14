@@ -1,7 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState, useEffect, useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
@@ -17,11 +19,12 @@ import type { Database } from "@/types/database";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
+type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
 type ProfileUpdateValues = z.infer<typeof profileUpdateSchema>;
 type GradeKey = keyof typeof sectionsByGrade;
 
 type ProfileFormProps = {
-  profile: Pick<ProfileRow, "full_name" | "phone" | "role">;
+  profile: Pick<ProfileRow, "full_name" | "phone" | "role" | "avatar_url">;
   student?: Pick<
     StudentRow,
     | "student_phone"
@@ -30,6 +33,10 @@ type ProfileFormProps = {
     | "gender"
     | "grade"
     | "section"
+  > | null;
+  teacher?: Pick<
+    TeacherRow,
+    "subject" | "bio" | "avatar_url" | "cover_url" | "slug"
   > | null;
 };
 
@@ -59,14 +66,18 @@ function ErrorText({ message }: { message?: string }) {
   );
 }
 
-export function ProfileForm({ profile, student }: ProfileFormProps) {
+export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
   const [state, formAction, isPending] = useActionState(
     updateProfileAction,
     initialActionState,
   );
+  const [photoName, setPhotoName] = useState("");
+  const [coverName, setCoverName] = useState("");
   const formValues = {
     fullName: state.values?.fullName ?? profile.full_name,
     phone: state.values?.phone ?? profile.phone ?? "",
+    teacherSubject: state.values?.teacherSubject ?? teacher?.subject ?? "",
+    teacherBio: state.values?.teacherBio ?? teacher?.bio ?? "",
     studentPhone: state.values?.studentPhone ?? student?.student_phone ?? "",
     fatherPhone: state.values?.fatherPhone ?? student?.father_phone ?? "",
     schoolName: state.values?.schoolName ?? student?.school_name ?? "",
@@ -95,6 +106,8 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
     name: "section",
   });
   const isStudent = profile.role === "student";
+  const isTeacher = profile.role === "teacher";
+  const avatar = teacher?.avatar_url ?? profile.avatar_url;
   const availableSections = useMemo(() => {
     if (!selectedGrade) {
       return [];
@@ -171,6 +184,107 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
         </div>
       ) : null}
 
+      {isTeacher ? (
+        <section className="overflow-hidden rounded-2xl border bg-white/70">
+          <label className="group relative block h-48 cursor-pointer bg-[linear-gradient(135deg,var(--primary-700),var(--primary-400),var(--accent-300))] sm:h-64">
+            <input
+              name="cover"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="sr-only"
+              onChange={(event) =>
+                setCoverName(event.currentTarget.files?.[0]?.name ?? "")
+              }
+            />
+            {teacher?.cover_url ? (
+              <Image
+                src={teacher.cover_url}
+                alt="خلفية المدرس"
+                fill
+                sizes="(max-width: 768px) 100vw, 900px"
+                className="object-cover"
+                priority
+              />
+            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+            <span className="text-primary-700 absolute top-5 left-5 rounded-xl bg-white/90 px-4 py-2 text-xs font-black opacity-0 shadow-[var(--shadow-card)] transition-opacity duration-300 group-hover:opacity-100">
+              تغيير الخلفية
+            </span>
+            {coverName ? (
+              <span className="absolute bottom-5 left-5 rounded-xl bg-black/65 px-4 py-2 text-xs font-black text-white">
+                تم اختيار خلفية جديدة
+              </span>
+            ) : null}
+          </label>
+          <div className="relative px-5 pb-5">
+            <div className="-mt-14 flex flex-wrap items-end gap-4">
+              <label className="avatar-ring group relative h-28 w-28 cursor-pointer overflow-hidden rounded-2xl border-4 border-white bg-white shadow-[var(--shadow-card)]">
+                <input
+                  name="photo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(event) =>
+                    setPhotoName(event.currentTarget.files?.[0]?.name ?? "")
+                  }
+                />
+                {avatar ? (
+                  <Image
+                    src={avatar}
+                    alt={profile.full_name}
+                    fill
+                    sizes="112px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="bg-primary-600 text-primary-foreground flex h-full items-center justify-center text-4xl font-black">
+                    {profile.full_name.slice(0, 1)}
+                  </div>
+                )}
+                <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1.5 text-center text-xs font-black text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  تغيير
+                </span>
+              </label>
+              <div className="pb-2">
+                <p className="eyebrow">{teacher?.subject ?? "مدرس تمكين"}</p>
+                <h2 className="text-2xl font-black">{profile.full_name}</h2>
+              </div>
+            </div>
+            {photoName ? (
+              <p className="text-primary-700 mt-3 text-xs font-black">
+                تم اختيار صورة شخصية جديدة
+              </p>
+            ) : null}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href="/dashboard/teacher"
+                className="btn-secondary px-3 py-2 text-xs"
+              >
+                الإحصائيات
+              </Link>
+              <Link
+                href="/dashboard/teacher/courses"
+                className="btn-secondary px-3 py-2 text-xs"
+              >
+                الكورسات
+              </Link>
+              <Link
+                href="/dashboard/teacher/coupons"
+                className="btn-secondary px-3 py-2 text-xs"
+              >
+                الكوبونات
+              </Link>
+              <Link
+                href="/dashboard/teacher/students"
+                className="btn-secondary px-3 py-2 text-xs"
+              >
+                الطلاب
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-2 sm:col-span-2">
           <span className="text-foreground/80 text-sm font-semibold">
@@ -201,19 +315,21 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
           />
         </label>
 
-        <label className="block space-y-2">
-          <span className="text-foreground/80 text-sm font-semibold">
-            الصورة
-          </span>
-          <input
-            {...register("photo")}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
-            style={{ borderColor: "var(--border)" }}
-          />
-          <ErrorText message={state.fieldErrors?.photo?.[0]} />
-        </label>
+        {!isTeacher ? (
+          <label className="block space-y-2">
+            <span className="text-foreground/80 text-sm font-semibold">
+              الصورة
+            </span>
+            <input
+              {...register("photo")}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
+              style={{ borderColor: "var(--border)" }}
+            />
+            <ErrorText message={state.fieldErrors?.photo?.[0]} />
+          </label>
+        ) : null}
 
         {isStudent ? (
           <>
@@ -321,6 +437,43 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
               <ErrorText
                 message={
                   errors.section?.message ?? state.fieldErrors?.section?.[0]
+                }
+              />
+            </label>
+          </>
+        ) : null}
+
+        {isTeacher ? (
+          <>
+            <label className="block space-y-2">
+              <span className="text-foreground/80 text-sm font-semibold">
+                المادة
+              </span>
+              <input
+                {...register("teacherSubject")}
+                className="field bg-background/60 py-2.5"
+              />
+              <ErrorText
+                message={
+                  errors.teacherSubject?.message ??
+                  state.fieldErrors?.teacherSubject?.[0]
+                }
+              />
+            </label>
+
+            <label className="block space-y-2 sm:col-span-2">
+              <span className="text-foreground/80 text-sm font-semibold">
+                نبذة المدرس
+              </span>
+              <textarea
+                {...register("teacherBio")}
+                rows={5}
+                className="field bg-background/60 resize-none py-2.5 leading-7"
+              />
+              <ErrorText
+                message={
+                  errors.teacherBio?.message ??
+                  state.fieldErrors?.teacherBio?.[0]
                 }
               />
             </label>

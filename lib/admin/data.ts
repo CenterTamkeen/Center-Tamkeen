@@ -5,6 +5,7 @@ type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
 type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
+type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 
 export type AdminTeacher = Pick<
   TeacherRow,
@@ -72,6 +73,33 @@ export type AdminOrder = Pick<
   }[];
 };
 
+export type AdminStudent = Pick<
+  StudentRow,
+  "id" | "student_phone" | "father_phone" | "school_name" | "grade" | "section"
+> & {
+  profile: {
+    full_name: string;
+    phone: string | null;
+  } | null;
+  enrollments: {
+    id: string;
+    course: {
+      title: string;
+      teacher: {
+        profile: {
+          full_name: string;
+        } | null;
+      } | null;
+    } | null;
+  }[];
+  student_blocks: {
+    id: string;
+    teacher_id: string | null;
+    reason: string | null;
+    created_at: string;
+  }[];
+};
+
 function logAdminError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[admin:${label}]`, error);
@@ -133,6 +161,56 @@ export async function getAdminOrders(status?: OrderStatus | "all") {
   }
 
   return (data ?? []) as AdminOrder[];
+}
+
+export async function getAdminStudents() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("students")
+    .select(
+      "id, student_phone, father_phone, school_name, grade, section, profile:profiles(full_name, phone), enrollments(id, course:courses(title, teacher:teachers(profile:profiles(full_name))))",
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logAdminError("students", error.message);
+    return [];
+  }
+
+  const students = (data ?? []) as Omit<AdminStudent, "student_blocks">[];
+  const studentIds = students.map((student) => student.id);
+
+  if (studentIds.length === 0) {
+    return [];
+  }
+
+  const { data: blocks, error: blocksError } = await supabase
+    .from("student_blocks")
+    .select("id, student_id, teacher_id, reason, created_at")
+    .in("student_id", studentIds)
+    .is("teacher_id", null);
+
+  if (blocksError) {
+    logAdminError("student-blocks", blocksError.message);
+  }
+
+  const blocksByStudent = new Map<string, AdminStudent["student_blocks"]>();
+
+  for (const block of blocks ?? []) {
+    const current = blocksByStudent.get(block.student_id) ?? [];
+    current.push({
+      id: block.id,
+      teacher_id: block.teacher_id,
+      reason: block.reason,
+      created_at: block.created_at,
+    });
+    blocksByStudent.set(block.student_id, current);
+  }
+
+  return students.map((student) => ({
+    ...student,
+    student_blocks: blocksByStudent.get(student.id) ?? [],
+  }));
 }
 
 export async function getAdminStats() {

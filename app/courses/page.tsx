@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { BackButton } from "@/components/navigation/back-button";
 import { CourseCard } from "@/components/storefront/course-card";
 import { CoursesFilterForm } from "@/components/storefront/courses-filter-form";
 import { EmptyState } from "@/components/storefront/empty-state";
@@ -89,6 +90,11 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           />
 
           <div className="container-page relative py-14">
+            <BackButton
+              fallbackHref="/"
+              label="رجوع للرئيسية"
+              className="mb-5"
+            />
             <div className="animate-fade-up">
               <p className="eyebrow">الكورسات</p>
               <h1 className="heading-gradient mt-2 text-3xl font-black sm:text-4xl">

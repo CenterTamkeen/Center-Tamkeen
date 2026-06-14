@@ -8,6 +8,27 @@ export type TeacherCourse = Database["public"]["Tables"]["courses"]["Row"] & {
 };
 export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"];
 export type TeacherCoupon = Database["public"]["Tables"]["coupons"]["Row"];
+export type TeacherStudent = {
+  id: string;
+  student_phone: string;
+  school_name: string;
+  profile: {
+    full_name: string;
+    phone: string | null;
+  } | null;
+  enrollments: {
+    id: string;
+    course: {
+      title: string;
+    } | null;
+  }[];
+  student_blocks: {
+    id: string;
+    teacher_id: string | null;
+    reason: string | null;
+    created_at: string;
+  }[];
+};
 
 function logTeacherError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
@@ -160,4 +181,55 @@ export async function getTeacherStats(teacherId: string) {
     activeCoupons: coupons.filter((coupon) => coupon.is_active).length,
     totalEarnings,
   };
+}
+
+export async function getTeacherStudents(teacherId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("students")
+    .select(
+      "id, student_phone, school_name, profile:profiles(full_name, phone), enrollments!inner(id, course:courses!inner(title, teacher_id))",
+    )
+    .eq("enrollments.course.teacher_id", teacherId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logTeacherError("students", error.message);
+    return [];
+  }
+
+  const students = (data ?? []) as Omit<TeacherStudent, "student_blocks">[];
+  const studentIds = students.map((student) => student.id);
+
+  if (studentIds.length === 0) {
+    return [];
+  }
+
+  const { data: blocks, error: blocksError } = await supabase
+    .from("student_blocks")
+    .select("id, student_id, teacher_id, reason, created_at")
+    .in("student_id", studentIds)
+    .eq("teacher_id", teacherId);
+
+  if (blocksError) {
+    logTeacherError("student-blocks", blocksError.message);
+  }
+
+  const blocksByStudent = new Map<string, TeacherStudent["student_blocks"]>();
+
+  for (const block of blocks ?? []) {
+    const current = blocksByStudent.get(block.student_id) ?? [];
+    current.push({
+      id: block.id,
+      teacher_id: block.teacher_id,
+      reason: block.reason,
+      created_at: block.created_at,
+    });
+    blocksByStudent.set(block.student_id, current);
+  }
+
+  return students.map((student) => ({
+    ...student,
+    student_blocks: blocksByStudent.get(student.id) ?? [],
+  }));
 }

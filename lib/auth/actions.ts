@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   getStudentPhotoValidationMessage,
+  getTeacherCoverValidationMessage,
   loginSchema,
   profileUpdateSchema,
   resetPasswordSchema,
@@ -152,6 +153,32 @@ async function uploadAvatar(
   }
 
   const { data } = admin.storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function uploadTeacherCover(
+  admin: SupabaseAdminClient,
+  teacherId: string,
+  file: File,
+) {
+  const validationMessage = getTeacherCoverValidationMessage(file);
+
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const path = `${teacherId}/cover-${Date.now()}.${getFileExtension(file)}`;
+  const { error } = await admin.storage.from("thumbnails").upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: true,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { data } = admin.storage.from("thumbnails").getPublicUrl(path);
   return data.publicUrl;
 }
 
@@ -427,6 +454,8 @@ export async function updateProfileAction(
   const values = getFormValues(formData, [
     "fullName",
     "phone",
+    "teacherSubject",
+    "teacherBio",
     "studentPhone",
     "fatherPhone",
     "schoolName",
@@ -437,6 +466,8 @@ export async function updateProfileAction(
   const parsed = profileUpdateSchema.safeParse({
     fullName: getString(formData, "fullName"),
     phone: getString(formData, "phone"),
+    teacherSubject: getOptionalString(formData, "teacherSubject"),
+    teacherBio: getOptionalString(formData, "teacherBio"),
     studentPhone: getOptionalString(formData, "studentPhone"),
     fatherPhone: getOptionalString(formData, "fatherPhone"),
     schoolName: getOptionalString(formData, "schoolName"),
@@ -444,6 +475,7 @@ export async function updateProfileAction(
     grade: getOptionalString(formData, "grade"),
     section: getOptionalString(formData, "section"),
     photo: formData.get("photo"),
+    cover: formData.get("cover"),
   });
 
   if (!parsed.success) {
@@ -484,7 +516,9 @@ export async function updateProfileAction(
   }
 
   const photo = getOptionalUpload(formData, "photo");
+  const cover = getOptionalUpload(formData, "cover");
   let photoUrl: string | null = null;
+  let coverUrl: string | null = null;
 
   if (photo) {
     const validationMessage = getStudentPhotoValidationMessage(photo);
@@ -501,10 +535,25 @@ export async function updateProfileAction(
 
     try {
       photoUrl = await uploadAvatar(admin, user.id, photo);
-    } catch {
+    } catch (error) {
+      console.error("Failed to upload profile avatar.", error);
       return failure(
         "تعذر رفع الصورة الجديدة.",
         { photo: ["تعذر رفع الصورة الجديدة."] },
+        values,
+      );
+    }
+  }
+
+  if (profile.role === "teacher" && cover) {
+    const validationMessage = getTeacherCoverValidationMessage(cover);
+
+    if (validationMessage) {
+      return failure(
+        validationMessage,
+        {
+          cover: [validationMessage],
+        },
         values,
       );
     }
@@ -566,8 +615,57 @@ export async function updateProfileAction(
         values,
       );
     }
+  } else if (profile.role === "teacher") {
+    const { data: currentTeacher } = await admin
+      .from("teachers")
+      .select("id")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+    if (cover && currentTeacher?.id) {
+      try {
+        coverUrl = await uploadTeacherCover(admin, currentTeacher.id, cover);
+      } catch (error) {
+        console.error("Failed to upload teacher cover.", error);
+        return failure(
+          "تعذر رفع خلفية المدرس.",
+          { cover: ["تعذر رفع الخلفية الجديدة."] },
+          values,
+        );
+      }
+    }
+
+    const { data: teacher, error: teacherError } = await admin
+      .from("teachers")
+      .update({
+        ...(parsed.data.teacherSubject
+          ? { subject: parsed.data.teacherSubject }
+          : {}),
+        bio: parsed.data.teacherBio || null,
+        ...(photoUrl ? { avatar_url: photoUrl } : {}),
+        ...(coverUrl ? { cover_url: coverUrl } : {}),
+      })
+      .eq("profile_id", user.id)
+      .select("slug")
+      .maybeSingle();
+
+    if (teacherError) {
+      console.error("Failed to update teacher profile fields.", teacherError);
+      return failure(
+        "تم تحديث الملف الأساسي، لكن صورة صفحة المدرس لم تُحفظ.",
+        undefined,
+        values,
+      );
+    }
+
+    if (teacher?.slug) {
+      revalidatePath(`/teachers/${teacher.slug}`);
+    }
   }
 
   revalidatePath("/profile");
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath("/dashboard/teacher");
   return success("تم حفظ التغييرات بنجاح.");
 }

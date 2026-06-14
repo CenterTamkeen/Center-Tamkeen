@@ -3,6 +3,7 @@ import { z } from "zod";
 export const egyptianMobileRegex = /^01[0-2,5]\d{8}$/;
 export const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 export const maxStudentPhotoSize = 2 * 1024 * 1024;
+export const maxTeacherCoverSize = 5 * 1024 * 1024;
 export const allowedStudentPhotoTypes = [
   "image/jpeg",
   "image/png",
@@ -85,6 +86,35 @@ export function getStudentPhotoValidationMessage(value: unknown) {
 
   return null;
 }
+
+export function getTeacherCoverValidationMessage(value: unknown) {
+  const file = getFirstFile(value);
+
+  if (!file) {
+    return null;
+  }
+
+  if (!allowedStudentPhotoTypes.includes(file.type as never)) {
+    return "الخلفية لازم تكون JPG أو PNG أو WEBP.";
+  }
+
+  if (file.size > maxTeacherCoverSize) {
+    return "حجم الخلفية لازم يكون 5MB أو أقل.";
+  }
+
+  return null;
+}
+
+const accountNameSchema = z
+  .string()
+  .trim()
+  .min(1, "الاسم مطلوب.")
+  .refine((value) => value.split(/\s+/).filter(Boolean).length >= 2, {
+    message: "اكتب الاسم ثنائي على الأقل.",
+  })
+  .refine((value) => /^[\p{L}\s]+$/u.test(value), {
+    message: "الاسم يقبل حروف ومسافات فقط بدون أرقام أو رموز.",
+  });
 
 const fullNameSchema = z
   .string()
@@ -196,8 +226,19 @@ export const studentSignUpServerSchema = baseStudentSignUpSchema.extend({
 
 export const profileUpdateSchema = z
   .object({
-    fullName: fullNameSchema,
+    fullName: accountNameSchema,
     phone: mobileSchema.or(z.literal("")).optional(),
+    teacherSubject: z
+      .string()
+      .trim()
+      .min(2, "اسم المادة مطلوب.")
+      .max(80, "اسم المادة طويل.")
+      .optional(),
+    teacherBio: z
+      .string()
+      .trim()
+      .max(500, "النبذة لا تزيد عن 500 حرف.")
+      .optional(),
     studentPhone: mobileSchema.optional(),
     fatherPhone: mobileSchema.optional(),
     schoolName: z.string().trim().min(1, "اسم المدرسة مطلوب.").optional(),
@@ -220,6 +261,7 @@ export const profileUpdateSchema = z
       })
       .optional(),
     photo: z.unknown().optional(),
+    cover: z.unknown().optional(),
   })
   .refine(
     (data) =>

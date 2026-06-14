@@ -32,6 +32,16 @@ const links = [
     ),
   },
   {
+    href: "/dashboard/teacher/students",
+    label: "الطلاب",
+    icon: (
+      <>
+        <path d="M18 21a6 6 0 0 0-12 0" />
+        <circle cx="12" cy="8" r="4" />
+      </>
+    ),
+  },
+  {
     href: "/profile",
     label: "الملف الشخصي",
     icon: (

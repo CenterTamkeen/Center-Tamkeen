@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackButton } from "@/components/navigation/back-button";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
@@ -75,6 +76,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
           <div className="container-page relative grid gap-8 py-12 lg:grid-cols-[1fr_420px]">
             <div className="animate-fade-up space-y-5">
+              <BackButton fallbackHref="/courses" label="رجوع للكورسات" />
               <p className="eyebrow">
                 {course.teacher?.subject ?? "كورس تعليمي"}
               </p>

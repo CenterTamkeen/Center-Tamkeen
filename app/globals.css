@@ -310,6 +310,15 @@ body::before {
   }
 }
 
+@keyframes tamkeen-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+
 /* ── Accessibility ────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -758,5 +767,9 @@ body::before {
     background-size: 200% 100%;
     animation: gradient-x 1.5s ease-in-out infinite;
     border-radius: var(--radius-md);
+  }
+
+  .tamkeen-marquee {
+    animation: tamkeen-marquee 28s linear infinite;
   }
 }
