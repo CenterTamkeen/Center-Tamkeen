@@ -48,9 +48,9 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
     <>
       <SiteHeader />
       <main>
-        <section className="border-border bg-surface border-b">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[180px_1fr] lg:px-8">
-            <div className="border-primary-100 bg-primary-50 relative h-40 w-40 overflow-hidden rounded-md border">
+        <section className="border-border/70 bg-surface/65 border-b backdrop-blur-sm">
+          <div className="container-page grid gap-8 py-12 sm:grid-cols-[180px_1fr]">
+            <div className="border-primary-100 bg-primary-50 relative h-40 w-40 overflow-hidden rounded-lg border shadow-[var(--shadow-card)]">
               {avatar ? (
                 <Image
                   src={avatar}
@@ -68,28 +68,26 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
             </div>
 
             <div className="space-y-4">
-              <p className="text-primary-700 text-sm font-bold">
-                {teacher.subject}
-              </p>
+              <p className="eyebrow">{teacher.subject}</p>
               <h1 className="text-3xl font-black sm:text-4xl">{name}</h1>
               <p className="text-foreground/70 max-w-3xl leading-8">
                 {teacher.bio ?? "نبذة المدرس هتظهر هنا قريبًا."}
               </p>
-              <p className="border-border inline-flex rounded-md border px-3 py-2 text-sm font-bold">
+              <p className="chip bg-surface">
                 {courses.length.toLocaleString("ar-EG")} كورس منشور
               </p>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <section className="container-page section-pad">
           <div className="mb-7">
-            <p className="text-primary-700 text-sm font-bold">كورسات المدرس</p>
+            <p className="eyebrow">كورسات المدرس</p>
             <h2 className="mt-2 text-2xl font-black">الكورسات المتاحة</h2>
           </div>
 
           {courses.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}

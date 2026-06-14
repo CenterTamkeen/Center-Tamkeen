@@ -65,9 +65,9 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     <>
       <SiteHeader />
       <main>
-        <section className="border-border bg-surface border-b">
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <p className="text-primary-700 text-sm font-bold">الكورسات</p>
+        <section className="border-border/70 bg-surface/65 border-b backdrop-blur-sm">
+          <div className="container-page py-12">
+            <p className="eyebrow">الكورسات</p>
             <h1 className="mt-2 text-3xl font-black sm:text-4xl">
               استكشف مواد تمكين
             </h1>
@@ -78,7 +78,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <section className="container-page space-y-7 py-8">
           <CoursesFilterForm
             teachers={teachers}
             defaultQuery={query}
@@ -87,7 +87,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           />
 
           <div className="flex items-center justify-between gap-4">
-            <p className="text-foreground/65 text-sm">
+            <p className="chip bg-surface text-foreground/70">
               {courses.length > 0
                 ? `${totalCount.toLocaleString("ar-EG")} كورس متاح`
                 : "لا توجد نتائج مطابقة"}
@@ -95,7 +95,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           </div>
 
           {courses.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}

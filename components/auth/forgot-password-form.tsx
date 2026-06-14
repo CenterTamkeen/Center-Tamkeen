@@ -12,8 +12,7 @@ import { forgotPasswordSchema } from "@/lib/validations/auth";
 
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
-const inputClassName =
-  "border-border bg-background focus:border-primary focus:ring-primary/20 w-full rounded-md border px-3 py-2.5 outline-none transition focus:ring-4";
+const inputClassName = "field bg-background py-2.5";
 
 export function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(
@@ -27,6 +26,9 @@ export function ForgotPasswordForm() {
   } = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     mode: "onBlur",
+    values: {
+      email: state.values?.email ?? "",
+    },
   });
 
   return (
@@ -68,17 +70,13 @@ export function ForgotPasswordForm() {
         ) : null}
       </label>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary-600 w-full rounded-md px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="submit" disabled={isPending} className="btn-primary w-full">
         {isPending ? "جاري الإرسال..." : "إرسال رابط الاستعادة"}
       </button>
 
       <Link
         href="/login"
-        className="text-primary-700 block text-sm font-semibold"
+        className="text-primary-700 hover:text-primary-900 block text-sm font-bold transition"
       >
         الرجوع لتسجيل الدخول
       </Link>

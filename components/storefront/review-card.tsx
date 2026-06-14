@@ -8,7 +8,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   const studentName = review.student?.profile?.full_name ?? "طالب تمكين";
 
   return (
-    <article className="border-border bg-surface rounded-md border p-4 shadow-sm">
+    <article className="card-modern p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="font-bold">{studentName}</h3>
@@ -16,7 +16,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             {review.course?.title ?? "كورس تمكين"}
           </p>
         </div>
-        <p className="bg-accent-50 text-accent-700 rounded-md px-2.5 py-1 text-sm font-bold">
+        <p className="bg-accent-50 text-accent-700 rounded-md px-2.5 py-1 text-sm font-black">
           {review.rating.toLocaleString("ar-EG")} / ٥
         </p>
       </div>

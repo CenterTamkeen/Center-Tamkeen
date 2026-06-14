@@ -12,8 +12,7 @@ import { resetPasswordSchema } from "@/lib/validations/auth";
 
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-const inputClassName =
-  "border-border bg-background focus:border-primary focus:ring-primary/20 w-full rounded-md border px-3 py-2.5 outline-none transition focus:ring-4";
+const inputClassName = "field bg-background py-2.5";
 
 export function ResetPasswordForm() {
   const [state, formAction, isPending] = useActionState(
@@ -27,6 +26,10 @@ export function ResetPasswordForm() {
   } = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     mode: "onBlur",
+    values: {
+      password: state.values?.password ?? "",
+      confirmPassword: state.values?.confirmPassword ?? "",
+    },
   });
 
   return (
@@ -79,17 +82,13 @@ export function ResetPasswordForm() {
         ) : null}
       </label>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary-600 w-full rounded-md px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="submit" disabled={isPending} className="btn-primary w-full">
         {isPending ? "جاري الحفظ..." : "حفظ كلمة المرور"}
       </button>
 
       <Link
         href="/login"
-        className="text-primary-700 block text-sm font-semibold"
+        className="text-primary-700 hover:text-primary-900 block text-sm font-bold transition"
       >
         الرجوع لتسجيل الدخول
       </Link>

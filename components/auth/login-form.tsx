@@ -16,8 +16,7 @@ type LoginFormProps = {
   notice?: string;
 };
 
-const inputClassName =
-  "border-border bg-background focus:border-primary focus:ring-primary/20 w-full rounded-md border px-3 py-2.5 outline-none transition focus:ring-4";
+const inputClassName = "field bg-background py-2.5";
 
 function FieldError({
   client,
@@ -65,6 +64,10 @@ export function LoginForm({ notice }: LoginFormProps) {
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
+    values: {
+      email: state.values?.email ?? "",
+      password: state.values?.password ?? "",
+    },
   });
 
   return (
@@ -114,22 +117,21 @@ export function LoginForm({ notice }: LoginFormProps) {
         />
       </label>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary-600 w-full rounded-md px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="submit" disabled={isPending} className="btn-primary w-full">
         {isPending ? "جاري الدخول..." : "دخول"}
       </button>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <Link
           href="/forgot-password"
-          className="text-primary-700 font-semibold"
+          className="text-primary-700 hover:text-primary-900 font-bold transition"
         >
           نسيت كلمة المرور؟
         </Link>
-        <Link href="/signup" className="text-primary-700 font-semibold">
+        <Link
+          href="/signup"
+          className="text-primary-700 hover:text-primary-900 font-bold transition"
+        >
           إنشاء حساب طالب
         </Link>
       </div>

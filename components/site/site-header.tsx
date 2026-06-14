@@ -3,18 +3,18 @@ import Link from "next/link";
 
 export function SiteHeader() {
   return (
-    <header className="border-border/80 bg-background/95 sticky top-0 z-30 border-b backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="border-border/70 bg-background/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+      <div className="container-page flex items-center justify-between gap-4 py-3">
+        <Link href="/" className="group flex items-center gap-3">
           <Image
             src="/Logo/tamkeen.png"
             alt="شعار تمكين"
             width={44}
             height={44}
-            className="h-11 w-11 object-contain"
+            className="h-11 w-11 object-contain transition duration-300 group-hover:scale-105"
             priority
           />
-          <span className="text-primary-700 text-xl font-bold">تمكين</span>
+          <span className="text-primary-700 text-xl font-black">تمكين</span>
         </Link>
 
         <nav className="text-foreground/75 hidden items-center gap-6 text-sm font-semibold md:flex">
@@ -32,14 +32,11 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="hover:bg-surface-muted rounded-md px-3 py-2 text-sm font-semibold transition"
+            className="hover:bg-surface-muted rounded-md px-3 py-2 text-sm font-bold transition"
           >
             دخول
           </Link>
-          <Link
-            href="/signup"
-            className="bg-primary text-primary-foreground hover:bg-primary-600 rounded-md px-4 py-2 text-sm font-semibold transition"
-          >
+          <Link href="/signup" className="btn-primary px-4 py-2">
             حساب طالب
           </Link>
         </div>

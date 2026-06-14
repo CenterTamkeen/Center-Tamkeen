@@ -14,10 +14,10 @@ export function TeacherCard({ teacher }: TeacherCardProps) {
   return (
     <Link
       href={`/teachers/${teacher.slug}`}
-      className="border-border bg-surface grid h-full gap-4 rounded-md border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="card-modern group grid h-full gap-4 p-4"
     >
       <div className="flex items-center gap-4">
-        <div className="border-primary-100 bg-primary-50 relative h-16 w-16 overflow-hidden rounded-md border">
+        <div className="border-primary-100 bg-primary-50 relative h-16 w-16 overflow-hidden rounded-lg border transition duration-300 group-hover:scale-105">
           {avatar ? (
             <Image
               src={avatar}
@@ -35,7 +35,7 @@ export function TeacherCard({ teacher }: TeacherCardProps) {
 
         <div>
           <h2 className="text-lg font-bold">{name}</h2>
-          <p className="text-primary-700 text-sm font-semibold">
+          <p className="text-primary-700 text-sm font-bold">
             {teacher.subject}
           </p>
         </div>

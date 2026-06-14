@@ -50,10 +50,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
     <>
       <SiteHeader />
       <main>
-        <section className="border-border bg-surface border-b">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_420px] lg:px-8">
-            <div className="space-y-5">
-              <p className="text-primary-700 text-sm font-bold">
+        <section className="border-border/70 bg-surface/65 border-b backdrop-blur-sm">
+          <div className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_420px]">
+            <div className="animate-fade-up space-y-5">
+              <p className="eyebrow">
                 {course.teacher?.subject ?? "كورس تعليمي"}
               </p>
               <h1 className="text-3xl leading-tight font-black sm:text-4xl">
@@ -66,22 +66,20 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 {course.teacher?.slug ? (
                   <Link
                     href={`/teachers/${course.teacher.slug}`}
-                    className="border-border hover:bg-surface-muted rounded-md border px-3 py-2 text-sm font-bold transition"
+                    className="btn-secondary px-3 py-2"
                   >
                     {teacherName}
                   </Link>
                 ) : (
-                  <span className="border-border rounded-md border px-3 py-2 text-sm font-bold">
-                    {teacherName}
-                  </span>
+                  <span className="btn-secondary px-3 py-2">{teacherName}</span>
                 )}
-                <span className="bg-accent-50 text-accent-700 rounded-md px-3 py-2 text-sm font-bold">
+                <span className="bg-accent-50 text-accent-700 rounded-md px-3 py-2 text-sm font-black">
                   {formatPrice(course.price)}
                 </span>
               </div>
             </div>
 
-            <aside className="border-border bg-background overflow-hidden rounded-md border">
+            <aside className="glass-panel overflow-hidden rounded-lg">
               <div className="relative aspect-video">
                 {course.thumbnail_url ? (
                   <Image
@@ -101,7 +99,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
               <div className="space-y-4 p-4">
                 <Link
                   href="/login"
-                  className="bg-primary text-primary-foreground hover:bg-primary-600 flex w-full justify-center rounded-md px-4 py-3 text-sm font-bold transition"
+                  className="btn-primary flex w-full justify-center"
                 >
                   أضف للسلة
                 </Link>
@@ -110,7 +108,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
+        <section className="container-page grid gap-8 py-10 lg:grid-cols-[1fr_320px]">
           <div className="space-y-8">
             <section>
               <div className="mb-4 flex items-center justify-between gap-4">
@@ -119,12 +117,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   {course.lessons.length.toLocaleString("ar-EG")} حصة
                 </span>
               </div>
-              <div className="border-border bg-surface divide-border overflow-hidden rounded-md border">
+              <div className="glass-panel divide-border/70 overflow-hidden rounded-lg">
                 {course.lessons.length > 0 ? (
                   course.lessons.map((lesson) => (
                     <div
                       key={lesson.id}
-                      className="flex items-center justify-between gap-4 border-b px-4 py-3 last:border-b-0"
+                      className="hover:bg-primary-50/40 flex items-center justify-between gap-4 border-b px-4 py-3 transition last:border-b-0"
                     >
                       <div>
                         <h3 className="font-bold">{lesson.title}</h3>
@@ -133,7 +131,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                         </p>
                       </div>
                       {lesson.is_free_preview ? (
-                        <span className="bg-primary-50 text-primary-700 rounded-md px-2.5 py-1 text-xs font-bold">
+                        <span className="bg-primary-50 text-primary-700 rounded-md px-2.5 py-1 text-xs font-black">
                           Preview
                         </span>
                       ) : (
@@ -154,15 +152,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
               {course.reviews.length > 0 ? (
                 <div className="grid gap-3">
                   {course.reviews.map((review) => (
-                    <article
-                      key={review.id}
-                      className="border-border bg-surface rounded-md border p-4"
-                    >
+                    <article key={review.id} className="card-modern p-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <h3 className="font-bold">
                           {review.student?.profile?.full_name ?? "طالب تمكين"}
                         </h3>
-                        <span className="bg-accent-50 text-accent-700 rounded-md px-2 py-1 text-sm font-bold">
+                        <span className="bg-accent-50 text-accent-700 rounded-md px-2 py-1 text-sm font-black">
                           {review.rating.toLocaleString("ar-EG")} / ٥
                         </span>
                       </div>
@@ -173,7 +168,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="border-border bg-surface text-foreground/65 rounded-md border px-4 py-8 text-center">
+                <div className="glass-panel text-foreground/65 rounded-lg px-4 py-8 text-center">
                   لا توجد تقييمات لهذا الكورس حتى الآن.
                 </div>
               )}
@@ -181,7 +176,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
 
           <aside className="space-y-4">
-            <div className="border-border bg-surface rounded-md border p-4">
+            <div className="glass-panel rounded-lg p-4">
               <h2 className="text-lg font-black">حصة Preview</h2>
               {previewLesson ? (
                 <div className="mt-3 space-y-2">

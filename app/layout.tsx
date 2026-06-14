@@ -34,8 +34,12 @@ export default function RootLayout({
       lang="ar"
       dir="rtl"
       className={`${cairo.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="bg-background text-foreground flex min-h-full flex-col">
+      <body
+        className="bg-background text-foreground flex min-h-full flex-col"
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

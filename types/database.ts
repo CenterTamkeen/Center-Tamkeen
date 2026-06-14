@@ -63,7 +63,7 @@ export type Database = {
           gender: PublicEnums["student_gender"];
           grade: PublicEnums["student_grade"];
           section: PublicEnums["student_section"];
-          photo_url: string;
+          photo_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -76,7 +76,7 @@ export type Database = {
           gender: PublicEnums["student_gender"];
           grade: PublicEnums["student_grade"];
           section: PublicEnums["student_section"];
-          photo_url: string;
+          photo_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -89,7 +89,7 @@ export type Database = {
           gender?: PublicEnums["student_gender"];
           grade?: PublicEnums["student_grade"];
           section?: PublicEnums["student_section"];
-          photo_url?: string;
+          photo_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

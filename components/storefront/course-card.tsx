@@ -11,10 +11,10 @@ export function CourseCard({ course }: CourseCardProps) {
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
 
   return (
-    <article className="border-border bg-surface flex h-full flex-col overflow-hidden rounded-md border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="card-modern group flex h-full flex-col overflow-hidden">
       <Link
         href={`/courses/${course.id}`}
-        className="relative block aspect-video"
+        className="relative block aspect-video overflow-hidden"
       >
         {course.thumbnail_url ? (
           <Image
@@ -22,10 +22,10 @@ export function CourseCard({ course }: CourseCardProps) {
             alt={course.title}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover"
+            className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="from-primary-50 to-accent-100 flex h-full items-center justify-center bg-linear-to-br">
+          <div className="from-primary-50 via-surface to-accent-100 flex h-full items-center justify-center bg-linear-to-br">
             <span className="text-primary-700 text-lg font-bold">
               {course.teacher?.subject ?? "تمكين"}
             </span>
@@ -35,9 +35,7 @@ export function CourseCard({ course }: CourseCardProps) {
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-2">
-          <p className="text-primary-700 text-sm font-bold">
-            {course.teacher?.subject ?? "كورس تعليمي"}
-          </p>
+          <p className="eyebrow">{course.teacher?.subject ?? "كورس تعليمي"}</p>
           <Link href={`/courses/${course.id}`}>
             <h2 className="line-clamp-2 text-lg leading-7 font-bold">
               {course.title}
@@ -48,7 +46,7 @@ export function CourseCard({ course }: CourseCardProps) {
           </p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t pt-4">
+        <div className="border-border/70 mt-auto flex items-center justify-between gap-3 border-t pt-4">
           <div>
             <p className="text-foreground/55 text-xs">المدرس</p>
             {course.teacher?.slug ? (
@@ -62,7 +60,7 @@ export function CourseCard({ course }: CourseCardProps) {
               <p className="text-sm font-semibold">{teacherName}</p>
             )}
           </div>
-          <p className="text-primary-700 text-base font-bold">
+          <p className="bg-primary-50 text-primary-700 rounded-md px-3 py-1.5 text-base font-black">
             {formatPrice(course.price)}
           </p>
         </div>

@@ -46,6 +46,16 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
     updateProfileAction,
     initialActionState,
   );
+  const formValues = {
+    fullName: state.values?.fullName ?? profile.full_name,
+    phone: state.values?.phone ?? profile.phone ?? "",
+    studentPhone: state.values?.studentPhone ?? student?.student_phone ?? "",
+    fatherPhone: state.values?.fatherPhone ?? student?.father_phone ?? "",
+    schoolName: state.values?.schoolName ?? student?.school_name ?? "",
+    gender: state.values?.gender ?? student?.gender ?? "",
+    grade: state.values?.grade ?? student?.grade ?? "",
+    section: state.values?.section ?? student?.section ?? "",
+  };
   const {
     register,
     control,
@@ -55,16 +65,8 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
   } = useForm<ProfileUpdateValues>({
     resolver: zodResolver(profileUpdateSchema),
     mode: "onBlur",
-    defaultValues: {
-      fullName: profile.full_name,
-      phone: profile.phone ?? "",
-      studentPhone: student?.student_phone ?? "",
-      fatherPhone: student?.father_phone ?? "",
-      schoolName: student?.school_name ?? "",
-      gender: student?.gender ?? "",
-      grade: student?.grade ?? "",
-      section: student?.section ?? "",
-    },
+    defaultValues: formValues,
+    values: formValues,
   });
   const selectedGrade = useWatch({
     control,
@@ -127,10 +129,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-2 sm:col-span-2">
           <span className="text-sm font-semibold">الاسم</span>
-          <input
-            {...register("fullName")}
-            className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
-          />
+          <input {...register("fullName")} className="field py-2.5" />
           <ErrorText
             message={
               errors.fullName?.message ?? state.fieldErrors?.fullName?.[0]
@@ -143,7 +142,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
           <input
             {...register("phone")}
             inputMode="tel"
-            className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 text-right outline-none focus:ring-4"
+            className="field py-2.5 text-right"
           />
           <ErrorText
             message={errors.phone?.message ?? state.fieldErrors?.phone?.[0]}
@@ -156,7 +155,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             {...register("photo")}
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            className="border-border bg-surface file:bg-primary file:text-primary-foreground w-full rounded-md border px-3 py-2 text-sm file:ml-3 file:rounded-sm file:border-0 file:px-3 file:py-1.5 file:font-semibold"
+            className="border-border bg-surface file:bg-primary file:text-primary-foreground w-full rounded-md border px-3 py-2 text-sm file:ml-3 file:rounded-md file:border-0 file:px-3 file:py-1.5 file:font-bold"
           />
           <ErrorText message={state.fieldErrors?.photo?.[0]} />
         </label>
@@ -168,7 +167,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
               <input
                 {...register("studentPhone")}
                 inputMode="tel"
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 text-right outline-none focus:ring-4"
+                className="field py-2.5 text-right"
               />
               <ErrorText
                 message={
@@ -183,7 +182,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
               <input
                 {...register("fatherPhone")}
                 inputMode="tel"
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 text-right outline-none focus:ring-4"
+                className="field py-2.5 text-right"
               />
               <ErrorText
                 message={
@@ -195,43 +194,45 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
 
             <label className="block space-y-2 sm:col-span-2">
               <span className="text-sm font-semibold">اسم المدرسة</span>
-              <input
-                {...register("schoolName")}
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
+              <input {...register("schoolName")} className="field py-2.5" />
+              <ErrorText
+                message={
+                  errors.schoolName?.message ??
+                  state.fieldErrors?.schoolName?.[0]
+                }
               />
             </label>
 
             <label className="block space-y-2">
               <span className="text-sm font-semibold">النوع</span>
-              <select
-                {...register("gender")}
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
-              >
+              <select {...register("gender")} className="field py-2.5">
                 <option value="male">ذكر</option>
                 <option value="female">أنثى</option>
               </select>
+              <ErrorText
+                message={
+                  errors.gender?.message ?? state.fieldErrors?.gender?.[0]
+                }
+              />
             </label>
 
             <label className="block space-y-2">
               <span className="text-sm font-semibold">السنة الدراسية</span>
-              <select
-                {...register("grade")}
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
-              >
+              <select {...register("grade")} className="field py-2.5">
                 {Object.entries(gradeLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
               </select>
+              <ErrorText
+                message={errors.grade?.message ?? state.fieldErrors?.grade?.[0]}
+              />
             </label>
 
             <label className="block space-y-2">
               <span className="text-sm font-semibold">الشعبة</span>
-              <select
-                {...register("section")}
-                className="border-border bg-surface focus:ring-primary/25 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
-              >
+              <select {...register("section")} className="field py-2.5">
                 {availableSections.map((value) => (
                   <option key={value} value={value}>
                     {sectionLabels[value]}
@@ -251,7 +252,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary-600 rounded-md px-5 py-2.5 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn-primary px-5 py-2.5"
       >
         {isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
       </button>

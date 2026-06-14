@@ -16,7 +16,7 @@ export function CoursesFilterForm({
   return (
     <form
       action="/courses"
-      className="border-border bg-surface grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_220px_190px_auto]"
+      className="glass-panel grid gap-3 rounded-lg p-4 md:grid-cols-[1fr_220px_190px_auto]"
     >
       <label className="space-y-2">
         <span className="text-sm font-bold">ابحث باسم المادة</span>
@@ -24,7 +24,7 @@ export function CoursesFilterForm({
           name="q"
           defaultValue={defaultQuery}
           placeholder="مثال: فيزياء، رياضيات، لغة عربية"
-          className="border-border bg-background focus:ring-primary/20 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
+          className="field bg-background py-2.5"
         />
       </label>
 
@@ -33,7 +33,7 @@ export function CoursesFilterForm({
         <select
           name="teacher"
           defaultValue={defaultTeacher}
-          className="border-border bg-background focus:ring-primary/20 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
+          className="field bg-background py-2.5"
         >
           <option value="">كل المدرسين</option>
           {teachers.map((teacher) => (
@@ -49,7 +49,7 @@ export function CoursesFilterForm({
         <select
           name="sort"
           defaultValue={defaultSort ?? "newest"}
-          className="border-border bg-background focus:ring-primary/20 w-full rounded-md border px-3 py-2 outline-none focus:ring-4"
+          className="field bg-background py-2.5"
         >
           <option value="newest">الأحدث</option>
           <option value="price_asc">السعر من الأقل</option>
@@ -58,10 +58,7 @@ export function CoursesFilterForm({
       </label>
 
       <div className="flex items-end">
-        <button
-          type="submit"
-          className="bg-primary text-primary-foreground hover:bg-primary-600 h-10 w-full rounded-md px-5 text-sm font-bold transition"
-        >
+        <button type="submit" className="btn-primary h-11 w-full px-5 py-0">
           تطبيق
         </button>
       </div>

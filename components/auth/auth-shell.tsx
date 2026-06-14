@@ -16,26 +16,26 @@ export function AuthShell({
   wide = false,
 }: AuthShellProps) {
   return (
-    <main className="bg-surface-muted min-h-screen px-4 py-8 sm:px-6">
+    <main className="min-h-screen px-4 py-8 sm:px-6">
       <section
-        className={`border-border bg-surface mx-auto rounded-md border shadow-sm ${
+        className={`glass-panel animate-fade-up mx-auto overflow-hidden rounded-lg ${
           wide ? "max-w-4xl" : "max-w-md"
         }`}
       >
-        <div className="border-border border-b px-5 py-6 text-center sm:px-7">
+        <div className="border-border/70 bg-surface/60 border-b px-5 py-6 text-center sm:px-7">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-3"
+            className="group inline-flex items-center justify-center gap-3"
           >
             <Image
               src="/Logo/tamkeen.png"
               alt="شعار تمكين"
               width={56}
               height={56}
-              className="h-12 w-12 object-contain"
+              className="h-12 w-12 object-contain transition duration-300 group-hover:scale-105"
               priority
             />
-            <span className="text-primary-700 text-2xl font-bold">تمكين</span>
+            <span className="text-primary-700 text-2xl font-black">تمكين</span>
           </Link>
 
           <h1 className="mt-5 text-2xl leading-tight font-black sm:text-3xl">

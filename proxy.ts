@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getRoleHomePath, type AppRole } from "@/lib/auth/roles";
 import type { Database } from "@/types/database";
 
-const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const authRoutes = ["/login", "/signup", "/forgot-password"];
 const protectedRoutes = ["/dashboard", "/profile"];
 
 function isRoute(pathname: string, routes: string[]) {

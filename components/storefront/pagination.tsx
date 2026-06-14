@@ -36,7 +36,7 @@ export function Pagination({
       {page > 1 ? (
         <Link
           href={getHref(page - 1, searchParams)}
-          className="border-border bg-surface hover:bg-surface-muted rounded-md border px-4 py-2 text-sm font-bold transition"
+          className="btn-secondary px-4 py-2"
         >
           السابق
         </Link>
@@ -50,7 +50,7 @@ export function Pagination({
       {page < totalPages ? (
         <Link
           href={getHref(page + 1, searchParams)}
-          className="border-border bg-surface hover:bg-surface-muted rounded-md border px-4 py-2 text-sm font-bold transition"
+          className="btn-secondary px-4 py-2"
         >
           التالي
         </Link>

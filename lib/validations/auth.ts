@@ -72,7 +72,7 @@ export function getStudentPhotoValidationMessage(value: unknown) {
   const file = getFirstFile(value);
 
   if (!file) {
-    return "صورة الطالب مطلوبة.";
+    return null;
   }
 
   if (!allowedStudentPhotoTypes.includes(file.type as never)) {
@@ -177,7 +177,7 @@ export const studentSignUpClientSchema = baseStudentSignUpSchema.extend({
   photo: z
     .unknown()
     .refine((value) => getStudentPhotoValidationMessage(value) === null, {
-      message: "صورة الطالب مطلوبة بحجم 2MB أو أقل وبصيغة JPG/PNG/WEBP.",
+      message: "الصورة لازم تكون 2MB أو أقل وبصيغة JPG/PNG/WEBP.",
     }),
 });
 
@@ -198,12 +198,27 @@ export const profileUpdateSchema = z
   .object({
     fullName: fullNameSchema,
     phone: mobileSchema.or(z.literal("")).optional(),
-    studentPhone: mobileSchema.or(z.literal("")).optional(),
-    fatherPhone: mobileSchema.or(z.literal("")).optional(),
-    schoolName: z.string().trim().optional(),
-    gender: z.string().optional(),
-    grade: z.string().optional(),
-    section: z.string().optional(),
+    studentPhone: mobileSchema.optional(),
+    fatherPhone: mobileSchema.optional(),
+    schoolName: z.string().trim().min(1, "اسم المدرسة مطلوب.").optional(),
+    gender: z
+      .string()
+      .refine((value) => genderValues.includes(value as never), {
+        message: "اختار النوع.",
+      })
+      .optional(),
+    grade: z
+      .string()
+      .refine((value) => gradeValues.includes(value as never), {
+        message: "اختار السنة الدراسية.",
+      })
+      .optional(),
+    section: z
+      .string()
+      .refine((value) => sectionValues.includes(value as never), {
+        message: "اختار الشعبة المناسبة.",
+      })
+      .optional(),
     photo: z.unknown().optional(),
   })
   .refine(
