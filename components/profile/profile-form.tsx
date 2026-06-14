@@ -38,7 +38,25 @@ function ErrorText({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="text-danger text-sm">{message}</p>;
+  return (
+    <p className="animate-slide-down text-danger flex items-center gap-1.5 text-sm">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+      {message}
+    </p>
+  );
 }
 
 export function ProfileForm({ profile, student }: ProfileFormProps) {
@@ -115,21 +133,53 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       }}
     >
       {state.message ? (
-        <p
-          className={
-            state.status === "success"
-              ? "bg-primary-50 text-primary-700 rounded-md px-3 py-2 text-sm"
-              : "rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
-          }
+        <div
+          className={`animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+            state.status === "success" ? "text-primary-700" : "text-red-700"
+          }`}
+          style={{
+            background:
+              state.status === "success"
+                ? "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))"
+                : "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
+          }}
         >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {state.status === "success" ? (
+              <>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </>
+            ) : (
+              <>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </>
+            )}
+          </svg>
           {state.message}
-        </p>
+        </div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-2 sm:col-span-2">
-          <span className="text-sm font-semibold">الاسم</span>
-          <input {...register("fullName")} className="field py-2.5" />
+          <span className="text-foreground/80 text-sm font-semibold">
+            الاسم
+          </span>
+          <input
+            {...register("fullName")}
+            className="field bg-background/60 py-2.5"
+          />
           <ErrorText
             message={
               errors.fullName?.message ?? state.fieldErrors?.fullName?.[0]
@@ -138,11 +188,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-semibold">رقم الهاتف</span>
+          <span className="text-foreground/80 text-sm font-semibold">
+            رقم الهاتف
+          </span>
           <input
             {...register("phone")}
             inputMode="tel"
-            className="field py-2.5 text-right"
+            className="field bg-background/60 py-2.5 text-right"
           />
           <ErrorText
             message={errors.phone?.message ?? state.fieldErrors?.phone?.[0]}
@@ -150,12 +202,15 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-semibold">الصورة</span>
+          <span className="text-foreground/80 text-sm font-semibold">
+            الصورة
+          </span>
           <input
             {...register("photo")}
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            className="border-border bg-surface file:bg-primary file:text-primary-foreground w-full rounded-md border px-3 py-2 text-sm file:ml-3 file:rounded-md file:border-0 file:px-3 file:py-1.5 file:font-bold"
+            className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
+            style={{ borderColor: "var(--border)" }}
           />
           <ErrorText message={state.fieldErrors?.photo?.[0]} />
         </label>
@@ -163,11 +218,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
         {isStudent ? (
           <>
             <label className="block space-y-2">
-              <span className="text-sm font-semibold">رقم الطالب</span>
+              <span className="text-foreground/80 text-sm font-semibold">
+                رقم الطالب
+              </span>
               <input
                 {...register("studentPhone")}
                 inputMode="tel"
-                className="field py-2.5 text-right"
+                className="field bg-background/60 py-2.5 text-right"
               />
               <ErrorText
                 message={
@@ -178,11 +235,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-semibold">رقم ولي الأمر</span>
+              <span className="text-foreground/80 text-sm font-semibold">
+                رقم ولي الأمر
+              </span>
               <input
                 {...register("fatherPhone")}
                 inputMode="tel"
-                className="field py-2.5 text-right"
+                className="field bg-background/60 py-2.5 text-right"
               />
               <ErrorText
                 message={
@@ -193,8 +252,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             </label>
 
             <label className="block space-y-2 sm:col-span-2">
-              <span className="text-sm font-semibold">اسم المدرسة</span>
-              <input {...register("schoolName")} className="field py-2.5" />
+              <span className="text-foreground/80 text-sm font-semibold">
+                اسم المدرسة
+              </span>
+              <input
+                {...register("schoolName")}
+                className="field bg-background/60 py-2.5"
+              />
               <ErrorText
                 message={
                   errors.schoolName?.message ??
@@ -204,8 +268,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-semibold">النوع</span>
-              <select {...register("gender")} className="field py-2.5">
+              <span className="text-foreground/80 text-sm font-semibold">
+                النوع
+              </span>
+              <select
+                {...register("gender")}
+                className="field bg-background/60 py-2.5"
+              >
                 <option value="male">ذكر</option>
                 <option value="female">أنثى</option>
               </select>
@@ -217,8 +286,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-semibold">السنة الدراسية</span>
-              <select {...register("grade")} className="field py-2.5">
+              <span className="text-foreground/80 text-sm font-semibold">
+                السنة الدراسية
+              </span>
+              <select
+                {...register("grade")}
+                className="field bg-background/60 py-2.5"
+              >
                 {Object.entries(gradeLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -231,8 +305,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-semibold">الشعبة</span>
-              <select {...register("section")} className="field py-2.5">
+              <span className="text-foreground/80 text-sm font-semibold">
+                الشعبة
+              </span>
+              <select
+                {...register("section")}
+                className="field bg-background/60 py-2.5"
+              >
                 {availableSections.map((value) => (
                   <option key={value} value={value}>
                     {sectionLabels[value]}
@@ -252,9 +331,34 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="btn-primary px-5 py-2.5"
+        className="btn-primary gap-2 px-6 py-2.5"
       >
-        {isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+        {isPending ? (
+          <>
+            <svg
+              className="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            جاري الحفظ...
+          </>
+        ) : (
+          "حفظ التغييرات"
+        )}
       </button>
     </form>
   );

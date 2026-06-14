@@ -3,46 +3,108 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="border-border/70 bg-surface/75 border-t backdrop-blur-sm">
-      <div className="container-page grid gap-8 py-12 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/Logo/tamkeen.png"
-              alt="شعار تمكين"
-              width={44}
-              height={44}
-              className="h-10 w-10 object-contain"
-            />
-            <span className="text-primary-700 text-xl font-black">تمكين</span>
+    <footer className="relative overflow-hidden">
+      {/* Gradient top border */}
+      <div
+        className="h-px w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgb(22 138 117 / 0.3), rgb(245 197 24 / 0.2), transparent)",
+        }}
+      />
+
+      <div
+        className="relative"
+        style={{
+          background:
+            "linear-gradient(180deg, rgb(236 245 241 / 0.5) 0%, rgb(255 255 255 / 0.6) 100%)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        {/* Decorative circles */}
+        <div
+          className="deco-circle"
+          style={{
+            width: 300,
+            height: 300,
+            top: -100,
+            right: -100,
+            background: "rgb(22 138 117 / 0.04)",
+          }}
+        />
+        <div
+          className="deco-circle"
+          style={{
+            width: 200,
+            height: 200,
+            bottom: -50,
+            left: "20%",
+            background: "rgb(245 197 24 / 0.04)",
+          }}
+        />
+
+        <div className="container-page relative grid gap-10 py-14 md:grid-cols-[1.3fr_0.8fr_0.8fr]">
+          {/* Brand column */}
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Image
+                  src="/Logo/tamkeen-transparent.png"
+                  alt="شعار تمكين"
+                  width={44}
+                  height={44}
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <span className="eyebrow text-xl">تمكين</span>
+            </div>
+            <p className="text-foreground/65 max-w-md text-sm leading-7">
+              منصة تعليمية عربية لطلاب الثانوية العامة، بتجمع المدرسين والكورسات
+              والاشتراكات في مكان واحد.
+            </p>
           </div>
-          <p className="text-foreground/70 max-w-md leading-7">
-            منصة تعليمية عربية لطلاب الثانوية العامة، بتجمع المدرسين والكورسات
-            والاشتراكات في مكان واحد.
-          </p>
+
+          {/* Quick links */}
+          <div className="space-y-4">
+            <h2 className="text-foreground/90 font-black">روابط سريعة</h2>
+            <nav className="flex flex-col gap-2">
+              {[
+                { href: "/courses", label: "تصفح الكورسات" },
+                { href: "/signup", label: "تسجيل طالب" },
+                { href: "/login", label: "تسجيل الدخول" },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
+                >
+                  <span className="bg-primary-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* Support */}
+          <div className="space-y-4">
+            <h2 className="text-foreground/90 font-black">الدعم</h2>
+            <p className="text-foreground/60 text-sm leading-7">
+              تابع لوحة الطالب لمعرفة الطلبات والكورسات بعد تفعيل الدفع في
+              المراحل القادمة.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="font-black">روابط سريعة</h2>
-          <nav className="text-foreground/70 flex flex-col gap-2 text-sm">
-            <Link href="/courses" className="hover:text-primary-700 transition">
-              تصفح الكورسات
-            </Link>
-            <Link href="/signup" className="hover:text-primary-700 transition">
-              تسجيل طالب
-            </Link>
-            <Link href="/login" className="hover:text-primary-700 transition">
-              تسجيل الدخول
-            </Link>
-          </nav>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="font-black">الدعم</h2>
-          <p className="text-foreground/70 text-sm leading-7">
-            تابع لوحة الطالب لمعرفة الطلبات والكورسات بعد تفعيل الدفع في المراحل
-            القادمة.
-          </p>
+        {/* Bottom bar */}
+        <div
+          className="border-t py-5"
+          style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
+        >
+          <div className="container-page text-foreground/45 flex items-center justify-between text-xs">
+            <p>© {new Date().getFullYear()} تمكين. جميع الحقوق محفوظة.</p>
+            <p className="text-gradient-animated font-bold">تمكين التعليمية</p>
+          </div>
         </div>
       </div>
     </footer>

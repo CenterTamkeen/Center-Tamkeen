@@ -1,45 +1,156 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function SiteHeader() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 20);
+    }
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="border-border/70 bg-background/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+    <header
+      className={`sticky top-0 z-50 transition-all duration-500 ${
+        scrolled ? "py-0 shadow-[0_1px_3px_rgb(13_37_31/0.06)]" : "py-1"
+      }`}
+      style={{
+        background: scrolled
+          ? "rgb(255 255 255 / 0.82)"
+          : "rgb(255 255 255 / 0.55)",
+        backdropFilter: `blur(${scrolled ? "24px" : "16px"}) saturate(180%)`,
+        WebkitBackdropFilter: `blur(${scrolled ? "24px" : "16px"}) saturate(180%)`,
+        borderBottom: `1px solid rgb(208 227 218 / ${scrolled ? "0.6" : "0.3"})`,
+      }}
+    >
       <div className="container-page flex items-center justify-between gap-4 py-3">
+        {/* Logo */}
         <Link href="/" className="group flex items-center gap-3">
-          <Image
-            src="/Logo/tamkeen.png"
-            alt="شعار تمكين"
-            width={44}
-            height={44}
-            className="h-11 w-11 object-contain transition duration-300 group-hover:scale-105"
-            priority
-          />
-          <span className="text-primary-700 text-xl font-black">تمكين</span>
+          <div className="relative">
+            <Image
+              src="/Logo/tamkeen-transparent.png"
+              alt="شعار تمكين"
+              width={44}
+              height={44}
+              className="h-11 w-11 object-contain transition-all duration-500 group-hover:scale-110 group-hover:rotate-3"
+              priority
+            />
+            <div className="bg-primary/10 absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          </div>
+          <span
+            className="group-hover:text-primary-600 text-xl font-black transition-colors duration-300"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--primary-700), var(--primary-500))",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            تمكين
+          </span>
         </Link>
 
-        <nav className="text-foreground/75 hidden items-center gap-6 text-sm font-semibold md:flex">
-          <Link href="/courses" className="hover:text-primary-700 transition">
-            الكورسات
-          </Link>
-          <Link href="/#teachers" className="hover:text-primary-700 transition">
-            المدرسين
-          </Link>
-          <Link href="/#reviews" className="hover:text-primary-700 transition">
-            التقييمات
-          </Link>
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {[
+            { href: "/courses", label: "الكورسات" },
+            { href: "/#teachers", label: "المدرسين" },
+            { href: "/#reviews", label: "التقييمات" },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="group text-foreground/70 hover:text-primary-700 relative rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-300"
+            >
+              {link.label}
+              <span className="from-primary-400 to-primary-600 absolute inset-x-3 -bottom-0 h-0.5 origin-right scale-x-0 rounded-full bg-gradient-to-l transition-transform duration-300 group-hover:origin-left group-hover:scale-x-100" />
+            </Link>
+          ))}
         </nav>
 
+        {/* CTA buttons */}
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="hover:bg-surface-muted rounded-md px-3 py-2 text-sm font-bold transition"
+            className="text-foreground/75 hover:bg-primary-50/60 hover:text-primary-700 hidden rounded-lg px-4 py-2 text-sm font-bold transition-all duration-300 sm:inline-flex"
           >
             دخول
           </Link>
-          <Link href="/signup" className="btn-primary px-4 py-2">
+          <Link
+            href="/signup"
+            className="btn-primary px-4 py-2 text-xs sm:text-sm"
+          >
             حساب طالب
           </Link>
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="hover:bg-primary-50/60 relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300 md:hidden"
+            aria-label={menuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+          >
+            <div className="flex w-5 flex-col items-center gap-1.5">
+              <span
+                className={`bg-foreground/70 h-0.5 w-full rounded-full transition-all duration-300 ${
+                  menuOpen ? "translate-y-2 rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`bg-foreground/70 h-0.5 w-full rounded-full transition-all duration-300 ${
+                  menuOpen ? "scale-x-0 opacity-0" : ""
+                }`}
+              />
+              <span
+                className={`bg-foreground/70 h-0.5 w-full rounded-full transition-all duration-300 ${
+                  menuOpen ? "-translate-y-2 -rotate-45" : ""
+                }`}
+              />
+            </div>
+          </button>
         </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div
+        className={`border-border/40 overflow-hidden border-t transition-all duration-400 md:hidden ${
+          menuOpen
+            ? "max-h-80 opacity-100"
+            : "max-h-0 border-t-transparent opacity-0"
+        }`}
+        style={{
+          background: "rgb(255 255 255 / 0.92)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+        }}
+      >
+        <nav className="container-page flex flex-col gap-1 py-4">
+          {[
+            { href: "/courses", label: "الكورسات" },
+            { href: "/#teachers", label: "المدرسين" },
+            { href: "/#reviews", label: "التقييمات" },
+            { href: "/login", label: "تسجيل الدخول" },
+          ].map((link, i) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMenuOpen(false)}
+              className="text-foreground/75 hover:bg-primary-50/60 hover:text-primary-700 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-300 hover:pr-6"
+              style={{ animationDelay: `${i * 0.05}s` }}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

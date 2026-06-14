@@ -16,8 +16,6 @@ type LoginFormProps = {
   notice?: string;
 };
 
-const inputClassName = "field bg-background py-2.5";
-
 function FieldError({
   client,
   server,
@@ -31,7 +29,25 @@ function FieldError({
     return null;
   }
 
-  return <p className="text-danger text-sm">{message}</p>;
+  return (
+    <p className="animate-slide-down text-danger flex items-center gap-1.5 text-sm">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+      {message}
+    </p>
+  );
 }
 
 function StatusMessage({ state }: { state: ActionState }) {
@@ -40,15 +56,42 @@ function StatusMessage({ state }: { state: ActionState }) {
   }
 
   return (
-    <p
-      className={
-        state.status === "success"
-          ? "bg-primary-50 text-primary-700 rounded-md px-3 py-2 text-sm"
-          : "rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
-      }
+    <div
+      className={`animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+        state.status === "success" ? "text-primary-700" : "text-red-700"
+      }`}
+      style={{
+        background:
+          state.status === "success"
+            ? "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))"
+            : "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
+      }}
     >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {state.status === "success" ? (
+          <>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </>
+        ) : (
+          <>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </>
+        )}
+      </svg>
       {state.message}
-    </p>
+    </div>
   );
 }
 
@@ -83,19 +126,40 @@ export function LoginForm({ notice }: LoginFormProps) {
       }}
     >
       {notice ? (
-        <p className="bg-primary-50 text-primary-700 rounded-md px-3 py-2 text-sm">
+        <div
+          className="animate-slide-down text-primary-700 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
           {notice}
-        </p>
+        </div>
       ) : null}
       <StatusMessage state={state} />
 
       <label className="block space-y-2">
-        <span className="text-sm font-semibold">الإيميل</span>
+        <span className="text-foreground/80 text-sm font-semibold">
+          الإيميل
+        </span>
         <input
           {...register("email")}
           type="email"
           autoComplete="email"
-          className={inputClassName}
+          className="field bg-background/60 py-2.5"
         />
         <FieldError
           client={errors.email?.message}
@@ -104,12 +168,14 @@ export function LoginForm({ notice }: LoginFormProps) {
       </label>
 
       <label className="block space-y-2">
-        <span className="text-sm font-semibold">كلمة المرور</span>
+        <span className="text-foreground/80 text-sm font-semibold">
+          كلمة المرور
+        </span>
         <input
           {...register("password")}
           type="password"
           autoComplete="current-password"
-          className={inputClassName}
+          className="field bg-background/60 py-2.5"
         />
         <FieldError
           client={errors.password?.message}
@@ -117,20 +183,49 @@ export function LoginForm({ notice }: LoginFormProps) {
         />
       </label>
 
-      <button type="submit" disabled={isPending} className="btn-primary w-full">
-        {isPending ? "جاري الدخول..." : "دخول"}
+      <button
+        type="submit"
+        disabled={isPending}
+        className="btn-primary w-full gap-2 py-3.5"
+      >
+        {isPending ? (
+          <>
+            <svg
+              className="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            جاري الدخول...
+          </>
+        ) : (
+          "دخول"
+        )}
       </button>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <Link
           href="/forgot-password"
-          className="text-primary-700 hover:text-primary-900 font-bold transition"
+          className="text-primary-700 hover:text-primary-500 font-bold transition-all duration-300 hover:translate-x-[-2px]"
         >
           نسيت كلمة المرور؟
         </Link>
         <Link
           href="/signup"
-          className="text-primary-700 hover:text-primary-900 font-bold transition"
+          className="text-primary-700 hover:text-primary-500 font-bold transition-all duration-300 hover:translate-x-[-2px]"
         >
           إنشاء حساب طالب
         </Link>

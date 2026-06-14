@@ -25,7 +25,10 @@ export default async function ProfilePage() {
 
   return (
     <DashboardShell title="الملف الشخصي" eyebrow="بيانات الحساب">
-      <div className="glass-panel rounded-lg p-5">
+      <div
+        className="card-modern animate-fade-up p-6"
+        style={{ animationDelay: "0.1s" }}
+      >
         <ProfileForm profile={profile} student={student} />
       </div>
     </DashboardShell>

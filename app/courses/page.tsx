@@ -6,6 +6,7 @@ import { CourseCard } from "@/components/storefront/course-card";
 import { CoursesFilterForm } from "@/components/storefront/courses-filter-form";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { Pagination } from "@/components/storefront/pagination";
+import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCoursesPage, getFeaturedTeachers } from "@/lib/storefront/data";
 
 export const metadata: Metadata = {
@@ -65,16 +66,39 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     <>
       <SiteHeader />
       <main>
-        <section className="border-border/70 bg-surface/65 border-b backdrop-blur-sm">
-          <div className="container-page py-12">
-            <p className="eyebrow">الكورسات</p>
-            <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-              استكشف مواد تمكين
-            </h1>
-            <p className="text-foreground/70 mt-3 max-w-2xl leading-8">
-              ابحث عن المادة، اختار المدرس، ورتب حسب السعر عشان توصل للكورس
-              المناسب بسرعة.
-            </p>
+        {/* Hero banner */}
+        <section
+          className="relative overflow-hidden border-b"
+          style={{
+            borderColor: "rgb(208 227 218 / 0.4)",
+            background:
+              "linear-gradient(180deg, rgb(236 245 241 / 0.5) 0%, rgb(255 255 255 / 0.3) 100%)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          <div
+            className="deco-circle"
+            style={{
+              width: 300,
+              height: 300,
+              top: -100,
+              left: -100,
+              background: "rgb(22 138 117 / 0.05)",
+            }}
+          />
+
+          <div className="container-page relative py-14">
+            <div className="animate-fade-up">
+              <p className="eyebrow">الكورسات</p>
+              <h1 className="heading-gradient mt-2 text-3xl font-black sm:text-4xl">
+                استكشف مواد تمكين
+              </h1>
+              <p className="text-foreground/65 mt-3 max-w-2xl leading-8">
+                ابحث عن المادة، اختار المدرس، ورتب حسب السعر عشان توصل للكورس
+                المناسب بسرعة.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -87,17 +111,19 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           />
 
           <div className="flex items-center justify-between gap-4">
-            <p className="chip bg-surface text-foreground/70">
+            <div className="chip">
               {courses.length > 0
                 ? `${totalCount.toLocaleString("ar-EG")} كورس متاح`
                 : "لا توجد نتائج مطابقة"}
-            </p>
+            </div>
           </div>
 
           {courses.length > 0 ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+              {courses.map((course, i) => (
+                <ScrollReveal key={course.id} delay={i * 0.06}>
+                  <CourseCard course={course} />
+                </ScrollReveal>
               ))}
             </div>
           ) : (

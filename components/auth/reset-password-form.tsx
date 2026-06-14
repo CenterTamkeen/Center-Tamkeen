@@ -12,8 +12,6 @@ import { resetPasswordSchema } from "@/lib/validations/auth";
 
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-const inputClassName = "field bg-background py-2.5";
-
 export function ResetPasswordForm() {
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
@@ -45,50 +43,131 @@ export function ResetPasswordForm() {
       }}
     >
       {state.message ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          className="animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-red-700"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           {state.message}
-        </p>
+        </div>
       ) : null}
 
       <label className="block space-y-2">
-        <span className="text-sm font-semibold">كلمة المرور الجديدة</span>
+        <span className="text-foreground/80 text-sm font-semibold">
+          كلمة المرور الجديدة
+        </span>
         <input
           {...register("password")}
           type="password"
           autoComplete="new-password"
-          className={inputClassName}
+          className="field bg-background/60 py-2.5"
         />
         {(errors.password?.message ?? state.fieldErrors?.password?.[0]) ? (
-          <p className="text-danger text-sm">
+          <p className="animate-slide-down text-danger flex items-center gap-1.5 text-sm">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
             {errors.password?.message ?? state.fieldErrors?.password?.[0]}
           </p>
         ) : null}
       </label>
 
       <label className="block space-y-2">
-        <span className="text-sm font-semibold">تأكيد كلمة المرور</span>
+        <span className="text-foreground/80 text-sm font-semibold">
+          تأكيد كلمة المرور
+        </span>
         <input
           {...register("confirmPassword")}
           type="password"
           autoComplete="new-password"
-          className={inputClassName}
+          className="field bg-background/60 py-2.5"
         />
         {(errors.confirmPassword?.message ??
         state.fieldErrors?.confirmPassword?.[0]) ? (
-          <p className="text-danger text-sm">
+          <p className="animate-slide-down text-danger flex items-center gap-1.5 text-sm">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
             {errors.confirmPassword?.message ??
               state.fieldErrors?.confirmPassword?.[0]}
           </p>
         ) : null}
       </label>
 
-      <button type="submit" disabled={isPending} className="btn-primary w-full">
-        {isPending ? "جاري الحفظ..." : "حفظ كلمة المرور"}
+      <button
+        type="submit"
+        disabled={isPending}
+        className="btn-primary w-full gap-2 py-3.5"
+      >
+        {isPending ? (
+          <>
+            <svg
+              className="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            جاري الحفظ...
+          </>
+        ) : (
+          "حفظ كلمة المرور"
+        )}
       </button>
 
       <Link
         href="/login"
-        className="text-primary-700 hover:text-primary-900 block text-sm font-bold transition"
+        className="text-primary-700 hover:text-primary-500 block text-sm font-bold transition-all duration-300 hover:translate-x-[-2px]"
       >
         الرجوع لتسجيل الدخول
       </Link>
