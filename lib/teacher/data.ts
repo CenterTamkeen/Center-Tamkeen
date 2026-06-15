@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 export type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
@@ -7,9 +8,50 @@ export type TeacherCourse = Database["public"]["Tables"]["courses"]["Row"] & {
   enrollments: { id: string; student_id: string }[];
 };
 export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"];
-export type TeacherCoupon = Database["public"]["Tables"]["coupons"]["Row"];
+export type TeacherCoupon = Database["public"]["Tables"]["coupons"]["Row"] & {
+  course: {
+    id: string;
+    title: string;
+  } | null;
+  target_student: {
+    id: string;
+    student_phone: string;
+    profile: {
+      full_name: string;
+      phone: string | null;
+    } | null;
+  } | null;
+  target_students: {
+    id: string;
+    student_phone: string;
+    profile: {
+      full_name: string;
+      phone: string | null;
+    } | null;
+  }[];
+  coupon_redemptions: {
+    id: string;
+    discount_amount: number;
+    redeemed_at: string;
+    student: {
+      id: string;
+      student_phone: string;
+      profile: {
+        full_name: string;
+        phone: string | null;
+      } | null;
+    } | null;
+  }[];
+};
+export type TeacherCouponStudent = Pick<
+  TeacherStudent,
+  "id" | "profile_id" | "student_phone" | "profile"
+> & {
+  email: string | null;
+};
 export type TeacherStudent = {
   id: string;
+  profile_id: string;
   student_phone: string;
   school_name: string;
   profile: {
@@ -34,6 +76,26 @@ function logTeacherError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[teacher:${label}]`, error);
   }
+}
+
+function getAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+}
+
+function isMissingOptionalCouponFeature(message: string) {
+  return (
+    message.includes("target_student_id") ||
+    message.includes("course_id") ||
+    message.includes("coupon_student_targets") ||
+    message.includes("coupon_redemptions") ||
+    message.includes("schema cache") ||
+    message.includes("does not exist") ||
+    message.includes("Could not find")
+  );
 }
 
 export async function getCurrentTeacher(profileId: string) {
@@ -129,20 +191,230 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
 
 export async function getTeacherCoupons(teacherId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const fullSelect =
+    "id, teacher_id, course_id, code, discount_type, discount_value, usage_limit, used_count, target_student_id, is_active, expires_at, created_at, updated_at";
+  const legacySelect =
+    "id, teacher_id, code, discount_type, discount_value, usage_limit, used_count, is_active, expires_at, created_at, updated_at";
+  const fullQuery = await supabase
     .from("coupons")
-    .select(
-      "id, teacher_id, code, discount_type, discount_value, usage_limit, used_count, is_active, expires_at, created_at, updated_at",
-    )
+    .select(fullSelect)
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false });
+  let couponData: unknown[] | null = fullQuery.data;
+  let couponError = fullQuery.error;
 
-  if (error) {
-    logTeacherError("coupons", error.message);
+  if (couponError && isMissingOptionalCouponFeature(couponError.message)) {
+    const legacyQuery = await supabase
+      .from("coupons")
+      .select(legacySelect)
+      .eq("teacher_id", teacherId)
+      .order("created_at", { ascending: false });
+
+    couponData = legacyQuery.data;
+    couponError = legacyQuery.error;
+  }
+
+  if (couponError) {
+    logTeacherError("coupons", couponError.message);
     return [];
   }
 
-  return (data ?? []) as TeacherCoupon[];
+  const coupons = (couponData ?? []).map((coupon) => {
+    const couponRow = coupon as Partial<
+      Database["public"]["Tables"]["coupons"]["Row"]
+    >;
+
+    return {
+      ...couponRow,
+      course_id: couponRow.course_id ?? null,
+      target_student_id: couponRow.target_student_id ?? null,
+      course: null,
+      target_student: null,
+      target_students: [],
+      coupon_redemptions: [],
+    };
+  }) as TeacherCoupon[];
+
+  if (coupons.length === 0) {
+    return [];
+  }
+
+  const targetStudentIds = Array.from(
+    new Set(coupons.map((coupon) => coupon.target_student_id).filter(Boolean)),
+  ) as string[];
+  const courseIds = Array.from(
+    new Set(coupons.map((coupon) => coupon.course_id).filter(Boolean)),
+  ) as string[];
+  const studentsById = new Map<
+    string,
+    NonNullable<TeacherCoupon["target_student"]>
+  >();
+  const coursesById = new Map<string, NonNullable<TeacherCoupon["course"]>>();
+
+  if (courseIds.length > 0) {
+    const { data: courses, error: coursesError } = await supabase
+      .from("courses")
+      .select("id, title")
+      .in("id", courseIds);
+
+    if (coursesError) {
+      logTeacherError("coupon-courses", coursesError.message);
+    }
+
+    for (const course of courses ?? []) {
+      coursesById.set(course.id, course);
+    }
+  }
+
+  if (targetStudentIds.length > 0) {
+    const { data: targetStudents, error: targetStudentsError } = await supabase
+      .from("students")
+      .select("id, student_phone, profile:profiles(full_name, phone)")
+      .in("id", targetStudentIds);
+
+    if (targetStudentsError) {
+      logTeacherError("coupon-target-students", targetStudentsError.message);
+    }
+
+    for (const student of targetStudents ?? []) {
+      studentsById.set(student.id, student);
+    }
+  }
+
+  const couponIds = coupons.map((coupon) => coupon.id);
+  const { data: targets, error: targetsError } = await supabase
+    .from("coupon_student_targets")
+    .select("coupon_id, student_id")
+    .in("coupon_id", couponIds);
+
+  const targetRows = targets ?? [];
+  const multiTargetStudentIds = Array.from(
+    new Set(targetRows.map((target) => target.student_id)),
+  );
+
+  if (targetsError && !isMissingOptionalCouponFeature(targetsError.message)) {
+    logTeacherError("coupon-student-targets", targetsError.message);
+  }
+
+  if (multiTargetStudentIds.length > 0) {
+    const { data: multiTargetStudents, error: multiTargetStudentsError } =
+      await supabase
+        .from("students")
+        .select("id, student_phone, profile:profiles(full_name, phone)")
+        .in("id", multiTargetStudentIds);
+
+    if (multiTargetStudentsError) {
+      logTeacherError(
+        "coupon-multi-target-students",
+        multiTargetStudentsError.message,
+      );
+    }
+
+    for (const student of multiTargetStudents ?? []) {
+      studentsById.set(student.id, student);
+    }
+  }
+
+  const { data: redemptions, error: redemptionsError } = await supabase
+    .from("coupon_redemptions")
+    .select("id, coupon_id, student_id, discount_amount, redeemed_at")
+    .in("coupon_id", couponIds)
+    .order("redeemed_at", { ascending: false });
+
+  const couponRedemptions = redemptions ?? [];
+  const redemptionStudentIds = Array.from(
+    new Set(couponRedemptions.map((redemption) => redemption.student_id)),
+  );
+
+  if (
+    redemptionsError &&
+    !isMissingOptionalCouponFeature(redemptionsError.message)
+  ) {
+    logTeacherError("coupon-redemptions", redemptionsError.message);
+  }
+
+  if (redemptionStudentIds.length > 0) {
+    const { data: redemptionStudents, error: redemptionStudentsError } =
+      await supabase
+        .from("students")
+        .select("id, student_phone, profile:profiles(full_name, phone)")
+        .in("id", redemptionStudentIds);
+
+    if (redemptionStudentsError) {
+      logTeacherError(
+        "coupon-redemption-students",
+        redemptionStudentsError.message,
+      );
+    }
+
+    for (const student of redemptionStudents ?? []) {
+      studentsById.set(student.id, student);
+    }
+  }
+
+  const redemptionsByCoupon = new Map<
+    string,
+    TeacherCoupon["coupon_redemptions"]
+  >();
+  const targetsByCoupon = new Map<string, TeacherCoupon["target_students"]>();
+
+  for (const target of targetRows) {
+    const student = studentsById.get(target.student_id);
+
+    if (!student) {
+      continue;
+    }
+
+    const current = targetsByCoupon.get(target.coupon_id) ?? [];
+    current.push(student);
+    targetsByCoupon.set(target.coupon_id, current);
+  }
+
+  for (const redemption of couponRedemptions) {
+    const current = redemptionsByCoupon.get(redemption.coupon_id) ?? [];
+    current.push({
+      id: redemption.id,
+      discount_amount: redemption.discount_amount,
+      redeemed_at: redemption.redeemed_at,
+      student: studentsById.get(redemption.student_id) ?? null,
+    });
+    redemptionsByCoupon.set(redemption.coupon_id, current);
+  }
+
+  return coupons.map((coupon) => ({
+    ...coupon,
+    course: coupon.course_id
+      ? (coursesById.get(coupon.course_id) ?? null)
+      : null,
+    target_student: coupon.target_student_id
+      ? (studentsById.get(coupon.target_student_id) ?? null)
+      : null,
+    target_students: targetsByCoupon.get(coupon.id) ?? [],
+    coupon_redemptions: redemptionsByCoupon.get(coupon.id) ?? [],
+  }));
+}
+
+export async function getTeacherCouponStudents(teacherId: string) {
+  const students = await getTeacherStudents(teacherId);
+  const admin = getAdminClient();
+  const emailsByProfileId = new Map<string, string | null>();
+
+  if (admin) {
+    await Promise.all(
+      students.map(async (student) => {
+        const { data } = await admin.auth.admin.getUserById(student.profile_id);
+        emailsByProfileId.set(student.profile_id, data.user?.email ?? null);
+      }),
+    );
+  }
+
+  return students.map((student) => ({
+    id: student.id,
+    profile_id: student.profile_id,
+    student_phone: student.student_phone,
+    profile: student.profile,
+    email: emailsByProfileId.get(student.profile_id) ?? null,
+  }));
 }
 
 export async function getTeacherStats(teacherId: string) {
@@ -188,7 +460,7 @@ export async function getTeacherStudents(teacherId: string) {
   const { data, error } = await supabase
     .from("students")
     .select(
-      "id, student_phone, school_name, profile:profiles(full_name, phone), enrollments!inner(id, course:courses!inner(title, teacher_id))",
+      "id, profile_id, student_phone, school_name, profile:profiles(full_name, phone), enrollments!inner(id, course:courses!inner(title, teacher_id))",
     )
     .eq("enrollments.course.teacher_id", teacherId)
     .order("created_at", { ascending: false });

@@ -6,7 +6,9 @@ import { notFound } from "next/navigation";
 import { BackButton } from "@/components/navigation/back-button";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
+import { getCurrentUserProfile } from "@/lib/auth/roles";
 import {
   formatDuration,
   formatPrice,
@@ -39,7 +41,10 @@ export async function generateMetadata({
 
 export default async function CoursePage({ params }: CoursePageProps) {
   const { id } = await params;
-  const course = await getCourseById(id);
+  const [course, session] = await Promise.all([
+    getCourseById(id),
+    getCurrentUserProfile(),
+  ]);
 
   if (!course) {
     notFound();
@@ -47,6 +52,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
+  const isStudent = session?.profile.role === "student";
 
   return (
     <>
@@ -163,26 +169,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 )}
               </div>
               <div className="space-y-4 p-5">
-                <Link
-                  href="/login"
-                  className="btn-primary flex w-full justify-center gap-2 py-3.5"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                  </svg>
-                  أضف للسلة
-                </Link>
+                <CoursePurchaseForm
+                  courseId={course.id}
+                  price={course.price}
+                  isStudent={isStudent}
+                />
               </div>
             </aside>
           </div>

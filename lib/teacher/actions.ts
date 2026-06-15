@@ -17,6 +17,8 @@ import {
 import type { Database } from "@/types/database";
 
 type DiscountType = Database["public"]["Enums"]["discount_type"];
+type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
+type CouponUpdate = Database["public"]["Tables"]["coupons"]["Update"];
 
 function failure(
   message: string,
@@ -61,6 +63,13 @@ function getFormValues(formData: FormData, keys: string[]) {
   return Object.fromEntries(keys.map((key) => [key, getString(formData, key)]));
 }
 
+function getListFromCsv(formData: FormData, key: string) {
+  return getString(formData, key)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 function fieldErrors(error: { flatten: () => { fieldErrors: unknown } }) {
   return error.flatten().fieldErrors as Record<string, string[]>;
 }
@@ -75,6 +84,41 @@ function getFileExtension(file: File) {
   }
 
   return "jpg";
+}
+
+function isMissingCouponTargetColumn(error: {
+  message: string;
+  code?: string;
+}) {
+  return (
+    error.code === "PGRST204" ||
+    error.message.includes("target_student_id") ||
+    error.message.includes("course_id") ||
+    error.message.includes("coupon_student_targets") ||
+    error.message.includes("schema cache")
+  );
+}
+
+function couponFailureMessage(error: { message: string; code?: string }) {
+  if (error.code === "23505" || error.message.includes("duplicate key")) {
+    return {
+      message: "الكود ده مستخدم قبل كده.",
+      fieldErrors: { code: ["اختار كود مختلف، الكود الحالي موجود بالفعل."] },
+    };
+  }
+
+  if (isMissingCouponTargetColumn(error)) {
+    return {
+      message:
+        "تحديث قاعدة البيانات الخاص بالكوبونات المخصصة لسه متطبقش. طبق آخر migration وجرب تاني.",
+      fieldErrors: undefined,
+    };
+  }
+
+  return {
+    message: "تعذر إنشاء الكوبون. راجع البيانات وحاول مرة تانية.",
+    fieldErrors: undefined,
+  };
 }
 
 async function requireTeacher() {
@@ -124,6 +168,22 @@ async function assertOwnsCourse(teacherId: string, courseId: string) {
     .maybeSingle();
 
   return Boolean(data);
+}
+
+async function assertTeacherStudents(teacherId: string, studentIds: string[]) {
+  if (studentIds.length === 0) {
+    return true;
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("enrollments")
+    .select("student_id, course:courses!inner(teacher_id)")
+    .in("student_id", studentIds)
+    .eq("course.teacher_id", teacherId);
+  const foundIds = new Set((data ?? []).map((item) => item.student_id));
+
+  return studentIds.every((studentId) => foundIds.has(studentId));
 }
 
 export async function createCourseAction(
@@ -448,15 +508,23 @@ export async function createCouponAction(
     "code",
     "discountType",
     "discountValue",
+    "courseId",
     "usageLimit",
+    "targetStudentIds",
     "expiresAt",
   ]);
   const { teacher } = await requireTeacher();
+  const restrictToStudent = getCheckbox(formData, "restrictToStudent");
+  const targetStudentIds = restrictToStudent
+    ? getListFromCsv(formData, "targetStudentIds")
+    : [];
   const parsed = couponSchema.safeParse({
     code: getString(formData, "code").toUpperCase(),
     discountType: getString(formData, "discountType"),
     discountValue: getString(formData, "discountValue"),
+    courseId: getString(formData, "courseId"),
     usageLimit: getOptionalString(formData, "usageLimit"),
+    targetStudentIds,
     expiresAt: getOptionalString(formData, "expiresAt"),
     isActive: getCheckbox(formData, "isActive"),
   });
@@ -465,23 +533,97 @@ export async function createCouponAction(
     return failure("راجع بيانات الكوبون.", fieldErrors(parsed.error), values);
   }
 
+  if (!(await assertOwnsCourse(teacher.id, parsed.data.courseId))) {
+    return failure(
+      "الكورس غير موجود أو ليس من كورساتك.",
+      { courseId: ["اختار كورس من كورساتك."] },
+      values,
+    );
+  }
+
+  if (restrictToStudent && targetStudentIds.length === 0) {
+    return failure(
+      "اختار الطلاب المخصص لهم الكوبون.",
+      { targetStudentIds: ["اختار طالب واحد على الأقل."] },
+      values,
+    );
+  }
+
+  if (
+    targetStudentIds.length > 0 &&
+    !(await assertTeacherStudents(teacher.id, targetStudentIds))
+  ) {
+    return failure(
+      "فيه طالب مختار غير موجود ضمن طلاب كورساتك.",
+      { targetStudentIds: ["اختار طلاب من طلاب كورساتك فقط."] },
+      values,
+    );
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.from("coupons").insert({
+  const couponInsert: CouponInsert = {
     teacher_id: teacher.id,
+    course_id: parsed.data.courseId,
     code: parsed.data.code,
     discount_type: parsed.data.discountType as DiscountType,
     discount_value: parsed.data.discountValue,
     usage_limit: parsed.data.usageLimit ?? null,
+    target_student_id: null,
     expires_at: parsed.data.expiresAt || null,
     is_active: parsed.data.isActive ?? false,
-  });
+  };
+  let { data: createdCoupon, error } = await supabase
+    .from("coupons")
+    .insert(couponInsert)
+    .select("id")
+    .single();
+
+  if (
+    error &&
+    isMissingCouponTargetColumn(error) &&
+    targetStudentIds.length === 0
+  ) {
+    const legacyCouponInsert: Omit<CouponInsert, "target_student_id"> = {
+      teacher_id: couponInsert.teacher_id,
+      course_id: couponInsert.course_id,
+      code: couponInsert.code,
+      discount_type: couponInsert.discount_type,
+      discount_value: couponInsert.discount_value,
+      usage_limit: couponInsert.usage_limit,
+      expires_at: couponInsert.expires_at,
+      is_active: couponInsert.is_active,
+    };
+    const legacyResult = await supabase
+      .from("coupons")
+      .insert(legacyCouponInsert)
+      .select("id")
+      .single();
+    createdCoupon = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error) {
-    return failure(
-      "تعذر إنشاء الكوبون. تأكد أن الكود غير مكرر.",
-      undefined,
-      values,
-    );
+    const couponFailure = couponFailureMessage(error);
+    return failure(couponFailure.message, couponFailure.fieldErrors, values);
+  }
+
+  if (createdCoupon && targetStudentIds.length > 0) {
+    const { error: targetsError } = await supabase
+      .from("coupon_student_targets")
+      .insert(
+        targetStudentIds.map((studentId) => ({
+          coupon_id: createdCoupon.id,
+          student_id: studentId,
+        })),
+      );
+
+    if (targetsError) {
+      return failure(
+        "تم إنشاء الكوبون، لكن تعذر حفظ الطلاب المخصصين. تأكد من تطبيق آخر migration.",
+        undefined,
+        values,
+      );
+    }
   }
 
   revalidatePath("/dashboard/teacher/coupons");
@@ -497,16 +639,24 @@ export async function updateCouponAction(
     "code",
     "discountType",
     "discountValue",
+    "courseId",
     "usageLimit",
+    "targetStudentIds",
     "expiresAt",
   ]);
   const { teacher } = await requireTeacher();
+  const restrictToStudent = getCheckbox(formData, "restrictToStudent");
+  const targetStudentIds = restrictToStudent
+    ? getListFromCsv(formData, "targetStudentIds")
+    : [];
   const parsed = couponUpdateSchema.safeParse({
     couponId: getString(formData, "couponId"),
     code: getString(formData, "code").toUpperCase(),
     discountType: getString(formData, "discountType"),
     discountValue: getString(formData, "discountValue"),
+    courseId: getString(formData, "courseId"),
     usageLimit: getOptionalString(formData, "usageLimit"),
+    targetStudentIds,
     expiresAt: getOptionalString(formData, "expiresAt"),
     isActive: getCheckbox(formData, "isActive"),
   });
@@ -515,22 +665,103 @@ export async function updateCouponAction(
     return failure("راجع بيانات الكوبون.", fieldErrors(parsed.error), values);
   }
 
+  if (!(await assertOwnsCourse(teacher.id, parsed.data.courseId))) {
+    return failure(
+      "الكورس غير موجود أو ليس من كورساتك.",
+      { courseId: ["اختار كورس من كورساتك."] },
+      values,
+    );
+  }
+
+  if (restrictToStudent && targetStudentIds.length === 0) {
+    return failure(
+      "اختار الطلاب المخصص لهم الكوبون.",
+      { targetStudentIds: ["اختار طالب واحد على الأقل."] },
+      values,
+    );
+  }
+
+  if (
+    targetStudentIds.length > 0 &&
+    !(await assertTeacherStudents(teacher.id, targetStudentIds))
+  ) {
+    return failure(
+      "فيه طالب مختار غير موجود ضمن طلاب كورساتك.",
+      { targetStudentIds: ["اختار طلاب من طلاب كورساتك فقط."] },
+      values,
+    );
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase
+  const couponUpdate: CouponUpdate = {
+    course_id: parsed.data.courseId,
+    code: parsed.data.code,
+    discount_type: parsed.data.discountType as DiscountType,
+    discount_value: parsed.data.discountValue,
+    usage_limit: parsed.data.usageLimit ?? null,
+    target_student_id: null,
+    expires_at: parsed.data.expiresAt || null,
+    is_active: parsed.data.isActive ?? false,
+  };
+  let { error } = await supabase
     .from("coupons")
-    .update({
-      code: parsed.data.code,
-      discount_type: parsed.data.discountType as DiscountType,
-      discount_value: parsed.data.discountValue,
-      usage_limit: parsed.data.usageLimit ?? null,
-      expires_at: parsed.data.expiresAt || null,
-      is_active: parsed.data.isActive ?? false,
-    })
+    .update(couponUpdate)
     .eq("id", parsed.data.couponId)
     .eq("teacher_id", teacher.id);
 
+  if (
+    error &&
+    isMissingCouponTargetColumn(error) &&
+    targetStudentIds.length === 0
+  ) {
+    const legacyCouponUpdate: Omit<CouponUpdate, "target_student_id"> = {
+      code: couponUpdate.code,
+      course_id: couponUpdate.course_id,
+      discount_type: couponUpdate.discount_type,
+      discount_value: couponUpdate.discount_value,
+      usage_limit: couponUpdate.usage_limit,
+      expires_at: couponUpdate.expires_at,
+      is_active: couponUpdate.is_active,
+    };
+    const legacyResult = await supabase
+      .from("coupons")
+      .update(legacyCouponUpdate)
+      .eq("id", parsed.data.couponId)
+      .eq("teacher_id", teacher.id);
+    error = legacyResult.error;
+  }
+
   if (error) {
-    return failure("تعذر حفظ الكوبون.", undefined, values);
+    const couponFailure = couponFailureMessage(error);
+    return failure(
+      couponFailure.message.replace("إنشاء", "حفظ"),
+      couponFailure.fieldErrors,
+      values,
+    );
+  }
+
+  await supabase
+    .from("coupon_student_targets")
+    .delete()
+    .eq("coupon_id", parsed.data.couponId);
+
+  if (targetStudentIds.length > 0) {
+    const { error: targetsError } = await supabase
+      .from("coupon_student_targets")
+      .insert(
+        targetStudentIds.map((studentId) => ({
+          coupon_id: parsed.data.couponId,
+          student_id: studentId,
+        })),
+      );
+
+    if (targetsError) {
+      return failure(
+        "تم حفظ الكوبون، لكن تعذر حفظ الطلاب المخصصين. تأكد من تطبيق آخر migration.",
+        undefined,
+        values,
+      );
+    }
   }
 
   revalidatePath("/dashboard/teacher/coupons");

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import { BackToTop } from "@/components/site/back-to-top";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -41,6 +42,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
+        <BackToTop />
       </body>
     </html>
   );

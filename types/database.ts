@@ -371,11 +371,13 @@ export type Database = {
         Row: {
           id: string;
           teacher_id: string;
+          course_id: string | null;
           code: string;
           discount_type: PublicEnums["discount_type"];
           discount_value: number;
           usage_limit: number | null;
           used_count: number;
+          target_student_id: string | null;
           is_active: boolean;
           expires_at: string | null;
           created_at: string;
@@ -384,11 +386,13 @@ export type Database = {
         Insert: {
           id?: string;
           teacher_id: string;
+          course_id?: string | null;
           code: string;
           discount_type: PublicEnums["discount_type"];
           discount_value: number;
           usage_limit?: number | null;
           used_count?: number;
+          target_student_id?: string | null;
           is_active?: boolean;
           expires_at?: string | null;
           created_at?: string;
@@ -397,11 +401,13 @@ export type Database = {
         Update: {
           id?: string;
           teacher_id?: string;
+          course_id?: string | null;
           code?: string;
           discount_type?: PublicEnums["discount_type"];
           discount_value?: number;
           usage_limit?: number | null;
           used_count?: number;
+          target_student_id?: string | null;
           is_active?: boolean;
           expires_at?: string | null;
           created_at?: string;
@@ -413,6 +419,102 @@ export type Database = {
             columns: ["teacher_id"];
             isOneToOne: false;
             referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupons_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupons_target_student_id_fkey";
+            columns: ["target_student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coupon_student_targets: {
+        Row: {
+          coupon_id: string;
+          student_id: string;
+          created_at: string;
+        };
+        Insert: {
+          coupon_id: string;
+          student_id: string;
+          created_at?: string;
+        };
+        Update: {
+          coupon_id?: string;
+          student_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coupon_student_targets_coupon_id_fkey";
+            columns: ["coupon_id"];
+            isOneToOne: false;
+            referencedRelation: "coupons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_student_targets_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coupon_redemptions: {
+        Row: {
+          id: string;
+          coupon_id: string;
+          student_id: string;
+          order_id: string | null;
+          discount_amount: number;
+          redeemed_at: string;
+        };
+        Insert: {
+          id?: string;
+          coupon_id: string;
+          student_id: string;
+          order_id?: string | null;
+          discount_amount?: number;
+          redeemed_at?: string;
+        };
+        Update: {
+          id?: string;
+          coupon_id?: string;
+          student_id?: string;
+          order_id?: string | null;
+          discount_amount?: number;
+          redeemed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey";
+            columns: ["coupon_id"];
+            isOneToOne: false;
+            referencedRelation: "coupons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
             referencedColumns: ["id"];
           },
         ];

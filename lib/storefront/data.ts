@@ -17,6 +17,13 @@ export type TeacherSummary = Pick<
   } | null;
 };
 
+export type TeacherPublicStats = {
+  publishedCourses: number;
+  studentCount: number;
+  ratingAverage: number | null;
+  reviewCount: number;
+};
+
 export type CourseSummary = Pick<
   CourseRow,
   | "id"
@@ -430,6 +437,51 @@ export async function getCoursesByTeacher(teacherId: string) {
   }
 
   return (data ?? []) as CourseSummary[];
+}
+
+export async function getTeacherPublicStats(
+  teacherId: string,
+): Promise<TeacherPublicStats> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("id, enrollments(student_id), reviews(rating)")
+    .eq("teacher_id", teacherId)
+    .eq("is_published", true);
+
+  if (error) {
+    logStorefrontError("teacher-public-stats", error.message);
+    return {
+      publishedCourses: 0,
+      studentCount: 0,
+      ratingAverage: null,
+      reviewCount: 0,
+    };
+  }
+
+  const courses = data ?? [];
+  const studentIds = new Set<string>();
+  const ratings: number[] = [];
+
+  for (const course of courses) {
+    for (const enrollment of course.enrollments ?? []) {
+      studentIds.add(enrollment.student_id);
+    }
+
+    for (const review of course.reviews ?? []) {
+      ratings.push(review.rating);
+    }
+  }
+
+  return {
+    publishedCourses: courses.length,
+    studentCount: studentIds.size,
+    ratingAverage:
+      ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        : null,
+    reviewCount: ratings.length,
+  };
 }
 
 export async function getCourseById(id: string) {

@@ -56,11 +56,14 @@ export const couponSchema = z
     discountValue: z.coerce
       .number({ error: "قيمة الخصم مطلوبة." })
       .positive("قيمة الخصم يجب أن تكون أكبر من صفر."),
+    courseId: z.uuid("اختار كورس صحيح."),
     usageLimit: z.coerce
       .number()
       .int("حد الاستخدام يجب أن يكون رقمًا صحيحًا.")
       .positive("حد الاستخدام يجب أن يكون أكبر من صفر.")
       .optional(),
+    targetStudentId: z.uuid("اختار طالب صحيح.").optional(),
+    targetStudentIds: z.array(z.uuid("اختار طالب صحيح.")).optional(),
     expiresAt: z.string().trim().optional(),
     isActive: z.coerce.boolean().optional(),
   })

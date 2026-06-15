@@ -319,6 +319,15 @@ body::before {
   }
 }
 
+@keyframes tamkeen-loop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+
 /* ── Accessibility ────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -507,6 +516,46 @@ body::before {
   }
 
   /* Form Fields */
+  form label[class*="space-y-2"],
+  form label[class*="gap-2.5"] {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  form label[class*="space-y-2"] > span:first-child,
+  form label[class*="gap-2.5"] > span:first-child {
+    line-height: 1.6;
+  }
+
+  form label:has(.field),
+  form
+    label:has(input:not([type="checkbox"]):not([type="radio"]):not(.sr-only)),
+  form label:has(select),
+  form label:has(textarea) {
+    display: grid !important;
+    align-content: start;
+    gap: 0.45rem !important;
+  }
+
+  form label:has(.field) > :not([hidden]),
+  form
+    label:has(input:not([type="checkbox"]):not([type="radio"]):not(.sr-only))
+    > :not([hidden]),
+  form label:has(select) > :not([hidden]),
+  form label:has(textarea) > :not([hidden]) {
+    margin-block-start: 0 !important;
+  }
+
+  form label:has(.field) > span:first-child,
+  form
+    label:has(input:not([type="checkbox"]):not([type="radio"]):not(.sr-only))
+    > span:first-child,
+  form label:has(select) > span:first-child,
+  form label:has(textarea) > span:first-child {
+    display: block;
+    padding-bottom: 0;
+  }
+
   .field {
     @apply w-full outline-none;
     padding: 0.75rem 1rem;
@@ -771,5 +820,9 @@ body::before {
 
   .tamkeen-marquee {
     animation: tamkeen-marquee 28s linear infinite;
+  }
+
+  .tamkeen-loop {
+    animation: tamkeen-loop 18s linear infinite;
   }
 }

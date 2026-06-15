@@ -1,7 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function SiteFooter() {
+import { getCurrentUserProfile, getRoleHomePath } from "@/lib/auth/roles";
+
+export async function SiteFooter() {
+  const session = await getCurrentUserProfile();
+  const dashboardHref = session ? getRoleHomePath(session.profile.role) : null;
+  const quickLinks = dashboardHref
+    ? [
+        { href: dashboardHref, label: "لوحتي" },
+        { href: "/profile", label: "الملف الشخصي" },
+        { href: "/courses", label: "تصفح الكورسات" },
+        { href: "/teachers", label: "المدرسين" },
+      ]
+    : [
+        { href: "/courses", label: "تصفح الكورسات" },
+        { href: "/teachers", label: "المدرسين" },
+        { href: "/signup", label: "حساب طالب" },
+        { href: "/login", label: "تسجيل الدخول" },
+      ];
+
   return (
     <footer className="relative overflow-hidden">
       {/* Gradient top border */}
@@ -60,8 +78,8 @@ export function SiteFooter() {
               <span className="eyebrow text-xl">تمكين</span>
             </div>
             <p className="text-foreground/65 max-w-md text-sm leading-7">
-              منصة تعليمية عربية لطلاب الثانوية العامة، بتجمع المدرسين والكورسات
-              والاشتراكات في مكان واحد.
+              منصة تعليمية عربية بتجمع المدرسين والكورسات والطلبات في تجربة
+              بسيطة ومنظمة، عشان الطالب يوصل للمادة والمدرس المناسب بسرعة.
             </p>
           </div>
 
@@ -69,11 +87,7 @@ export function SiteFooter() {
           <div className="space-y-4">
             <h2 className="text-foreground/90 font-black">روابط سريعة</h2>
             <nav className="flex flex-col gap-2">
-              {[
-                { href: "/courses", label: "تصفح الكورسات" },
-                { href: "/signup", label: "تسجيل طالب" },
-                { href: "/login", label: "تسجيل الدخول" },
-              ].map((link) => (
+              {quickLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -88,11 +102,40 @@ export function SiteFooter() {
 
           {/* Support */}
           <div className="space-y-4">
-            <h2 className="text-foreground/90 font-black">الدعم</h2>
-            <p className="text-foreground/60 text-sm leading-7">
-              تابع لوحة الطالب لمعرفة الطلبات والكورسات بعد تفعيل الدفع في
-              المراحل القادمة.
-            </p>
+            <h2 className="text-foreground/90 font-black">الدعم والمتابعة</h2>
+            <nav className="flex flex-col gap-2">
+              <Link
+                href="/#reviews"
+                className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
+              >
+                <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
+                تقييمات الطلاب
+              </Link>
+              <Link
+                href="/teachers"
+                className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
+              >
+                <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
+                صفحات المدرسين
+              </Link>
+              {dashboardHref ? (
+                <Link
+                  href="/profile"
+                  className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
+                >
+                  <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
+                  إعدادات الحساب
+                </Link>
+              ) : (
+                <Link
+                  href="/forgot-password"
+                  className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
+                >
+                  <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
+                  نسيت كلمة المرور
+                </Link>
+              )}
+            </nav>
           </div>
         </div>
 

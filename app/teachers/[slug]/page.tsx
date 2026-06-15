@@ -8,7 +8,11 @@ import { SiteHeader } from "@/components/site/site-header";
 import { CourseCard } from "@/components/storefront/course-card";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
-import { getCoursesByTeacher, getTeacherBySlug } from "@/lib/storefront/data";
+import {
+  getCoursesByTeacher,
+  getTeacherBySlug,
+  getTeacherPublicStats,
+} from "@/lib/storefront/data";
 
 type TeacherPageProps = {
   params: Promise<{
@@ -42,10 +46,16 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
     notFound();
   }
 
-  const courses = await getCoursesByTeacher(teacher.id);
+  const [courses, stats] = await Promise.all([
+    getCoursesByTeacher(teacher.id),
+    getTeacherPublicStats(teacher.id),
+  ]);
   const name = teacher.profile?.full_name ?? "مدرس تمكين";
   const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
   const cover = teacher.cover_url;
+  const ratingLabel = stats.ratingAverage
+    ? stats.ratingAverage.toFixed(1)
+    : "جديد";
 
   return (
     <>
@@ -53,7 +63,7 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
       <main>
         {/* Hero */}
         <section className="border-border/50 relative overflow-hidden border-b bg-white/60">
-          <div className="relative h-56 sm:h-72 lg:h-80">
+          <div className="relative h-64 sm:h-80 lg:h-96">
             {cover ? (
               <Image
                 src={cover}
@@ -73,7 +83,7 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
           </div>
 
           <div className="container-page relative pb-10">
-            <div className="-mt-20 grid gap-6 sm:grid-cols-[180px_1fr] sm:items-end">
+            <div className="-mt-10 grid gap-6 sm:-mt-12 sm:grid-cols-[180px_1fr] sm:items-start">
               <div className="animate-scale-up avatar-ring relative h-40 w-40 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-[var(--shadow-card)]">
                 {avatar ? (
                   <Image
@@ -101,15 +111,54 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
                 className="animate-fade-up space-y-4 rounded-2xl bg-white/80 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl"
                 style={{ animationDelay: "0.15s" }}
               >
-                <p className="eyebrow">{teacher.subject}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="eyebrow">{teacher.subject}</p>
+                  <span className="bg-primary-50 text-primary-700 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-black">
+                    <span className="bg-primary-600 text-primary-foreground flex h-4 w-4 items-center justify-center rounded-full text-[10px]">
+                      ✓
+                    </span>
+                    مدرس موثق
+                  </span>
+                </div>
                 <h1 className="heading-gradient text-3xl font-black sm:text-4xl">
                   {name}
                 </h1>
                 <p className="text-foreground/65 max-w-3xl leading-8">
                   {teacher.bio ?? "نبذة المدرس هتظهر هنا قريبًا."}
                 </p>
-                <div className="chip">
-                  {courses.length.toLocaleString("ar-EG")} كورس منشور
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border bg-white/70 px-4 py-3">
+                    <p className="text-foreground/55 text-xs font-bold">
+                      الطلاب المسجلين
+                    </p>
+                    <p className="mt-1 text-xl font-black">
+                      {stats.studentCount.toLocaleString("ar-EG")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-white/70 px-4 py-3">
+                    <p className="text-foreground/55 text-xs font-bold">
+                      الكورسات المنشورة
+                    </p>
+                    <p className="mt-1 text-xl font-black">
+                      {stats.publishedCourses.toLocaleString("ar-EG")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-white/70 px-4 py-3">
+                    <p className="text-foreground/55 text-xs font-bold">
+                      التقييم
+                    </p>
+                    <p className="mt-1 text-xl font-black">
+                      {ratingLabel}
+                      {stats.ratingAverage ? (
+                        <span className="text-accent-600 ms-1 text-base">
+                          ★
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-foreground/45 mt-0.5 text-xs font-semibold">
+                      {stats.reviewCount.toLocaleString("ar-EG")} مراجعة
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

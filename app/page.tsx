@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/storefront/empty-state";
 import { ReviewCard } from "@/components/storefront/review-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
+import { getCurrentUserProfile, getRoleHomePath } from "@/lib/auth/roles";
 import {
   getFeaturedTeachers,
   getLatestCourses,
@@ -54,11 +55,13 @@ const steps = [
 ];
 
 export default async function Home() {
-  const [teachers, courses, reviews] = await Promise.all([
+  const [teachers, courses, reviews, session] = await Promise.all([
     getFeaturedTeachers(6),
     getLatestCourses(6),
     getLatestReviews(3),
+    getCurrentUserProfile(),
   ]);
+  const dashboardHref = session ? getRoleHomePath(session.profile.role) : null;
 
   return (
     <>
@@ -81,9 +84,6 @@ export default async function Home() {
               <div className="flex flex-wrap gap-3">
                 <Link href="/courses" className="btn-primary px-7 py-3.5">
                   تصفح الكورسات
-                </Link>
-                <Link href="/signup" className="btn-secondary px-7 py-3.5">
-                  إنشاء حساب طالب
                 </Link>
               </div>
             </div>
@@ -296,6 +296,72 @@ export default async function Home() {
             />
           )}
         </section>
+
+        <section className="bg-primary-900 relative min-h-[520px] overflow-hidden py-24 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgb(245_197_24/0.18),transparent_28%),radial-gradient(circle_at_80%_70%,rgb(22_138_117/0.28),transparent_26%)]" />
+          <div className="absolute inset-0 [background-image:radial-gradient(circle,rgb(255_255_255/0.5)_1px,transparent_1px)] [background-size:28px_28px] opacity-20" />
+          <div className="pointer-events-none absolute inset-x-0 top-8 overflow-hidden">
+            <TamkeenTextLoop className="text-white/8" />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-10 overflow-hidden">
+            <TamkeenTextLoop className="text-white/6 [animation-direction:reverse]" />
+          </div>
+          <div className="container-page relative text-center">
+            <ScrollReveal>
+              <div className="relative z-10 mx-auto mt-20 max-w-3xl">
+                <div className="mx-auto mb-6 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-black text-white/90 backdrop-blur">
+                  ابدأ رحلتك التعليمية دلوقتي
+                </div>
+                <h2 className="text-4xl leading-tight font-black sm:text-5xl">
+                  جاهز تختار كورسك وتبدأ؟
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-white/75">
+                  أنشئ حساب طالب أو تصفح الكورسات المتاحة، وكل حاجة هتفضل قدامك
+                  حتى وأنت في آخر الصفحة.
+                </p>
+                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                  {dashboardHref ? (
+                    <>
+                      <Link
+                        href={dashboardHref}
+                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1"
+                      >
+                        الدخول للوحة
+                      </Link>
+                      <Link
+                        href="/profile"
+                        className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white/15"
+                      >
+                        الملف الشخصي
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/signup"
+                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1"
+                      >
+                        إنشاء حساب طالب
+                      </Link>
+                      <Link
+                        href="/login"
+                        className="inline-flex items-center justify-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-black text-white/90 transition-all duration-300 hover:-translate-y-1 hover:bg-white/10"
+                      >
+                        تسجيل الدخول
+                      </Link>
+                    </>
+                  )}
+                  <Link
+                    href="/courses"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white/15"
+                  >
+                    تصفح الكورسات
+                  </Link>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </>
@@ -364,5 +430,23 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
         </Link>
       </div>
     </ScrollReveal>
+  );
+}
+
+function TamkeenTextLoop({ className }: { className: string }) {
+  const words = Array.from({ length: 18 });
+
+  return (
+    <div className={`tamkeen-loop flex w-max ${className}`}>
+      {[0, 1].map((group) => (
+        <div key={group} className="flex shrink-0 gap-10 px-5">
+          {words.map((_, index) => (
+            <span key={`${group}-${index}`} className="text-4xl font-black">
+              تمكين
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
