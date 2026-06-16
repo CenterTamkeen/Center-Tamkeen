@@ -112,7 +112,8 @@ export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
   const photoField = register("photo");
   const isStudent = profile.role === "student";
   const isTeacher = profile.role === "teacher";
-  const avatar = teacher?.avatar_url ?? student?.photo_url ?? profile.avatar_url;
+  const avatar =
+    teacher?.avatar_url ?? student?.photo_url ?? profile.avatar_url;
   const photoPreview = previewPhotoUrl ?? avatar;
   const canPreviewPhoto = Boolean(photoPreview);
   const availableSections = useMemo(() => {
@@ -158,7 +159,6 @@ export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
       return file ? URL.createObjectURL(file) : null;
     });
   };
-
   return (
     <form
       action={formAction}
@@ -275,7 +275,6 @@ export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
           <ErrorText message={state.fieldErrors?.photo?.[0]} />
         </section>
       ) : null}
-
       {isTeacher ? (
         <section className="overflow-hidden rounded-2xl border bg-white/70">
           <label className="group relative block h-48 cursor-pointer bg-[linear-gradient(135deg,var(--primary-700),var(--primary-400),var(--accent-300))] sm:h-64">
