@@ -7,5 +7,13 @@ export async function SiteHeader() {
   const userRole = session?.profile.role ?? null;
   const dashboardHref = userRole ? getRoleHomePath(userRole) : null;
 
-  return <SiteHeaderClient userRole={userRole} dashboardHref={dashboardHref} />;
+  return (
+    <SiteHeaderClient
+      userRole={userRole}
+      dashboardHref={dashboardHref}
+      userName={session?.profile.full_name ?? null}
+      userEmail={session?.user.email ?? null}
+      userAvatarUrl={session?.profile.avatar_url ?? null}
+    />
+  );
 }
