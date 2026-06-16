@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 
 import { LessonManager } from "@/components/teacher/lesson-manager";
 import { requireRole } from "@/lib/auth/roles";
-import { getCurrentTeacher, getTeacherLessons } from "@/lib/teacher/data";
+import {
+  getCurrentTeacher,
+  getTeacherCourses,
+  getTeacherLessons,
+} from "@/lib/teacher/data";
 
 type LessonsPageProps = {
   params: Promise<{ courseId: string }>;
@@ -26,7 +30,10 @@ export default async function CourseLessonsPage({ params }: LessonsPageProps) {
     notFound();
   }
 
-  const { course, lessons } = await getTeacherLessons(teacher.id, courseId);
+  const [{ course, lessons }, courses] = await Promise.all([
+    getTeacherLessons(teacher.id, courseId),
+    getTeacherCourses(teacher.id),
+  ]);
 
   if (!course) {
     notFound();
@@ -43,7 +50,11 @@ export default async function CourseLessonsPage({ params }: LessonsPageProps) {
           رجوع للكورسات
         </Link>
       </div>
-      <LessonManager courseId={course.id} lessons={lessons} />
+      <LessonManager
+        courseId={course.id}
+        lessons={lessons}
+        courses={courses.map((item) => ({ id: item.id, title: item.title }))}
+      />
     </div>
   );
 }

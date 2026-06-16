@@ -60,7 +60,9 @@ export type TeacherStudent = {
   } | null;
   enrollments: {
     id: string;
+    enrolled_at: string;
     course: {
+      id: string;
       title: string;
     } | null;
   }[];
@@ -460,7 +462,7 @@ export async function getTeacherStudents(teacherId: string) {
   const { data, error } = await supabase
     .from("students")
     .select(
-      "id, profile_id, student_phone, school_name, profile:profiles(full_name, phone), enrollments!inner(id, course:courses!inner(title, teacher_id))",
+      "id, profile_id, student_phone, school_name, profile:profiles(full_name, phone), enrollments!inner(id, enrolled_at, course:courses!inner(id, title, teacher_id))",
     )
     .eq("enrollments.course.teacher_id", teacherId)
     .order("created_at", { ascending: false });
@@ -504,4 +506,112 @@ export async function getTeacherStudents(teacherId: string) {
     ...student,
     student_blocks: blocksByStudent.get(student.id) ?? [],
   }));
+}
+
+export async function getTeacherDashboardDetails(teacherId: string) {
+  const supabase = await createClient();
+  const [courses, coupons, earningsQuery, enrollmentsQuery, reviewsQuery] =
+    await Promise.all([
+      getTeacherCourses(teacherId),
+      getTeacherCoupons(teacherId),
+      supabase
+        .from("teacher_earnings")
+        .select("amount, created_at")
+        .eq("teacher_id", teacherId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("enrollments")
+        .select(
+          "id, enrolled_at, student:students(profile:profiles(full_name)), course:courses!inner(id, title, teacher_id)",
+        )
+        .eq("course.teacher_id", teacherId)
+        .order("enrolled_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("reviews")
+        .select("rating, course:courses!inner(id, title, teacher_id)")
+        .eq("course.teacher_id", teacherId),
+    ]);
+
+  if (earningsQuery.error) {
+    logTeacherError("dashboard-earnings", earningsQuery.error.message);
+  }
+
+  if (enrollmentsQuery.error) {
+    logTeacherError("dashboard-enrollments", enrollmentsQuery.error.message);
+  }
+
+  if (reviewsQuery.error) {
+    logTeacherError("dashboard-reviews", reviewsQuery.error.message);
+  }
+
+  const salesByMonth = new Map<string, number>();
+
+  for (const earning of earningsQuery.data ?? []) {
+    const month = new Intl.DateTimeFormat("ar-EG", {
+      month: "short",
+      year: "numeric",
+    }).format(new Date(earning.created_at));
+    salesByMonth.set(month, (salesByMonth.get(month) ?? 0) + earning.amount);
+  }
+
+  const ratingsByCourse = new Map<
+    string,
+    { courseId: string; title: string; total: number; count: number }
+  >();
+
+  for (const review of reviewsQuery.data ?? []) {
+    const course = review.course;
+
+    if (!course) {
+      continue;
+    }
+
+    const current = ratingsByCourse.get(course.id) ?? {
+      courseId: course.id,
+      title: course.title,
+      total: 0,
+      count: 0,
+    };
+    current.total += review.rating;
+    current.count += 1;
+    ratingsByCourse.set(course.id, current);
+  }
+
+  return {
+    salesByMonth: Array.from(salesByMonth.entries()).map(([label, total]) => ({
+      label,
+      total,
+    })),
+    topCourses: courses
+      .map((course) => ({
+        id: course.id,
+        title: course.title,
+        enrollments: course.enrollments.length,
+        revenue: course.enrollments.length * course.price,
+      }))
+      .sort((a, b) => b.enrollments - a.enrollments)
+      .slice(0, 5),
+    recentEnrollments: (enrollmentsQuery.data ?? []).map((enrollment) => ({
+      id: enrollment.id,
+      enrolledAt: enrollment.enrolled_at,
+      studentName: enrollment.student?.profile?.full_name ?? "طالب بدون اسم",
+      courseTitle: enrollment.course?.title ?? "كورس غير معروف",
+    })),
+    topCoupons: coupons
+      .map((coupon) => ({
+        id: coupon.id,
+        code: coupon.code,
+        usedCount: coupon.used_count,
+        courseTitle: coupon.course?.title ?? "كل الكورسات",
+      }))
+      .sort((a, b) => b.usedCount - a.usedCount)
+      .slice(0, 5),
+    courseRatings: Array.from(ratingsByCourse.values()).map((item) => ({
+      courseId: item.courseId,
+      title: item.title,
+      average: item.count ? item.total / item.count : 0,
+      count: item.count,
+    })),
+  };
 }

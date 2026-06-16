@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 
+import { MiniBarChart } from "@/components/dashboard/mini-bar-chart";
 import { requireRole } from "@/lib/auth/roles";
-import { getCurrentTeacher, getTeacherStats } from "@/lib/teacher/data";
+import {
+  getCurrentTeacher,
+  getTeacherDashboardDetails,
+  getTeacherStats,
+} from "@/lib/teacher/data";
 import { formatPrice } from "@/lib/storefront/data";
 
 export const metadata: Metadata = {
@@ -42,7 +47,10 @@ export default async function TeacherDashboardPage() {
     );
   }
 
-  const stats = await getTeacherStats(teacher.id);
+  const [stats, details] = await Promise.all([
+    getTeacherStats(teacher.id),
+    getTeacherDashboardDetails(teacher.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -82,6 +90,122 @@ export default async function TeacherDashboardPage() {
           <p className="chip">
             {teacher.is_active ? "الحساب مفعل" : "الحساب موقوف"}
           </p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="glass-panel-strong rounded-xl p-5">
+          <div className="mb-4">
+            <p className="eyebrow">المبيعات</p>
+            <h2 className="text-lg font-black">الأرباح بمرور الوقت</h2>
+          </div>
+          <MiniBarChart data={details.salesByMonth} valueType="money" />
+        </div>
+
+        <div className="glass-panel-strong rounded-xl p-5">
+          <div className="mb-4">
+            <p className="eyebrow">الكورسات</p>
+            <h2 className="text-lg font-black">الأكثر مبيعا</h2>
+          </div>
+          <div className="space-y-3">
+            {details.topCourses.length > 0 ? (
+              details.topCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3"
+                >
+                  <div>
+                    <p className="font-black">{course.title}</p>
+                    <p className="text-foreground/55 mt-1 text-sm">
+                      {course.enrollments.toLocaleString("ar-EG")} اشتراك
+                    </p>
+                  </div>
+                  <p className="text-primary-700 font-black">
+                    {formatPrice(course.revenue)}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-foreground/60 py-8 text-center">
+                لا توجد مبيعات بعد.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-3">
+        <div className="glass-panel-strong rounded-xl p-5">
+          <h2 className="text-lg font-black">أحدث الاشتراكات</h2>
+          <div className="mt-4 space-y-3">
+            {details.recentEnrollments.map((item) => (
+              <div key={item.id} className="rounded-xl bg-white/60 p-3">
+                <p className="font-black">{item.studentName}</p>
+                <p className="text-foreground/55 mt-1 text-sm">
+                  {item.courseTitle} ·{" "}
+                  {new Date(item.enrolledAt).toLocaleDateString("ar-EG")}
+                </p>
+              </div>
+            ))}
+            {details.recentEnrollments.length === 0 ? (
+              <p className="text-foreground/60 py-8 text-center">
+                لا توجد اشتراكات حديثة.
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="glass-panel-strong rounded-xl p-5">
+          <h2 className="text-lg font-black">الكوبونات الأكثر استخداما</h2>
+          <div className="mt-4 space-y-3">
+            {details.topCoupons.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3"
+              >
+                <div>
+                  <p className="font-black" dir="ltr">
+                    {coupon.code}
+                  </p>
+                  <p className="text-foreground/55 mt-1 text-sm">
+                    {coupon.courseTitle}
+                  </p>
+                </div>
+                <span className="chip">
+                  {coupon.usedCount.toLocaleString("ar-EG")} استخدام
+                </span>
+              </div>
+            ))}
+            {details.topCoupons.length === 0 ? (
+              <p className="text-foreground/60 py-8 text-center">
+                لا توجد كوبونات مستخدمة.
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="glass-panel-strong rounded-xl p-5">
+          <h2 className="text-lg font-black">متوسط التقييمات</h2>
+          <div className="mt-4 space-y-3">
+            {details.courseRatings.map((rating) => (
+              <div key={rating.courseId} className="rounded-xl bg-white/60 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-black">{rating.title}</p>
+                  <span className="text-accent-700 font-black">
+                    {rating.average.toFixed(1)} / 5
+                  </span>
+                </div>
+                <p className="text-foreground/55 mt-1 text-sm">
+                  {rating.count.toLocaleString("ar-EG")} تقييم
+                </p>
+              </div>
+            ))}
+            {details.courseRatings.length === 0 ? (
+              <p className="text-foreground/60 py-8 text-center">
+                لا توجد تقييمات بعد.
+              </p>
+            ) : null}
+          </div>
         </div>
       </section>
     </div>

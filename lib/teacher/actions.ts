@@ -500,6 +500,123 @@ export async function moveLessonAction(formData: FormData) {
   revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
 }
 
+export async function reorderLessonsAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const lessonIds = getListFromCsv(formData, "lessonIds");
+  const { teacher } = await requireTeacher();
+
+  if (
+    !(await assertOwnsCourse(teacher.id, courseId)) ||
+    lessonIds.length === 0
+  ) {
+    return;
+  }
+
+  const supabase = await createClient();
+  await Promise.all(
+    lessonIds.map((lessonId, index) =>
+      supabase
+        .from("lessons")
+        .update({ order_index: index })
+        .eq("id", lessonId)
+        .eq("course_id", courseId),
+    ),
+  );
+
+  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+}
+
+export async function duplicateLessonAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const lessonId = getString(formData, "lessonId");
+  const { teacher } = await requireTeacher();
+
+  if (!(await assertOwnsCourse(teacher.id, courseId))) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const { data: lesson } = await supabase
+    .from("lessons")
+    .select("title, vdocipher_video_id, duration, is_free_preview")
+    .eq("id", lessonId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  const { count } = await supabase
+    .from("lessons")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", courseId);
+
+  if (!lesson) {
+    return;
+  }
+
+  await supabase.from("lessons").insert({
+    course_id: courseId,
+    title: `${lesson.title} - نسخة`,
+    order_index: count ?? 0,
+    vdocipher_video_id: lesson.vdocipher_video_id,
+    duration: lesson.duration,
+    is_free_preview: lesson.is_free_preview,
+  });
+
+  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+}
+
+export async function bulkDeleteLessonsAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const lessonIds = getListFromCsv(formData, "lessonIds");
+  const { teacher } = await requireTeacher();
+
+  if (
+    !(await assertOwnsCourse(teacher.id, courseId)) ||
+    lessonIds.length === 0
+  ) {
+    return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("lessons")
+    .delete()
+    .eq("course_id", courseId)
+    .in("id", lessonIds);
+
+  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+}
+
+export async function moveLessonToCourseAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const lessonId = getString(formData, "lessonId");
+  const targetCourseId = getString(formData, "targetCourseId");
+  const { teacher } = await requireTeacher();
+
+  if (
+    !(await assertOwnsCourse(teacher.id, courseId)) ||
+    !(await assertOwnsCourse(teacher.id, targetCourseId))
+  ) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("lessons")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", targetCourseId);
+
+  await supabase
+    .from("lessons")
+    .update({
+      course_id: targetCourseId,
+      order_index: count ?? 0,
+    })
+    .eq("id", lessonId)
+    .eq("course_id", courseId);
+
+  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidatePath(`/dashboard/teacher/courses/${targetCourseId}/lessons`);
+}
+
 export async function createCouponAction(
   _previousState: ActionState,
   formData: FormData,

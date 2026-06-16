@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { initialActionState, type ActionState } from "@/lib/auth/action-state";
 import { loginAction } from "@/lib/auth/actions";
 import { loginSchema } from "@/lib/validations/auth";
+import { PasswordInput } from "./password-tools";
 
 type LoginValues = z.infer<typeof loginSchema>;
 
@@ -159,6 +160,7 @@ export function LoginForm({ notice }: LoginFormProps) {
           {...register("email")}
           type="email"
           autoComplete="email"
+          autoFocus
           className="field bg-background/60 py-2.5"
         />
         <FieldError
@@ -171,9 +173,9 @@ export function LoginForm({ notice }: LoginFormProps) {
         <span className="text-foreground/80 text-sm font-semibold">
           كلمة المرور
         </span>
-        <input
-          {...register("password")}
-          type="password"
+        <PasswordInput<LoginValues>
+          name="password"
+          register={register}
           autoComplete="current-password"
           className="field bg-background/60 py-2.5"
         />

@@ -1,12 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { initialActionState } from "@/lib/auth/action-state";
 import {
+  bulkDeleteLessonsAction,
   createLessonAction,
   deleteLessonAction,
+  duplicateLessonAction,
   moveLessonAction,
+  moveLessonToCourseAction,
+  reorderLessonsAction,
   updateLessonAction,
 } from "@/lib/teacher/actions";
 import type { TeacherLesson } from "@/lib/teacher/data";
@@ -156,28 +160,117 @@ function LessonEditForm({
 export function LessonManager({
   courseId,
   lessons,
+  courses,
 }: {
   courseId: string;
   lessons: TeacherLesson[];
+  courses: { id: string; title: string }[];
 }) {
+  const [orderedLessonIds, setOrderedLessonIds] = useState(
+    lessons.map((lesson) => lesson.id),
+  );
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const orderedLessons = useMemo(() => {
+    const lessonsById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+
+    return orderedLessonIds
+      .map((lessonId) => lessonsById.get(lessonId))
+      .filter(Boolean) as TeacherLesson[];
+  }, [lessons, orderedLessonIds]);
+
+  function moveDraggedLesson(sourceId: string, targetId: string) {
+    setOrderedLessonIds((current) => {
+      const sourceIndex = current.indexOf(sourceId);
+      const targetIndex = current.indexOf(targetId);
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return current;
+      }
+
+      const next = [...current];
+      const [removed] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, removed);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-5">
       <CreateLessonForm courseId={courseId} />
 
+      {lessons.length > 0 ? (
+        <div className="glass-panel-strong flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
+          <p className="text-sm font-bold">
+            {selectedIds.length.toLocaleString("ar-EG")} حصة محددة
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <form action={bulkDeleteLessonsAction}>
+              <input type="hidden" name="courseId" value={courseId} />
+              <input
+                type="hidden"
+                name="lessonIds"
+                value={selectedIds.join(",")}
+              />
+              <button
+                disabled={selectedIds.length === 0}
+                className="btn-secondary px-3 py-2 text-xs text-red-700 disabled:opacity-40"
+              >
+                حذف المحدد
+              </button>
+            </form>
+            <form action={reorderLessonsAction}>
+              <input type="hidden" name="courseId" value={courseId} />
+              <input
+                type="hidden"
+                name="lessonIds"
+                value={orderedLessonIds.join(",")}
+              />
+              <button className="btn-primary px-3 py-2 text-xs">
+                حفظ الترتيب
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       <div className="glass-panel-strong overflow-hidden rounded-xl">
-        {lessons.length > 0 ? (
-          lessons.map((lesson, index) => (
+        {orderedLessons.length > 0 ? (
+          orderedLessons.map((lesson, index) => (
             <article
               key={lesson.id}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/plain", lesson.id);
+              }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                moveDraggedLesson(
+                  event.dataTransfer.getData("text/plain"),
+                  lesson.id,
+                );
+              }}
               className="space-y-4 border-b p-4 last:border-b-0"
               style={{ borderColor: "rgb(208 227 218 / 0.55)" }}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(lesson.id)}
+                    onChange={(event) => {
+                      setSelectedIds((current) =>
+                        event.target.checked
+                          ? [...current, lesson.id]
+                          : current.filter((item) => item !== lesson.id),
+                      );
+                    }}
+                    className="accent-primary-600 h-4 w-4"
+                  />
                   <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
                     {(index + 1).toLocaleString("ar-EG")}
                   </span>
-                  <p className="text-sm font-black">ترتيب الحصة</p>
+                  <p className="text-sm font-black">اسحب لإعادة الترتيب</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <form action={moveLessonAction}>
@@ -214,9 +307,45 @@ export function LessonManager({
                       حذف
                     </button>
                   </form>
+                  <form action={duplicateLessonAction}>
+                    <input type="hidden" name="courseId" value={courseId} />
+                    <input type="hidden" name="lessonId" value={lesson.id} />
+                    <button
+                      type="submit"
+                      className="btn-secondary px-3 py-2 text-xs"
+                    >
+                      نسخ
+                    </button>
+                  </form>
                 </div>
               </div>
               <LessonEditForm lesson={lesson} courseId={courseId} />
+              <form
+                action={moveLessonToCourseAction}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <input type="hidden" name="courseId" value={courseId} />
+                <input type="hidden" name="lessonId" value={lesson.id} />
+                <select
+                  name="targetCourseId"
+                  defaultValue=""
+                  className="field bg-background/60 max-w-xs py-2 text-sm"
+                >
+                  <option value="" disabled>
+                    نقل لكورس آخر
+                  </option>
+                  {courses
+                    .filter((course) => course.id !== courseId)
+                    .map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                </select>
+                <button className="btn-secondary px-3 py-2 text-xs">
+                  نقل الحصة
+                </button>
+              </form>
             </article>
           ))
         ) : (

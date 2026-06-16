@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 
-import { getAdminStats, getAdminTeacherEarningsReport } from "@/lib/admin/data";
+import { AdminReportsPanel } from "@/components/admin/admin-reports-panel";
+import {
+  getAdminFinancialReportDetails,
+  getAdminStats,
+  getAdminTeacherEarningsReport,
+} from "@/lib/admin/data";
 import { formatPrice } from "@/lib/storefront/data";
 
 export const metadata: Metadata = {
@@ -17,9 +22,10 @@ function ReportRow({ label, value }: { label: string; value: string }) {
 }
 
 export default async function AdminReportsPage() {
-  const [stats, teacherEarnings] = await Promise.all([
+  const [stats, teacherEarnings, details] = await Promise.all([
     getAdminStats(),
     getAdminTeacherEarningsReport(),
+    getAdminFinancialReportDetails(),
   ]);
 
   return (
@@ -60,36 +66,7 @@ export default async function AdminReportsPage() {
         />
       </section>
 
-      <section className="card-modern p-5">
-        <div className="mb-3">
-          <p className="eyebrow">أرباح المدرسين</p>
-          <h3 className="text-lg font-black">تقرير كل مدرس</h3>
-        </div>
-        {teacherEarnings.length > 0 ? (
-          <div className="divide-primary-100 divide-y">
-            {teacherEarnings.map((teacher) => (
-              <div
-                key={teacher.teacherId}
-                className="flex flex-wrap items-center justify-between gap-3 py-4"
-              >
-                <div>
-                  <p className="font-black">{teacher.teacherName}</p>
-                  <p className="text-foreground/55 mt-1 text-sm font-semibold">
-                    {teacher.subject}
-                  </p>
-                </div>
-                <p className="heading-gradient text-xl font-black">
-                  {formatPrice(teacher.total)}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-foreground/60 py-8 text-center">
-            لا توجد أرباح مدرسين مسجلة حتى الآن.
-          </p>
-        )}
-      </section>
+      <AdminReportsPanel teacherEarnings={teacherEarnings} details={details} />
     </div>
   );
 }

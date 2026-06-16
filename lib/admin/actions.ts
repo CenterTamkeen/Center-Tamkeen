@@ -304,6 +304,62 @@ export async function toggleTeacherActiveAction(formData: FormData) {
   revalidatePath("/dashboard/admin/teachers");
 }
 
+export async function toggleAdminCoursePublishAction(formData: FormData) {
+  await requireRole("admin", "/dashboard/admin/courses");
+
+  const courseId = getString(formData, "courseId");
+  const nextPublished = getCheckbox(formData, "nextPublished");
+  const admin = getAdminClient();
+
+  if (!admin || !courseId) {
+    return;
+  }
+
+  await admin
+    .from("courses")
+    .update({ is_published: nextPublished })
+    .eq("id", courseId);
+
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/courses");
+}
+
+export async function deleteAdminCourseAction(formData: FormData) {
+  await requireRole("admin", "/dashboard/admin/courses");
+
+  const courseId = getString(formData, "courseId");
+  const admin = getAdminClient();
+
+  if (!admin || !courseId) {
+    return;
+  }
+
+  await admin.from("courses").delete().eq("id", courseId);
+
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/courses");
+  revalidatePath("/dashboard/admin/reports");
+}
+
+export async function deleteReviewAction(formData: FormData) {
+  await requireRole("admin", "/dashboard/admin/reviews");
+
+  const reviewId = getString(formData, "reviewId");
+  const admin = getAdminClient();
+
+  if (!admin || !reviewId) {
+    return;
+  }
+
+  await admin.from("reviews").delete().eq("id", reviewId);
+
+  revalidatePath("/dashboard/admin/reviews");
+}
+
 export async function deleteTeacherAction(formData: FormData) {
   await requireRole("admin", "/dashboard/admin/teachers");
 

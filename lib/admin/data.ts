@@ -6,6 +6,7 @@ type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
+type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 
 export type AdminTeacher = Pick<
   TeacherRow,
@@ -98,6 +99,25 @@ export type AdminStudent = Pick<
     reason: string | null;
     created_at: string;
   }[];
+};
+
+export type AdminReview = Pick<
+  ReviewRow,
+  "id" | "rating" | "comment" | "created_at"
+> & {
+  student: {
+    profile: {
+      full_name: string;
+    } | null;
+  } | null;
+  course: {
+    title: string;
+    teacher: {
+      profile: {
+        full_name: string;
+      } | null;
+    } | null;
+  } | null;
 };
 
 function logAdminError(label: string, error: unknown) {
@@ -305,4 +325,71 @@ export async function getAdminTeacherEarningsReport() {
   }
 
   return Array.from(report.values()).sort((a, b) => b.total - a.total);
+}
+
+export async function getAdminFinancialReportDetails() {
+  const supabase = await createClient();
+  const [orders, courses, couponsQuery] = await Promise.all([
+    getAdminOrders("completed"),
+    getAdminCourses(),
+    supabase
+      .from("coupons")
+      .select("id, code, used_count, discount_value, discount_type"),
+  ]);
+
+  if (couponsQuery.error) {
+    logAdminError("coupon-report", couponsQuery.error.message);
+  }
+
+  const salesByDate = new Map<string, number>();
+
+  for (const order of orders) {
+    const date = new Date(order.completed_at ?? order.created_at)
+      .toISOString()
+      .slice(0, 10);
+    salesByDate.set(date, (salesByDate.get(date) ?? 0) + order.total_amount);
+  }
+
+  return {
+    salesByDate: Array.from(salesByDate.entries()).map(([label, total]) => ({
+      label,
+      total,
+    })),
+    topCourses: courses
+      .map((course) => ({
+        id: course.id,
+        title: course.title,
+        teacherName: course.teacher?.profile?.full_name ?? "مدرس غير معروف",
+        enrollments: course.enrollments.length,
+        revenue: course.enrollments.length * course.price,
+      }))
+      .sort((a, b) => b.enrollments - a.enrollments)
+      .slice(0, 10),
+    coupons: (couponsQuery.data ?? [])
+      .map((coupon) => ({
+        id: coupon.id,
+        code: coupon.code,
+        usedCount: coupon.used_count,
+        discountValue: coupon.discount_value,
+        discountType: coupon.discount_type,
+      }))
+      .sort((a, b) => b.usedCount - a.usedCount),
+  };
+}
+
+export async function getAdminReviews() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(
+      "id, rating, comment, created_at, student:students(profile:profiles(full_name)), course:courses(title, teacher:teachers(profile:profiles(full_name)))",
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logAdminError("reviews", error.message);
+    return [];
+  }
+
+  return (data ?? []) as AdminReview[];
 }

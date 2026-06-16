@@ -104,29 +104,24 @@ export async function SiteFooter() {
           <div className="space-y-4">
             <h2 className="text-foreground/90 font-black">الدعم والمتابعة</h2>
             <nav className="flex flex-col gap-2">
-              <Link
-                href="/#reviews"
-                className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
-              >
-                <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
-                تقييمات الطلاب
-              </Link>
-              <Link
-                href="/teachers"
-                className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
-              >
-                <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
-                صفحات المدرسين
-              </Link>
-              {dashboardHref ? (
+              {[
+                { href: "/about", label: "عن تمكين" },
+                { href: "/how-it-works", label: "كيف يعمل الموقع" },
+                { href: "/faq", label: "الأسئلة الشائعة" },
+                { href: "/contact", label: "تواصل معنا" },
+                { href: "/privacy", label: "سياسة الخصوصية" },
+                { href: "/terms", label: "الشروط والأحكام" },
+              ].map((link) => (
                 <Link
-                  href="/profile"
+                  key={link.href}
+                  href={link.href}
                   className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
                 >
                   <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
-                  إعدادات الحساب
+                  {link.label}
                 </Link>
-              ) : (
+              ))}
+              {!dashboardHref ? (
                 <Link
                   href="/forgot-password"
                   className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
@@ -134,7 +129,7 @@ export async function SiteFooter() {
                   <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
                   نسيت كلمة المرور
                 </Link>
-              )}
+              ) : null}
             </nav>
           </div>
         </div>

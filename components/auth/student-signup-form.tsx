@@ -15,6 +15,7 @@ import {
   sectionsByGrade,
   studentSignUpClientSchema,
 } from "@/lib/validations/auth";
+import { PasswordInput, PasswordStrength } from "./password-tools";
 
 type StudentSignUpValues = z.infer<typeof studentSignUpClientSchema>;
 type GradeKey = keyof typeof sectionsByGrade;
@@ -213,7 +214,11 @@ export function StudentSignUpForm() {
               <span className="text-foreground/80 text-sm font-semibold">
                 اسم الطالب الرباعي
               </span>
-              <input {...register("fullName")} className={inputClassName} />
+              <input
+                {...register("fullName")}
+                autoFocus
+                className={inputClassName}
+              />
               <ErrorText
                 message={getError("fullName", errors, state.fieldErrors)}
               />
@@ -411,11 +416,15 @@ export function StudentSignUpForm() {
               <span className="text-foreground/80 text-sm font-semibold">
                 كلمة المرور
               </span>
-              <input
-                {...register("password")}
-                type="password"
+              <PasswordInput<StudentSignUpValues>
+                name="password"
+                register={register}
                 autoComplete="new-password"
                 className={inputClassName}
+              />
+              <PasswordStrength<StudentSignUpValues>
+                control={control}
+                name="password"
               />
               <ErrorText
                 message={getError("password", errors, state.fieldErrors)}
@@ -426,9 +435,9 @@ export function StudentSignUpForm() {
               <span className="text-foreground/80 text-sm font-semibold">
                 تأكيد كلمة المرور
               </span>
-              <input
-                {...register("confirmPassword")}
-                type="password"
+              <PasswordInput<StudentSignUpValues>
+                name="confirmPassword"
+                register={register}
                 autoComplete="new-password"
                 className={inputClassName}
               />
