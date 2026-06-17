@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   orderRejectSchema,
   teacherCreateSchema,
+  teacherUpdateSchema,
 } from "@/lib/validations/admin";
 
 function failure(
@@ -101,7 +102,7 @@ async function deletePartialUser(userId: string) {
   }
 }
 
-async function deletePartialAvatar(path: string) {
+async function deletePartialAvatar(path?: string | null) {
   await deleteImageByUrl(path);
 }
 
@@ -138,6 +139,18 @@ async function uploadTeacherAvatar(userId: string, file: File) {
   }
 }
 
+function revalidateTeacherAdminPaths(slug?: string | null) {
+  revalidatePath("/");
+  revalidatePath("/courses");
+  if (slug) {
+    revalidatePath(`/teachers/${slug}`);
+  }
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/teachers");
+  revalidatePath("/dashboard/admin/courses");
+  revalidatePath("/dashboard/admin/reports");
+}
+
 export async function createTeacherAction(
   _previousState: ActionState,
   formData: FormData,
@@ -146,7 +159,9 @@ export async function createTeacherAction(
 
   const values = getFormValues(formData, [
     "fullName",
+    "englishName",
     "subject",
+    "phone",
     "email",
     "password",
   ]);
@@ -154,7 +169,9 @@ export async function createTeacherAction(
   const avatarError = validateAvatar(avatar);
   const parsed = teacherCreateSchema.safeParse({
     fullName: getString(formData, "fullName"),
+    englishName: getString(formData, "englishName"),
     subject: getString(formData, "subject"),
+    phone: getString(formData, "phone"),
     email: getString(formData, "email"),
     password: getString(formData, "password"),
   });
@@ -184,6 +201,7 @@ export async function createTeacherAction(
       email_confirm: true,
       user_metadata: {
         full_name: parsed.data.fullName,
+        phone: parsed.data.phone || null,
         role: "teacher",
       },
     });
@@ -213,6 +231,7 @@ export async function createTeacherAction(
     full_name: parsed.data.fullName,
     role: "teacher",
     avatar_url: avatarUrl,
+    phone: parsed.data.phone || null,
   });
 
   if (profileError) {
@@ -224,12 +243,40 @@ export async function createTeacherAction(
     return failure("تعذر حفظ ملف المدرس.", undefined, values);
   }
 
-  const { error: teacherError } = await admin.from("teachers").insert({
+  const teacherPayload = {
     profile_id: authData.user.id,
+    slug: parsed.data.englishName,
     subject: parsed.data.subject,
     avatar_url: avatarUrl,
     is_active: true,
-  });
+  };
+
+  const { data: existingTeachers, error: existingTeacherError } = await admin
+    .from("teachers")
+    .select("id")
+    .eq("profile_id", authData.user.id)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingTeacherError) {
+    console.error(
+      "Failed to check existing teacher record.",
+      existingTeacherError,
+    );
+    if (avatarUrl) {
+      await deletePartialAvatar(avatarUrl);
+    }
+    await deletePartialUser(authData.user.id);
+    return failure("تعذر حفظ بيانات المدرس.", undefined, values);
+  }
+
+  const existingTeacher = existingTeachers?.[0];
+  const { error: teacherError } = existingTeacher
+    ? await admin
+        .from("teachers")
+        .update(teacherPayload)
+        .eq("id", existingTeacher.id)
+    : await admin.from("teachers").insert(teacherPayload);
 
   if (teacherError) {
     console.error("Failed to save teacher record.", teacherError);
@@ -247,6 +294,129 @@ export async function createTeacherAction(
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/teachers");
   return success("تم إنشاء حساب المدرس بنجاح.");
+}
+
+export async function updateTeacherAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole("admin", "/dashboard/admin/teachers");
+
+  const values = getFormValues(formData, [
+    "teacherId",
+    "fullName",
+    "englishName",
+    "subject",
+    "phone",
+    "isActive",
+  ]);
+  const avatar = getOptionalImage(formData, "avatar");
+  const avatarError = validateAvatar(avatar);
+  const parsed = teacherUpdateSchema.safeParse({
+    teacherId: getString(formData, "teacherId"),
+    fullName: getString(formData, "fullName"),
+    englishName: getString(formData, "englishName"),
+    subject: getString(formData, "subject"),
+    phone: getString(formData, "phone"),
+    isActive: getCheckbox(formData, "isActive"),
+  });
+
+  if (avatarError) {
+    return failure("راجع صورة المدرس.", { avatar: [avatarError] }, values);
+  }
+
+  if (!parsed.success) {
+    return failure("راجع بيانات المدرس.", fieldErrors(parsed.error), values);
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
+  }
+
+  const { data: teacher, error: loadError } = await admin
+    .from("teachers")
+    .select("id, profile_id, slug, avatar_url")
+    .eq("id", parsed.data.teacherId)
+    .maybeSingle();
+
+  if (loadError || !teacher) {
+    console.error("Failed to load teacher before update.", loadError);
+    return failure("تعذر تحميل بيانات المدرس.", undefined, values);
+  }
+
+  let avatarUrl: string | null = null;
+
+  if (avatar) {
+    const uploadResult = await uploadTeacherAvatar(teacher.profile_id, avatar);
+
+    if (uploadResult.error) {
+      return failure(uploadResult.error, undefined, values);
+    }
+
+    avatarUrl = uploadResult.avatarUrl ?? null;
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({
+      full_name: parsed.data.fullName,
+      phone: parsed.data.phone || null,
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    })
+    .eq("id", teacher.profile_id);
+
+  if (profileError) {
+    console.error("Failed to update teacher profile.", profileError);
+    if (avatarUrl) {
+      await deletePartialAvatar(avatarUrl);
+    }
+    return failure("تعذر تحديث ملف المدرس.", undefined, values);
+  }
+
+  const { data: updatedTeacher, error: teacherError } = await admin
+    .from("teachers")
+    .update({
+      slug: parsed.data.englishName,
+      subject: parsed.data.subject,
+      is_active: parsed.data.isActive,
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    })
+    .eq("id", teacher.id)
+    .select("slug")
+    .maybeSingle();
+
+  if (teacherError) {
+    console.error("Failed to update teacher record.", teacherError);
+    if (avatarUrl) {
+      await deletePartialAvatar(avatarUrl);
+    }
+    return failure("تعذر تحديث بيانات المدرس.", undefined, values);
+  }
+
+  const { error: authError } = await admin.auth.admin.updateUserById(
+    teacher.profile_id,
+    {
+      user_metadata: {
+        full_name: parsed.data.fullName,
+        phone: parsed.data.phone || null,
+        role: "teacher",
+      },
+    },
+  );
+
+  if (authError) {
+    console.error("Failed to update teacher auth metadata.", authError);
+  }
+
+  if (avatarUrl) {
+    await deletePartialAvatar(teacher.avatar_url);
+  }
+
+  revalidateTeacherAdminPaths(teacher.slug);
+  revalidateTeacherAdminPaths(updatedTeacher?.slug);
+  return success("تم تحديث بيانات المدرس بنجاح.");
 }
 
 export async function toggleTeacherActiveAction(formData: FormData) {
@@ -327,25 +497,48 @@ export async function deleteReviewAction(formData: FormData) {
   revalidatePath("/dashboard/admin/reviews");
 }
 
-export async function deleteTeacherAction(formData: FormData) {
+export async function deleteTeacherAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   await requireRole("admin", "/dashboard/admin/teachers");
 
   const teacherId = getString(formData, "teacherId");
   const admin = getAdminClient();
 
   if (!admin || !teacherId) {
-    return;
+    return failure("تعذر حذف المدرس.");
   }
 
-  const { data: teacher, error: teacherError } = await admin
+  let { data: teacher, error: teacherError } = await admin
     .from("teachers")
     .select("id, profile_id, slug, avatar_url, cover_url")
     .eq("id", teacherId)
     .maybeSingle();
 
+  if (
+    teacherError &&
+    (teacherError.message.includes("cover_url") ||
+      teacherError.message.includes("schema cache") ||
+      teacherError.message.includes("Could not find"))
+  ) {
+    const fallback = await admin
+      .from("teachers")
+      .select("id, profile_id, slug, avatar_url")
+      .eq("id", teacherId)
+      .maybeSingle();
+
+    teacher = fallback.data ? { ...fallback.data, cover_url: null } : null;
+    teacherError = fallback.error;
+  }
+
   if (teacherError || !teacher) {
     console.error("Failed to load teacher before deletion.", teacherError);
-    return;
+    return failure(
+      teacherError?.message
+        ? `تعذر تحميل بيانات المدرس: ${teacherError.message}`
+        : "تعذر تحميل بيانات المدرس قبل الحذف.",
+    );
   }
 
   const { data: courses, error: coursesError } = await admin
@@ -358,7 +551,7 @@ export async function deleteTeacherAction(formData: FormData) {
       "Failed to load teacher courses before deletion.",
       coursesError,
     );
-    return;
+    return failure("تعذر تحميل كورسات المدرس قبل الحذف.");
   }
 
   const courseIds = (courses ?? []).map((course) => course.id);
@@ -371,7 +564,7 @@ export async function deleteTeacherAction(formData: FormData) {
 
     if (orderItemsError) {
       console.error("Failed to delete teacher order items.", orderItemsError);
-      return;
+      return failure("تعذر حذف عناصر طلبات كورسات المدرس.");
     }
   }
 
@@ -382,7 +575,7 @@ export async function deleteTeacherAction(formData: FormData) {
 
   if (earningsError) {
     console.error("Failed to delete teacher earnings.", earningsError);
-    return;
+    return failure("تعذر حذف أرباح المدرس قبل حذف الحساب.");
   }
 
   await Promise.all([
@@ -391,22 +584,26 @@ export async function deleteTeacherAction(formData: FormData) {
     ...(courses ?? []).map((course) => deleteImageByUrl(course.thumbnail_url)),
   ]);
 
+  const { error: deleteProfileError } = await admin
+    .from("profiles")
+    .delete()
+    .eq("id", teacher.profile_id);
+
+  if (deleteProfileError) {
+    console.error("Failed to delete teacher profile.", deleteProfileError);
+    return failure("تعذر حذف ملف المدرس من قاعدة البيانات.");
+  }
+
   const { error: deleteUserError } = await admin.auth.admin.deleteUser(
     teacher.profile_id,
   );
 
   if (deleteUserError) {
     console.error("Failed to delete teacher auth user.", deleteUserError);
-    return;
   }
 
-  revalidatePath("/");
-  revalidatePath("/courses");
-  revalidatePath(`/teachers/${teacher.slug}`);
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/admin/teachers");
-  revalidatePath("/dashboard/admin/courses");
-  revalidatePath("/dashboard/admin/reports");
+  revalidateTeacherAdminPaths(teacher.slug);
+  return success("تم حذف المدرس بنجاح.");
 }
 
 export async function rejectOrderAction(

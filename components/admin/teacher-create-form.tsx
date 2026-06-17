@@ -1,19 +1,41 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { ErrorText, FormFeedback } from "@/components/teacher/form-feedback";
 import { createTeacherAction } from "@/lib/admin/actions";
 import { initialActionState } from "@/lib/auth/action-state";
 
 export function TeacherCreateForm() {
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitLockedRef = useRef(false);
   const [state, formAction, isPending] = useActionState(
     createTeacherAction,
     initialActionState,
   );
 
+  useEffect(() => {
+    submitLockedRef.current = false;
+
+    if (state.status === "success") {
+      formRef.current?.reset();
+    }
+  }, [state]);
+
   return (
-    <form action={formAction} className="card-modern space-y-6 p-6 sm:p-7">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="card-modern space-y-6 p-6 sm:p-7"
+      onSubmit={(event) => {
+        if (isPending || submitLockedRef.current) {
+          event.preventDefault();
+          return;
+        }
+
+        submitLockedRef.current = true;
+      }}
+    >
       <div>
         <p className="eyebrow">إضافة مدرس</p>
         <h2 className="text-lg font-black">حساب مدرس جديد</h2>
@@ -36,6 +58,20 @@ export function TeacherCreateForm() {
 
         <label className="grid min-w-0 gap-2.5">
           <span className="text-foreground/80 text-sm font-semibold">
+            الاسم بالإنجليزي للرابط
+          </span>
+          <input
+            name="englishName"
+            defaultValue={state.values?.englishName ?? ""}
+            className="field bg-background/60 min-w-0 py-3 text-left"
+            dir="ltr"
+            placeholder="Ahmed Mohamed"
+          />
+          <ErrorText message={state.fieldErrors?.englishName?.[0]} />
+        </label>
+
+        <label className="grid min-w-0 gap-2.5">
+          <span className="text-foreground/80 text-sm font-semibold">
             المادة
           </span>
           <input
@@ -44,6 +80,21 @@ export function TeacherCreateForm() {
             className="field bg-background/60 min-w-0 py-3"
           />
           <ErrorText message={state.fieldErrors?.subject?.[0]} />
+        </label>
+
+        <label className="grid min-w-0 gap-2.5">
+          <span className="text-foreground/80 text-sm font-semibold">
+            رقم التليفون
+          </span>
+          <input
+            name="phone"
+            type="tel"
+            defaultValue={state.values?.phone ?? ""}
+            className="field bg-background/60 min-w-0 py-3 text-left"
+            dir="ltr"
+            placeholder="01xxxxxxxxx"
+          />
+          <ErrorText message={state.fieldErrors?.phone?.[0]} />
         </label>
 
         <label className="grid min-w-0 gap-2.5">

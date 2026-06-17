@@ -2,17 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Fragment, useActionState, useEffect, useMemo, useState } from "react";
 
+import { ErrorText, FormFeedback } from "@/components/teacher/form-feedback";
+import { initialActionState } from "@/lib/auth/action-state";
 import {
   deleteTeacherAction,
   toggleTeacherActiveAction,
+  updateTeacherAction,
 } from "@/lib/admin/actions";
 import type { AdminTeacher } from "@/lib/admin/data";
 
 export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
+  const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
@@ -50,7 +54,7 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
       </div>
 
       <div className="glass-panel-strong overflow-x-auto rounded-xl">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[960px] text-sm">
           <thead className="bg-primary-50/70 text-primary-800">
             <tr>
               <th className="px-4 py-3 text-right">المدرس</th>
@@ -62,91 +66,97 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
           </thead>
           <tbody className="divide-primary-100 divide-y">
             {filtered.map((teacher) => (
-              <tr key={teacher.id}>
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="avatar-ring relative h-11 w-11 overflow-hidden rounded-xl">
-                      {(teacher.avatar_url ?? teacher.profile?.avatar_url) ? (
-                        <Image
-                          src={
-                            teacher.avatar_url ??
-                            teacher.profile?.avatar_url ??
-                            ""
-                          }
-                          alt={teacher.profile?.full_name ?? "صورة المدرس"}
-                          fill
-                          sizes="44px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="bg-primary-500 text-primary-foreground flex h-full items-center justify-center font-black">
-                          {(teacher.profile?.full_name ?? "م").slice(0, 1)}
-                        </div>
-                      )}
+              <Fragment key={teacher.id}>
+                <tr>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="avatar-ring relative h-11 w-11 overflow-hidden rounded-xl">
+                        {(teacher.avatar_url ?? teacher.profile?.avatar_url) ? (
+                          <Image
+                            src={
+                              teacher.avatar_url ??
+                              teacher.profile?.avatar_url ??
+                              ""
+                            }
+                            alt={teacher.profile?.full_name ?? "صورة المدرس"}
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="bg-primary-500 text-primary-foreground flex h-full items-center justify-center font-black">
+                            {(teacher.profile?.full_name ?? "م").slice(0, 1)}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-black">
+                          {teacher.profile?.full_name ?? "مدرس بدون اسم"}
+                        </p>
+                        <p className="text-foreground/55 mt-1">
+                          {teacher.slug}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-black">
-                        {teacher.profile?.full_name ?? "مدرس بدون اسم"}
-                      </p>
-                      <p className="text-foreground/55 mt-1">
-                        {teacher.profile?.phone ?? "لا يوجد رقم"} ·{" "}
-                        {teacher.slug}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-4">{teacher.subject}</td>
-                <td className="px-4 py-4">
-                  {teacher.courses.length.toLocaleString("ar-EG")} كورس
-                </td>
-                <td className="px-4 py-4">
-                  <span className="chip">
-                    {teacher.is_active ? "مفعل" : "موقوف"}
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/teachers/${teacher.slug}`}
-                      className="btn-secondary px-3 py-2 text-xs"
-                    >
-                      عرض
-                    </Link>
-                    <form action={toggleTeacherActiveAction}>
-                      <input
-                        type="hidden"
-                        name="teacherId"
-                        value={teacher.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="nextActive"
-                        value={teacher.is_active ? "false" : "true"}
-                      />
-                      <button className="btn-secondary px-3 py-2 text-xs">
-                        {teacher.is_active ? "إيقاف" : "تفعيل"}
-                      </button>
-                    </form>
-                    <form action={deleteTeacherAction}>
-                      <input
-                        type="hidden"
-                        name="teacherId"
-                        value={teacher.id}
-                      />
-                      <button
-                        className="btn-secondary px-3 py-2 text-xs text-red-700"
-                        onClick={(event) => {
-                          if (!confirm("هل تريد حذف المدرس نهائيا؟")) {
-                            event.preventDefault();
-                          }
-                        }}
+                  </td>
+                  <td className="px-4 py-4">{teacher.subject}</td>
+                  <td className="px-4 py-4">
+                    {teacher.courses.length.toLocaleString("ar-EG")} كورس
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="chip">
+                      {teacher.is_active ? "مفعل" : "موقوف"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/teachers/${teacher.slug}`}
+                        className="btn-secondary px-3 py-2 text-xs"
                       >
-                        حذف
+                        عرض
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn-secondary px-3 py-2 text-xs"
+                        onClick={() =>
+                          setEditingTeacherId((current) =>
+                            current === teacher.id ? null : teacher.id,
+                          )
+                        }
+                      >
+                        تعديل
                       </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
+                      <form action={toggleTeacherActiveAction}>
+                        <input
+                          type="hidden"
+                          name="teacherId"
+                          value={teacher.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="nextActive"
+                          value={teacher.is_active ? "false" : "true"}
+                        />
+                        <button className="btn-secondary px-3 py-2 text-xs">
+                          {teacher.is_active ? "إيقاف" : "تفعيل"}
+                        </button>
+                      </form>
+                      <TeacherDeleteForm teacherId={teacher.id} />
+                    </div>
+                  </td>
+                </tr>
+                {editingTeacherId === teacher.id ? (
+                  <tr>
+                    <td colSpan={5} className="bg-primary-50/30 px-4 py-5">
+                      <TeacherEditForm
+                        teacher={teacher}
+                        onSaved={() => setEditingTeacherId(null)}
+                      />
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -157,5 +167,151 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function TeacherDeleteForm({ teacherId }: { teacherId: string }) {
+  const [state, formAction, isPending] = useActionState(
+    deleteTeacherAction,
+    initialActionState,
+  );
+
+  return (
+    <form action={formAction} className="space-y-2">
+      <input type="hidden" name="teacherId" value={teacherId} />
+      <button
+        disabled={isPending}
+        className="btn-secondary px-3 py-2 text-xs text-red-700"
+        onClick={(event) => {
+          if (!confirm("هل تريد حذف المدرس نهائيا؟")) {
+            event.preventDefault();
+          }
+        }}
+      >
+        {isPending ? "جاري الحذف..." : "حذف"}
+      </button>
+      {state.status === "error" ? (
+        <p className="max-w-48 text-xs font-semibold text-red-700">
+          {state.message}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+function TeacherEditForm({
+  teacher,
+  onSaved,
+}: {
+  teacher: AdminTeacher;
+  onSaved: () => void;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    updateTeacherAction,
+    initialActionState,
+  );
+
+  useEffect(() => {
+    if (state.status === "success") {
+      onSaved();
+    }
+  }, [onSaved, state.status]);
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <input type="hidden" name="teacherId" value={teacher.id} />
+      <FormFeedback state={state} />
+
+      <div className="grid gap-4 lg:grid-cols-4">
+        <label className="grid min-w-0 gap-2">
+          <span className="text-foreground/80 text-xs font-bold">
+            اسم المدرس
+          </span>
+          <input
+            name="fullName"
+            defaultValue={
+              state.values?.fullName ?? teacher.profile?.full_name ?? ""
+            }
+            className="field bg-background/70 min-w-0 py-2.5"
+          />
+          <ErrorText message={state.fieldErrors?.fullName?.[0]} />
+        </label>
+
+        <label className="grid min-w-0 gap-2">
+          <span className="text-foreground/80 text-xs font-bold">
+            الرابط بالإنجليزي
+          </span>
+          <input
+            name="englishName"
+            defaultValue={state.values?.englishName ?? teacher.slug}
+            className="field bg-background/70 min-w-0 py-2.5 text-left"
+            dir="ltr"
+          />
+          <ErrorText message={state.fieldErrors?.englishName?.[0]} />
+        </label>
+
+        <label className="grid min-w-0 gap-2">
+          <span className="text-foreground/80 text-xs font-bold">المادة</span>
+          <input
+            name="subject"
+            defaultValue={state.values?.subject ?? teacher.subject}
+            className="field bg-background/70 min-w-0 py-2.5"
+          />
+          <ErrorText message={state.fieldErrors?.subject?.[0]} />
+        </label>
+
+        <label className="grid min-w-0 gap-2">
+          <span className="text-foreground/80 text-xs font-bold">
+            رقم التليفون
+          </span>
+          <input
+            name="phone"
+            type="tel"
+            defaultValue={state.values?.phone ?? teacher.profile?.phone ?? ""}
+            className="field bg-background/70 min-w-0 py-2.5 text-left"
+            dir="ltr"
+          />
+          <ErrorText message={state.fieldErrors?.phone?.[0]} />
+        </label>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+        <label className="grid min-w-0 gap-2">
+          <span className="text-foreground/80 text-xs font-bold">
+            صورة المدرس
+          </span>
+          <input
+            name="avatar"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="field bg-background/70 min-w-0 py-2.5"
+          />
+          <ErrorText message={state.fieldErrors?.avatar?.[0]} />
+        </label>
+
+        <label className="flex items-center gap-2 pb-2 text-sm font-bold">
+          <input
+            name="isActive"
+            type="checkbox"
+            defaultChecked={teacher.is_active}
+            className="h-4 w-4"
+          />
+          مفعل
+        </label>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button disabled={isPending} className="btn-primary px-4 py-2 text-xs">
+          {isPending ? "جاري الحفظ..." : "حفظ التعديل"}
+        </button>
+        <button
+          type="button"
+          className="btn-secondary px-4 py-2 text-xs"
+          onClick={onSaved}
+        >
+          إلغاء
+        </button>
+      </div>
+    </form>
   );
 }

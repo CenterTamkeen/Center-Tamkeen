@@ -9,7 +9,14 @@ type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
 
 export type TeacherSummary = Pick<
   TeacherRow,
-  "id" | "slug" | "bio" | "subject" | "avatar_url" | "cover_url" | "is_active"
+  | "id"
+  | "profile_id"
+  | "slug"
+  | "bio"
+  | "subject"
+  | "avatar_url"
+  | "cover_url"
+  | "is_active"
 > & {
   profile: {
     full_name: string;
@@ -183,25 +190,42 @@ export function formatDuration(seconds: number | null) {
   return `${minutes.toLocaleString("ar-EG")} دقيقة`;
 }
 
+function uniqueTeachers(teachers: TeacherSummary[]) {
+  const seen = new Set<string>();
+
+  return teachers.filter((teacher) => {
+    const key = teacher.profile_id || teacher.id;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function getFeaturedTeachers(limit = 6) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("teachers")
     .select(
-      "id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
+      "id, profile_id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
     )
     .eq("is_active", true)
-    .limit(limit);
+    .limit(limit * 2);
 
   if (error) {
     logStorefrontError("featured-teachers", error.message);
     return [];
   }
 
-  return (data ?? []).map((teacher) => ({
-    ...teacher,
-    cover_url: null,
-  })) as TeacherSummary[];
+  return uniqueTeachers(
+    (data ?? []).map((teacher) => ({
+      ...teacher,
+      cover_url: null,
+    })) as TeacherSummary[],
+  ).slice(0, limit);
 }
 
 export async function getTeacherBySlug(slug: string) {
@@ -209,7 +233,7 @@ export async function getTeacherBySlug(slug: string) {
   const withCover = await supabase
     .from("teachers")
     .select(
-      "id, slug, bio, subject, avatar_url, cover_url, is_active, profile:profiles(full_name, avatar_url)",
+      "id, profile_id, slug, bio, subject, avatar_url, cover_url, is_active, profile:profiles(full_name, avatar_url)",
     )
     .eq("slug", slug)
     .eq("is_active", true)
@@ -231,7 +255,7 @@ export async function getTeacherBySlug(slug: string) {
   const withoutCover = await supabase
     .from("teachers")
     .select(
-      "id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
+      "id, profile_id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
     )
     .eq("slug", slug)
     .eq("is_active", true)
@@ -274,7 +298,7 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
   let query = supabase
     .from("teachers")
     .select(
-      "id, slug, bio, subject, avatar_url, is_active, created_at, profile:profiles(full_name, avatar_url)",
+      "id, profile_id, slug, bio, subject, avatar_url, is_active, created_at, profile:profiles(full_name, avatar_url)",
       { count: "exact" },
     )
     .eq("is_active", true)
@@ -327,11 +351,15 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
 
   const totalCount = count ?? 0;
 
-  return {
-    teachers: (data ?? []).map((teacher) => ({
+  const teachers = uniqueTeachers(
+    (data ?? []).map((teacher) => ({
       ...teacher,
       cover_url: null,
     })) as TeacherSummary[],
+  );
+
+  return {
+    teachers,
     totalCount,
     totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
     page,
