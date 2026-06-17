@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { ErrorText, FormFeedback } from "@/components/teacher/form-feedback";
 import { createTeacherAction } from "@/lib/admin/actions";
@@ -9,6 +9,7 @@ import { initialActionState } from "@/lib/auth/action-state";
 export function TeacherCreateForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const submitLockedRef = useRef(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(
     createTeacherAction,
     initialActionState,
@@ -115,12 +116,53 @@ export function TeacherCreateForm() {
           <span className="text-foreground/80 text-sm font-semibold">
             الباسورد
           </span>
-          <input
-            name="password"
-            type="password"
-            className="field bg-background/60 min-w-0 py-3 text-left"
-            dir="ltr"
-          />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              className="field bg-background/60 min-w-0 py-3 pe-11 text-left"
+              dir="ltr"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="text-foreground/55 hover:text-primary-700 absolute inset-y-1 left-1 inline-flex w-9 items-center justify-center rounded-lg transition"
+              aria-label={showPassword ? "إخفاء الباسورد" : "إظهار الباسورد"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 3l18 18" />
+                  <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
+                  <path d="M9.88 5.09A10.94 10.94 0 0 1 12 5c5 0 9.27 3.11 11 7-1 2.24-2.73 4.16-4.94 5.32" />
+                  <path d="M6.61 6.61C4.62 7.88 3.06 9.78 2 12c1.73 3.89 6 7 10 7a10.8 10.8 0 0 0 4.39-.93" />
+                </svg>
+              ) : (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
           <ErrorText message={state.fieldErrors?.password?.[0]} />
         </label>
       </div>
