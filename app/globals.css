@@ -319,6 +319,15 @@ body::before {
   }
 }
 
+@keyframes tamkeen-teachers-marquee {
+  from {
+    transform: translateX(-25%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes tamkeen-loop {
   from {
     transform: translateX(0);
@@ -820,6 +829,24 @@ body::before {
 
   .tamkeen-marquee {
     animation: tamkeen-marquee 28s linear infinite;
+  }
+
+  .tamkeen-teachers-marquee-track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: max-content;
+    animation: tamkeen-teachers-marquee 30s linear infinite;
+    will-change: transform;
+  }
+
+  .tamkeen-teachers-marquee-group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 1.5rem;
+    padding-inline-end: 1.5rem;
   }
 
   .tamkeen-loop {

@@ -350,48 +350,76 @@ export default async function Home() {
 }
 
 function TeachersMarquee({ teachers }: { teachers: TeacherSummary[] }) {
-  const marqueeTeachers = [...teachers, ...teachers];
+  const shouldAnimate = teachers.length > 1;
+  const teacherGroups = shouldAnimate
+    ? Array.from({ length: 4 }, () => teachers)
+    : [teachers];
 
   return (
     <ScrollReveal>
-      <div className="relative overflow-hidden py-5">
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
-        <div className="tamkeen-marquee flex w-max gap-6 hover:[animation-play-state:paused]">
-          {marqueeTeachers.map((teacher, index) => {
-            const name = teacher.profile?.full_name ?? "مدرس تمكين";
-            const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
+      <div className="relative overflow-hidden py-5" dir="ltr">
+        {shouldAnimate ? (
+          <>
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
+          </>
+        ) : null}
+        <div
+          className={`${
+            shouldAnimate
+              ? "tamkeen-teachers-marquee-track hover:[animation-play-state:paused]"
+              : "flex-wrap justify-center"
+          }`}
+        >
+          {teacherGroups.map((group, groupIndex) => (
+            <div
+              key={groupIndex}
+              aria-hidden={groupIndex > 0}
+              className={
+                shouldAnimate
+                  ? "tamkeen-teachers-marquee-group"
+                  : "flex flex-wrap justify-center gap-6"
+              }
+            >
+              {group.map((teacher) => {
+                const name = teacher.profile?.full_name ?? "مدرس تمكين";
+                const avatar =
+                  teacher.avatar_url ?? teacher.profile?.avatar_url;
 
-            return (
-              <Link
-                key={`${teacher.id}-${index}`}
-                href={`/teachers/${teacher.slug}`}
-                className="group relative flex w-56 shrink-0 flex-col items-center px-4 py-5 text-center transition-all duration-300 hover:-translate-y-1"
-              >
-                <span className="bg-primary-600 absolute top-0 z-10 rounded-full px-4 py-1.5 text-xs font-black text-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:-translate-y-1">
-                  {teacher.subject}
-                </span>
-                <div className="bg-primary-50 relative mt-5 h-40 w-40 overflow-hidden rounded-full border-4 border-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:scale-110">
-                  {avatar ? (
-                    <Image
-                      src={avatar}
-                      alt={name}
-                      fill
-                      sizes="160px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="bg-primary-600 flex h-full items-center justify-center text-3xl font-black text-white">
-                      {name.slice(0, 1)}
+                return (
+                  <Link
+                    key={teacher.id}
+                    href={`/teachers/${teacher.slug}`}
+                    tabIndex={groupIndex > 0 ? -1 : undefined}
+                    dir="rtl"
+                    className="group relative flex w-56 shrink-0 flex-col items-center px-4 py-5 text-center transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <span className="bg-primary-600 absolute top-0 z-10 rounded-full px-4 py-1.5 text-xs font-black text-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:-translate-y-1">
+                      {teacher.subject}
+                    </span>
+                    <div className="bg-primary-50 relative mt-5 h-40 w-40 overflow-hidden rounded-full border-4 border-white shadow-[var(--shadow-card)] transition-transform duration-300 group-hover:scale-110">
+                      {avatar ? (
+                        <Image
+                          src={avatar}
+                          alt={name}
+                          fill
+                          sizes="160px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="bg-primary-600 flex h-full items-center justify-center text-3xl font-black text-white">
+                          {name.slice(0, 1)}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <h3 className="text-foreground group-hover:text-primary-700 mt-5 line-clamp-2 min-h-14 text-lg leading-7 font-black transition-colors duration-300">
-                  {name}
-                </h3>
-              </Link>
-            );
-          })}
+                    <h3 className="text-foreground group-hover:text-primary-700 mt-5 line-clamp-2 min-h-14 text-lg leading-7 font-black transition-colors duration-300">
+                      {name}
+                    </h3>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </ScrollReveal>
