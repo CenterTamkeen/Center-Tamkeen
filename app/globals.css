@@ -836,7 +836,7 @@ body::before {
     flex-direction: row;
     flex-wrap: nowrap;
     width: max-content;
-    animation: tamkeen-teachers-marquee 30s linear infinite;
+    animation: tamkeen-teachers-marquee 40s linear infinite;
     will-change: transform;
   }
 
@@ -852,4 +852,32 @@ body::before {
   .tamkeen-loop {
     animation: tamkeen-loop 18s linear infinite;
   }
+}
+
+/* ── Marquee animations (outside @layer for full specificity) ── */
+
+.tamkeen-marquee {
+  animation: tamkeen-marquee 28s linear infinite;
+}
+
+.tamkeen-teachers-marquee-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: max-content;
+  animation: tamkeen-teachers-marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.tamkeen-teachers-marquee-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  padding-inline-end: 1.5rem;
+}
+
+.tamkeen-loop {
+  animation: tamkeen-loop 18s linear infinite;
 }
