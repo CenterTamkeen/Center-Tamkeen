@@ -17,7 +17,12 @@ type PublicEnums = {
     | "scientific"
     | "literary"
     | "science"
-    | "mathematics";
+    | "mathematics"
+    | "preparatory"
+    | "medicine_life_sciences"
+    | "engineering_computer_science"
+    | "business"
+    | "arts";
 };
 
 export type Database = {

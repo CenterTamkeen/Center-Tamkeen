@@ -504,7 +504,7 @@ export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
 
             <label className="block space-y-2">
               <span className="text-foreground/80 text-sm font-semibold">
-                الشعبة
+                المسار
               </span>
               <select
                 {...register("section")}

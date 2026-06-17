@@ -17,17 +17,27 @@ export const gradeLabels = {
 } as const;
 
 export const sectionLabels = {
-  general: "عام",
-  scientific: "علمي",
-  literary: "أدبي",
-  science: "علمي علوم",
-  mathematics: "علمي رياضة",
+  preparatory: "مرحلة تمهيدية (بدون مسارات)",
+  medicine_life_sciences: "مسار طب وعلوم حياة",
+  engineering_computer_science: "مسار هندسة وعلوم حاسب",
+  business: "مسار أعمال",
+  arts: "مسار آداب وفنون",
 } as const;
 
 export const sectionsByGrade = {
-  first_secondary: ["general"],
-  second_secondary: ["scientific", "literary"],
-  third_secondary: ["science", "mathematics", "literary"],
+  first_secondary: ["preparatory"],
+  second_secondary: [
+    "medicine_life_sciences",
+    "engineering_computer_science",
+    "business",
+    "arts",
+  ],
+  third_secondary: [
+    "medicine_life_sciences",
+    "engineering_computer_science",
+    "business",
+    "arts",
+  ],
 } as const;
 
 const genderValues = ["male", "female"] as const;
@@ -37,11 +47,11 @@ const gradeValues = [
   "third_secondary",
 ] as const;
 const sectionValues = [
-  "general",
-  "scientific",
-  "literary",
-  "science",
-  "mathematics",
+  "preparatory",
+  "medicine_life_sciences",
+  "engineering_computer_science",
+  "business",
+  "arts",
 ] as const;
 
 function hasFileShape(value: unknown): value is File {
@@ -173,7 +183,7 @@ const baseStudentSignUpSchema = z
     section: z
       .string()
       .refine((value) => sectionValues.includes(value as never), {
-        message: "اختار الشعبة المناسبة.",
+        message: "اختار المسار المناسب.",
       }),
     email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
     password: z
@@ -198,7 +208,7 @@ const baseStudentSignUpSchema = z
         data.section as never,
       ),
     {
-      message: "الشعبة غير متوافقة مع السنة الدراسية.",
+      message: "المسار غير متوافق مع السنة الدراسية.",
       path: ["section"],
     },
   );
@@ -257,7 +267,7 @@ export const profileUpdateSchema = z
     section: z
       .string()
       .refine((value) => sectionValues.includes(value as never), {
-        message: "اختار الشعبة المناسبة.",
+        message: "اختار المسار المناسب.",
       })
       .optional(),
     photo: z.unknown().optional(),
@@ -281,7 +291,7 @@ export const profileUpdateSchema = z
         data.section as never,
       ),
     {
-      message: "الشعبة غير متوافقة مع السنة الدراسية.",
+      message: "المسار غير متوافق مع السنة الدراسية.",
       path: ["section"],
     },
   );

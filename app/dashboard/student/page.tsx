@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requireRole } from "@/lib/auth/roles";
 import { getStudentDashboard } from "@/lib/student/data";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 export const metadata: Metadata = {
   title: "بوابة الطالب",
@@ -86,6 +87,14 @@ export default async function StudentDashboardPage() {
   }
 
   const { stats, courses, student } = dashboard;
+  const gradeLabel =
+    gradeLabels[student.grade as keyof typeof gradeLabels] ??
+    student.grade ??
+    "غير محدد";
+  const sectionLabel =
+    sectionLabels[student.section as keyof typeof sectionLabels] ??
+    student.section ??
+    "غير محدد";
 
   return (
     <DashboardShell
@@ -268,15 +277,11 @@ export default async function StudentDashboardPage() {
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-2xl bg-white/70 p-4">
                   <p className="text-foreground/50 text-xs">الصف</p>
-                  <p className="mt-1 font-black">
-                    {student.grade ?? "غير محدد"}
-                  </p>
+                  <p className="mt-1 font-black">{gradeLabel}</p>
                 </div>
                 <div className="rounded-2xl bg-white/70 p-4">
-                  <p className="text-foreground/50 text-xs">الشعبة</p>
-                  <p className="mt-1 font-black">
-                    {student.section ?? "غير محددة"}
-                  </p>
+                  <p className="text-foreground/50 text-xs">المسار</p>
+                  <p className="mt-1 font-black">{sectionLabel}</p>
                 </div>
               </div>
             </div>

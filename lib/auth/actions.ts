@@ -556,7 +556,7 @@ export async function updateProfileAction(
           schoolName: parsed.data.schoolName ? [] : ["اسم المدرسة مطلوب."],
           gender: parsed.data.gender ? [] : ["اختار النوع."],
           grade: parsed.data.grade ? [] : ["اختار السنة الدراسية."],
-          section: parsed.data.section ? [] : ["اختار الشعبة المناسبة."],
+          section: parsed.data.section ? [] : ["اختار المسار المناسب."],
         },
         values,
       );

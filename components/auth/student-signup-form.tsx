@@ -283,7 +283,7 @@ export function StudentSignUpForm() {
               المرحلة الدراسية
             </h2>
             <p className="text-foreground/55 mt-1 text-sm">
-              الشعبة بتتغير تلقائيًا حسب السنة الدراسية.
+              المسار بيتغير تلقائيًا حسب السنة الدراسية.
             </p>
           </div>
 
@@ -321,14 +321,14 @@ export function StudentSignUpForm() {
 
             <label className="block space-y-2">
               <span className="text-foreground/80 text-sm font-semibold">
-                الشعبة
+                المسار
               </span>
               <select
                 {...register("section")}
                 disabled={!selectedGrade}
                 className={`${selectClassName} disabled:cursor-not-allowed disabled:opacity-50`}
               >
-                <option value="">اختار الشعبة</option>
+                <option value="">اختار المسار</option>
                 {availableSections.map((value) => (
                   <option key={value} value={value}>
                     {sectionLabels[value]}
