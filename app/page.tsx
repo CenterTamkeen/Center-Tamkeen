@@ -117,7 +117,11 @@ export default async function Home() {
         </section>
 
         <section id="teachers" className="container-page py-20">
-          <SectionTitle eyebrow="المدرسين" title="اختار مدرسك وابدأ" />
+          <SectionTitle
+            eyebrow="المدرسين"
+            title="اختار مدرسك وابدأ"
+            href="/teachers"
+          />
           {teachers.length > 0 ? (
             <TeachersMarquee teachers={teachers} />
           ) : (
@@ -421,7 +425,15 @@ function TeachersMarquee({ teachers }: { teachers: TeacherSummary[] }) {
   );
 }
 
-function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
+function SectionTitle({
+  eyebrow,
+  title,
+  href = "/courses",
+}: {
+  eyebrow: string;
+  title: string;
+  href?: string;
+}) {
   return (
     <ScrollReveal>
       <div className="mb-9 flex flex-wrap items-end justify-between gap-4">
@@ -429,7 +441,7 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
           <p className="eyebrow">{eyebrow}</p>
           <h2 className="text-primary-950 mt-2 text-3xl font-black">{title}</h2>
         </div>
-        <Link href="/courses" className="btn-secondary px-4 py-2 text-xs">
+        <Link href={href} className="btn-secondary px-4 py-2 text-xs">
           تصفح الكل
         </Link>
       </div>
