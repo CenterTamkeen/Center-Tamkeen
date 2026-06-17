@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ProfileForm } from "@/components/profile/profile-form";
@@ -33,11 +34,32 @@ export default async function ProfilePage() {
 
   return (
     <DashboardShell title="الملف الشخصي" eyebrow="بيانات الحساب">
-      <div
-        className="card-modern animate-fade-up p-6"
-        style={{ animationDelay: "0.1s" }}
-      >
-        <ProfileForm profile={profile} student={student} teacher={teacher} />
+      <div className="space-y-5">
+        {profile.role === "admin" || profile.role === "teacher" ? (
+          <div className="glass-panel-strong flex flex-wrap items-center justify-between gap-4 rounded-xl p-4">
+            <div>
+              <p className="eyebrow">إعلانات الهيرو</p>
+              <h2 className="text-lg font-black">إدارة الإعلانات من حسابك</h2>
+            </div>
+            <Link
+              href={
+                profile.role === "admin"
+                  ? "/dashboard/admin/announcements"
+                  : "/dashboard/teacher/announcements"
+              }
+              className="btn-primary px-4 py-2.5 text-xs"
+            >
+              فتح الإعلانات
+            </Link>
+          </div>
+        ) : null}
+
+        <div
+          className="card-modern animate-fade-up p-6"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <ProfileForm profile={profile} student={student} teacher={teacher} />
+        </div>
       </div>
     </DashboardShell>
   );

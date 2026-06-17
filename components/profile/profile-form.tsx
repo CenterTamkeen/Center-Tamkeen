@@ -367,6 +367,12 @@ export function ProfileForm({ profile, student, teacher }: ProfileFormProps) {
                 الكوبونات
               </Link>
               <Link
+                href="/dashboard/teacher/announcements"
+                className="btn-secondary px-3 py-2 text-xs"
+              >
+                الإعلانات
+              </Link>
+              <Link
                 href="/dashboard/teacher/students"
                 className="btn-secondary px-3 py-2 text-xs"
               >

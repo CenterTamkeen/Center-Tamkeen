@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import { getPublicHeroAnnouncements } from "@/lib/announcements/data";
+import { HeroAnnouncementsSlider } from "@/components/site/hero-announcements-slider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { CourseCard } from "@/components/storefront/course-card";
@@ -55,12 +57,14 @@ const steps = [
 ];
 
 export default async function Home() {
-  const [teachers, courses, reviews, session] = await Promise.all([
-    getFeaturedTeachers(6),
-    getLatestCourses(6),
-    getLatestReviews(3),
-    getCurrentUserProfile(),
-  ]);
+  const [teachers, courses, reviews, session, announcements] =
+    await Promise.all([
+      getFeaturedTeachers(6),
+      getLatestCourses(6),
+      getLatestReviews(3),
+      getCurrentUserProfile(),
+      getPublicHeroAnnouncements(),
+    ]);
   const dashboardHref = session ? getRoleHomePath(session.profile.role) : null;
 
   return (
@@ -69,7 +73,7 @@ export default async function Home() {
       <main className="bg-white">
         <section className="border-border/60 relative overflow-hidden border-b bg-[linear-gradient(180deg,#ffffff_0%,#f5faf8_100%)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgb(22_138_117/0.08),transparent_28%),radial-gradient(circle_at_78%_30%,rgb(245_197_24/0.12),transparent_24%)]" />
-          <div className="container-page relative grid min-h-[860px] items-center gap-14 py-24 lg:grid-cols-[1fr_500px] lg:py-32">
+          <div className="container-page relative grid min-h-[860px] items-center gap-14 py-24 lg:grid-cols-[1fr_580px] lg:py-32">
             <div className="max-w-4xl space-y-8">
               <div className="chip">منصة تعليمية لطلاب الثانوية العامة</div>
               <div className="space-y-4">
@@ -89,30 +93,7 @@ export default async function Home() {
             </div>
 
             <div className="grid gap-4">
-              <div className="bg-primary-900 rounded-2xl p-7 text-white shadow-[var(--shadow-card-hover)]">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-black text-white/70">
-                      درس اليوم
-                    </p>
-                    <h2 className="mt-1 text-xl font-black">
-                      محتوى محمي ومنظم
-                    </h2>
-                  </div>
-                  <div className="bg-primary-500 flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
-                    ▶
-                  </div>
-                </div>
-                <div className="mt-8 grid grid-cols-12 gap-1.5">
-                  {Array.from({ length: 24 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className="rounded-full bg-white/20"
-                      style={{ height: `${18 + (index % 6) * 9}px` }}
-                    />
-                  ))}
-                </div>
-              </div>
+              <HeroAnnouncementsSlider announcements={announcements} />
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl bg-[#eefbf5] p-5">
                   <p className="text-primary-700 text-3xl font-black">

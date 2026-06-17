@@ -100,6 +100,18 @@ function isMissingOptionalCouponFeature(message: string) {
   );
 }
 
+function isMissingTable(
+  error: { message?: string; code?: string },
+  table: string,
+) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes(table) ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
+
 export async function getCurrentTeacher(profileId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -486,6 +498,13 @@ export async function getTeacherStudents(teacherId: string) {
     .eq("teacher_id", teacherId);
 
   if (blocksError) {
+    if (isMissingTable(blocksError, "student_blocks")) {
+      return students.map((student) => ({
+        ...student,
+        student_blocks: [],
+      }));
+    }
+
     logTeacherError("student-blocks", blocksError.message);
   }
 

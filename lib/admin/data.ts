@@ -126,6 +126,18 @@ function logAdminError(label: string, error: unknown) {
   }
 }
 
+function isMissingTable(
+  error: { message?: string; code?: string },
+  table: string,
+) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes(table) ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
+
 export async function getAdminTeachers() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -211,6 +223,13 @@ export async function getAdminStudents() {
     .is("teacher_id", null);
 
   if (blocksError) {
+    if (isMissingTable(blocksError, "student_blocks")) {
+      return students.map((student) => ({
+        ...student,
+        student_blocks: [],
+      }));
+    }
+
     logAdminError("student-blocks", blocksError.message);
   }
 

@@ -32,6 +32,16 @@ const links = [
     ),
   },
   {
+    href: "/dashboard/teacher/announcements",
+    label: "الإعلانات",
+    icon: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M7 15l3-3 2 2 3-4 2 3" />
+      </>
+    ),
+  },
+  {
     href: "/dashboard/teacher/students",
     label: "الطلاب",
     icon: (

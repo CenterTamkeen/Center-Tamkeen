@@ -652,6 +652,63 @@ export type Database = {
           },
         ];
       };
+      hero_announcements: {
+        Row: {
+          id: string;
+          created_by: string;
+          teacher_id: string | null;
+          owner_role: PublicEnums["app_role"];
+          title: string;
+          image_url: string;
+          button_text: string;
+          button_url: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          created_by: string;
+          teacher_id?: string | null;
+          owner_role: PublicEnums["app_role"];
+          title: string;
+          image_url: string;
+          button_text: string;
+          button_url: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          created_by?: string;
+          teacher_id?: string | null;
+          owner_role?: PublicEnums["app_role"];
+          title?: string;
+          image_url?: string;
+          button_text?: string;
+          button_url?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hero_announcements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hero_announcements_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

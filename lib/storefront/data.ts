@@ -109,6 +109,18 @@ function getAdminClient() {
   }
 }
 
+function isMissingTable(
+  error: { message?: string; code?: string },
+  table: string,
+) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes(table) ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
+
 async function isCurrentStudentBlockedFromTeacher(teacherId: string) {
   const supabase = await createClient();
   const {
@@ -135,12 +147,21 @@ async function isCurrentStudentBlockedFromTeacher(teacherId: string) {
     return false;
   }
 
-  const { data } = await admin
+  const { data, error } = await admin
     .from("student_blocks")
     .select("id")
     .eq("student_id", student.id)
     .or(`teacher_id.is.null,teacher_id.eq.${teacherId}`)
     .limit(1);
+
+  if (error) {
+    if (isMissingTable(error, "student_blocks")) {
+      return false;
+    }
+
+    logStorefrontError("student-blocks", error.message);
+    return false;
+  }
 
   return (data ?? []).length > 0;
 }
