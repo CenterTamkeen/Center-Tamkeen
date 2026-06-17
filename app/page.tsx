@@ -148,6 +148,24 @@ export default async function Home() {
           </div>
         </section>
 
+        <section id="reviews" className="container-page py-20">
+          <SectionTitle eyebrow="التقييمات" title="آراء الطلاب" />
+          {reviews.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-3">
+              {reviews.map((review, i) => (
+                <ScrollReveal key={review.id} delay={i * 0.08}>
+                  <ReviewCard review={review} />
+                </ScrollReveal>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="لسه مفيش تقييمات"
+              description="بعد اشتراك الطلاب وكتابة تقييماتهم، هنستعرض أحدث الآراء هنا."
+            />
+          )}
+        </section>
+
         <section className="container-page py-14">
           <div className="grid gap-4 sm:grid-cols-3">
             {[
@@ -258,24 +276,6 @@ export default async function Home() {
               </ScrollReveal>
             ))}
           </div>
-        </section>
-
-        <section id="reviews" className="container-page py-20">
-          <SectionTitle eyebrow="التقييمات" title="آراء الطلاب" />
-          {reviews.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-3">
-              {reviews.map((review, i) => (
-                <ScrollReveal key={review.id} delay={i * 0.08}>
-                  <ReviewCard review={review} />
-                </ScrollReveal>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="لسه مفيش تقييمات"
-              description="بعد اشتراك الطلاب وكتابة تقييماتهم، هنستعرض أحدث الآراء هنا."
-            />
-          )}
         </section>
 
         <section className="bg-primary-900 relative min-h-[520px] overflow-hidden py-24 text-white">
