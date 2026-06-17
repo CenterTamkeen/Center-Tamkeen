@@ -321,10 +321,10 @@ body::before {
 
 @keyframes tamkeen-teachers-marquee {
   from {
-    transform: translateX(-25%);
+    transform: translate3d(-50%, 0, 0);
   }
   to {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -347,6 +347,11 @@ body::before {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .tamkeen-teachers-marquee-track {
+    animation-duration: 40s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
@@ -836,6 +841,7 @@ body::before {
     flex-direction: row;
     flex-wrap: nowrap;
     width: max-content;
+    min-width: max-content;
     animation: tamkeen-teachers-marquee 40s linear infinite;
     will-change: transform;
   }
@@ -865,6 +871,7 @@ body::before {
   flex-direction: row;
   flex-wrap: nowrap;
   width: max-content;
+  min-width: max-content;
   animation: tamkeen-teachers-marquee 40s linear infinite;
   will-change: transform;
 }
