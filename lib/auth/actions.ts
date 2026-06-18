@@ -48,6 +48,9 @@ function success(message: string) {
   };
 }
 
+const emailDeliveryHint =
+  "لو مش لاقي الرسالة في الوارد، دور عليها في الرسائل غير المرغوب فيها أو Spam.";
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
@@ -277,7 +280,7 @@ export async function forgotPasswordAction(
     console.error("Failed to generate password reset link.", error);
     if (error.message.toLowerCase().includes("not found")) {
       return success(
-        "لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق.",
+        `لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق. ${emailDeliveryHint}`,
       );
     }
 
@@ -297,6 +300,13 @@ export async function forgotPasswordAction(
       to: parsed.data.email,
       subject: "تغيير كلمة مرور تمكين",
       html: getPasswordResetEmailHtml(resetLink, siteUrl),
+      text: [
+        "تغيير كلمة مرور تمكين",
+        "",
+        "وصلنا طلب لتغيير كلمة مرور حسابك.",
+        `افتح الرابط التالي لاختيار كلمة مرور جديدة: ${resetLink}`,
+        "لو الطلب مش منك، تجاهل الرسالة بأمان.",
+      ].join("\n"),
     });
 
     if (sendError) {
@@ -309,7 +319,9 @@ export async function forgotPasswordAction(
     }
   }
 
-  return success("لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق.");
+  return success(
+    `لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق. ${emailDeliveryHint}`,
+  );
 }
 
 export async function resetPasswordAction(

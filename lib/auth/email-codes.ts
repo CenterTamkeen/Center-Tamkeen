@@ -148,6 +148,13 @@ export async function sendStudentSignupVerificationCode(
     to: normalizedEmail,
     subject: "كود تفعيل حساب تمكين",
     html: getSignupCodeEmailHtml(code, codeTtlMinutes, siteUrl),
+    text: [
+      "كود تفعيل حساب تمكين",
+      "",
+      `كود التفعيل: ${code}`,
+      `الكود صالح لمدة ${codeTtlMinutes} دقائق فقط.`,
+      "لو الطلب مش منك، تجاهل الرسالة بأمان.",
+    ].join("\n"),
   });
 
   if (sendError) {
@@ -161,7 +168,8 @@ export async function sendStudentSignupVerificationCode(
 
   return {
     ok: true,
-    message: "تم إرسال كود التفعيل على الإيميل. الكود صالح لمدة 10 دقائق.",
+    message:
+      "تم إرسال كود التفعيل على الإيميل. الكود صالح لمدة 10 دقائق. لو مش لاقيه في الوارد، دور عليه في الرسائل غير المرغوب فيها أو Spam.",
     status: 200,
   };
 }

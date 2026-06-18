@@ -56,10 +56,10 @@ function renderEmailShell({
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; line-height:1px;">
       ${safePreview}
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; background:#f5faf8;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f5faf8" style="width:100%; background:#f5faf8;">
       <tr>
         <td align="center" style="padding:32px 14px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:620px; overflow:hidden; border:1px solid #d0e3da; border-radius:24px; background:#ffffff; box-shadow:0 18px 45px rgba(13,37,31,0.08);">
+          <table role="presentation" width="620" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:620px; max-width:100%; overflow:hidden; border:1px solid #d0e3da; border-radius:24px; background:#ffffff; box-shadow:0 18px 45px rgba(13,37,31,0.08);">
             <tr>
               <td style="height:6px; background:#168a75; background-image:linear-gradient(90deg,#57b9a3,#f5c518,#168a75); font-size:0; line-height:0;">&nbsp;</td>
             </tr>
@@ -74,9 +74,13 @@ function renderEmailShell({
             </tr>
             <tr>
               <td style="padding:0 28px 30px;">
-                <div style="border:1px solid #d0e3da; border-radius:18px; background:#fbfefd; padding:24px; text-align:right;">
-                  ${body}
-                </div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#fbfefd" style="width:100%; border:1px solid #d0e3da; border-radius:18px; background:#fbfefd;">
+                  <tr>
+                    <td align="right" style="padding:24px; text-align:right;">
+                      ${body}
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
@@ -144,11 +148,13 @@ export function getSignupCodeEmailHtml(
       <p style="margin:0 0 18px; color:#12352c; font-size:16px; line-height:1.9;">
         استخدم الكود التالي لإكمال إنشاء حساب الطالب على منصة تمكين.
       </p>
-      <div dir="ltr" style="margin:22px auto; max-width:320px; text-align:center; background:#e7f5f1; border:1px solid #c5e8df; border-radius:18px; padding:18px 16px;">
-        <div style="color:#083a32; font-size:34px; line-height:1.2; letter-spacing:8px; font-weight:900; font-family:Tahoma, Arial, sans-serif;">
-          ${safeCode}
-        </div>
-      </div>
+      <table role="presentation" width="320" cellspacing="0" cellpadding="0" border="0" align="center" bgcolor="#e7f5f1" style="width:320px; max-width:100%; margin:22px auto; background:#e7f5f1; border:1px solid #c5e8df; border-radius:18px;">
+        <tr>
+          <td dir="ltr" align="center" style="padding:18px 16px; color:#083a32; font-size:34px; line-height:1.2; letter-spacing:8px; font-weight:900; font-family:Tahoma, Arial, sans-serif; text-align:center;">
+            ${safeCode}
+          </td>
+        </tr>
+      </table>
       <p style="margin:0; color:#5f766f; font-size:14px; line-height:1.8;">
         الكود صالح لمدة <strong style="color:#0d251f;">${ttlMinutes} دقائق</strong> فقط. متشاركش الكود مع أي حد.
       </p>

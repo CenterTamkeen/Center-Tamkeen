@@ -36,10 +36,12 @@ export async function sendEmail({
   to,
   subject,
   html,
+  text,
 }: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
 }) {
   try {
     const info = await getBrevoTransporter().sendMail({
@@ -47,6 +49,7 @@ export async function sendEmail({
       to,
       subject,
       html,
+      text,
     });
 
     return {
