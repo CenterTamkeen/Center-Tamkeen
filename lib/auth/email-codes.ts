@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { sendEmail } from "@/lib/email/smtp";
+import { getSignupCodeEmailHtml } from "@/lib/email/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type EmailCodePurpose = "student_signup";
@@ -59,20 +60,6 @@ async function getExistingUserByEmail(
   return data.users.find((user) => user.email?.trim().toLowerCase() === email);
 }
 
-function getSignupCodeEmailHtml(code: string) {
-  return `
-    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #12352c;">
-      <h2 style="margin: 0 0 12px;">كود تفعيل حساب تمكين</h2>
-      <p>استخدم الكود التالي لإكمال إنشاء حساب الطالب:</p>
-      <div style="font-size: 30px; letter-spacing: 8px; font-weight: 800; background: #e7f5f1; border-radius: 12px; padding: 14px 18px; width: fit-content; direction: ltr;">
-        ${code}
-      </div>
-      <p>الكود صالح لمدة ${codeTtlMinutes} دقائق فقط.</p>
-      <p style="color: #5f766f;">لو أنت ماطلبتش إنشاء حساب، تجاهل الرسالة.</p>
-    </div>
-  `;
-}
-
 function getSendEmailFailureMessage(error: unknown) {
   const message =
     typeof error === "object" && error && "message" in error
@@ -92,7 +79,10 @@ function getSendEmailFailureMessage(error: unknown) {
   return "تعذر إرسال كود التفعيل. راجع الإيميل وجرّب مرة أخرى.";
 }
 
-export async function sendStudentSignupVerificationCode(email: string) {
+export async function sendStudentSignupVerificationCode(
+  email: string,
+  siteUrl?: string,
+) {
   const admin = createAdminClient();
   const normalizedEmail = normalizeEmail(email);
   const now = Date.now();
@@ -157,7 +147,7 @@ export async function sendStudentSignupVerificationCode(email: string) {
   const { error: sendError } = await sendEmail({
     to: normalizedEmail,
     subject: "كود تفعيل حساب تمكين",
-    html: getSignupCodeEmailHtml(code),
+    html: getSignupCodeEmailHtml(code, codeTtlMinutes, siteUrl),
   });
 
   if (sendError) {

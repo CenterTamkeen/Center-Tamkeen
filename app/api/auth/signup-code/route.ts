@@ -3,6 +3,16 @@ import { NextResponse } from "next/server";
 import { sendStudentSignupVerificationCode } from "@/lib/auth/email-codes";
 import { loginSchema } from "@/lib/validations/auth";
 
+function getSiteUrl(request: Request) {
+  const requestUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const host = forwardedHost ?? request.headers.get("host") ?? requestUrl.host;
+  const protocol = forwardedProto ?? requestUrl.protocol.replace(":", "");
+
+  return `${protocol}://${host}`;
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     email?: unknown;
@@ -23,7 +33,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendStudentSignupVerificationCode(parsed.data.email);
+    const result = await sendStudentSignupVerificationCode(
+      parsed.data.email,
+      getSiteUrl(request),
+    );
 
     return NextResponse.json(
       {

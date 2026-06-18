@@ -8,6 +8,7 @@ import type { ActionState } from "@/lib/auth/action-state";
 import { verifyStudentSignupCode } from "@/lib/auth/email-codes";
 import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
 import { sendEmail } from "@/lib/email/smtp";
+import { getPasswordResetEmailHtml } from "@/lib/email/templates";
 import { getRoleHomePath } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -73,23 +74,6 @@ function getOptionalUpload(formData: FormData, key: string) {
 
 function fieldErrors(error: { flatten: () => { fieldErrors: unknown } }) {
   return error.flatten().fieldErrors as Record<string, string[]>;
-}
-
-function getPasswordResetEmailHtml(actionLink: string) {
-  return `
-    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #12352c;">
-      <h2 style="margin: 0 0 12px;">تغيير كلمة مرور تمكين</h2>
-      <p>اضغط على الزر التالي لاختيار كلمة مرور جديدة:</p>
-      <p>
-        <a href="${actionLink}" style="display: inline-block; background: #146b57; color: white; text-decoration: none; border-radius: 12px; padding: 12px 18px; font-weight: 700;">
-          تغيير كلمة المرور
-        </a>
-      </p>
-      <p>لو الزر مش شغال، انسخ الرابط وافتحه في المتصفح:</p>
-      <p dir="ltr" style="word-break: break-all; color: #315f52;">${actionLink}</p>
-      <p style="color: #5f766f;">لو أنت ماطلبتش تغيير كلمة المرور، تجاهل الرسالة.</p>
-    </div>
-  `;
 }
 
 function getPasswordResetLink(siteUrl: string, tokenHash: string) {
@@ -312,7 +296,7 @@ export async function forgotPasswordAction(
     const { error: sendError } = await sendEmail({
       to: parsed.data.email,
       subject: "تغيير كلمة مرور تمكين",
-      html: getPasswordResetEmailHtml(resetLink),
+      html: getPasswordResetEmailHtml(resetLink, siteUrl),
     });
 
     if (sendError) {
