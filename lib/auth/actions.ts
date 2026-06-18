@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
@@ -91,6 +92,16 @@ function getPasswordResetEmailHtml(actionLink: string) {
   `;
 }
 
+function getPasswordResetLink(siteUrl: string, tokenHash: string) {
+  const resetUrl = new URL("/auth/callback", siteUrl);
+
+  resetUrl.searchParams.set("next", "/reset-password");
+  resetUrl.searchParams.set("type", "recovery");
+  resetUrl.searchParams.set("token_hash", tokenHash);
+
+  return resetUrl.toString();
+}
+
 function getAdminClient() {
   try {
     return createAdminClient();
@@ -98,6 +109,20 @@ function getAdminClient() {
     console.error("Supabase admin client is not configured.", error);
     return null;
   }
+}
+
+async function getSiteUrl() {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const requestUrl = host ? `${protocol}://${host}` : null;
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+
+  if (requestUrl && envUrl?.startsWith("http://localhost")) {
+    return requestUrl;
+  }
+
+  return envUrl ?? requestUrl ?? "http://localhost:3000";
 }
 
 async function deletePartialUser(admin: SupabaseAdminClient, userId: string) {
@@ -255,9 +280,7 @@ export async function forgotPasswordAction(
     );
   }
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
+  const siteUrl = await getSiteUrl();
   const { data, error } = await admin.auth.admin.generateLink({
     type: "recovery",
     email: parsed.data.email,
@@ -281,11 +304,15 @@ export async function forgotPasswordAction(
     );
   }
 
-  if (data.properties?.action_link) {
+  if (data.properties?.hashed_token) {
+    const resetLink = getPasswordResetLink(
+      siteUrl,
+      data.properties.hashed_token,
+    );
     const { error: sendError } = await sendEmail({
       to: parsed.data.email,
       subject: "تغيير كلمة مرور تمكين",
-      html: getPasswordResetEmailHtml(data.properties.action_link),
+      html: getPasswordResetEmailHtml(resetLink),
     });
 
     if (sendError) {

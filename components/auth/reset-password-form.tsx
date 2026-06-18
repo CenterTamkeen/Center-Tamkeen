@@ -2,17 +2,28 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
 import { initialActionState } from "@/lib/auth/action-state";
 import { resetPasswordAction } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export function ResetPasswordForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const hasRecoveryError =
+    searchParams.has("error") ||
+    searchParams.has("error_code") ||
+    searchParams.has("resetError");
+  const [recoveryStatus, setRecoveryStatus] = useState<
+    "idle" | "preparing" | "error"
+  >(hasRecoveryError ? "error" : "idle");
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
     initialActionState,
@@ -30,6 +41,68 @@ export function ResetPasswordForm() {
     },
   });
 
+  useEffect(() => {
+    const code = searchParams.get("code");
+    const tokenHash = searchParams.get("token_hash");
+    const type = searchParams.get("type");
+    const error =
+      searchParams.get("error") ??
+      searchParams.get("error_code") ??
+      searchParams.get("resetError");
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+
+    if (error) {
+      queueMicrotask(() => setRecoveryStatus("error"));
+      return;
+    }
+
+    if (!code && !tokenHash && !accessToken && !refreshToken) {
+      return;
+    }
+
+    let mounted = true;
+
+    async function prepareRecoverySession() {
+      setRecoveryStatus("preparing");
+      const supabase = createClient();
+
+      const { error: authError } = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : tokenHash && type === "recovery"
+          ? await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: "recovery",
+            })
+          : accessToken && refreshToken
+            ? await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              })
+            : { error: new Error("Missing recovery session tokens.") };
+
+      if (!mounted) {
+        return;
+      }
+
+      if (authError) {
+        setRecoveryStatus("error");
+        return;
+      }
+
+      setRecoveryStatus("idle");
+      router.replace("/reset-password");
+      router.refresh();
+    }
+
+    void prepareRecoverySession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router, searchParams]);
+
   return (
     <form
       action={formAction}
@@ -42,6 +115,45 @@ export function ResetPasswordForm() {
         }
       }}
     >
+      {recoveryStatus === "preparing" ? (
+        <div
+          className="animate-slide-down text-primary-700 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))",
+          }}
+        >
+          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          جاري تجهيز رابط الاستعادة...
+        </div>
+      ) : null}
+
+      {recoveryStatus === "error" ? (
+        <div
+          className="animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-red-700"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
+          }}
+        >
+          رابط تغيير كلمة المرور غير صالح أو انتهت صلاحيته.
+        </div>
+      ) : null}
+
       {state.message ? (
         <div
           className="animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-red-700"
@@ -134,7 +246,7 @@ export function ResetPasswordForm() {
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || recoveryStatus === "preparing"}
         className="btn-primary w-full gap-2 py-3.5"
       >
         {isPending ? (
