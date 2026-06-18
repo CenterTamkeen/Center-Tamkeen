@@ -64,6 +64,13 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-2xl: 2rem;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-fast: 220ms;
+  --motion-base: 380ms;
+  --motion-slow: 560ms;
 }
 
 @theme inline {
@@ -157,6 +164,25 @@ body::before {
 
 ::selection {
   background: rgb(22 138 117 / 0.2);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :where(
+    a,
+    button,
+    summary,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"])
+  ) {
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill,
+      stroke, opacity, box-shadow, filter, backdrop-filter, transform;
+    transition-duration: var(--motion-base);
+    transition-timing-function: var(--ease-smooth);
+  }
 }
 
 /* ── Keyframes ────────────────────────────────── */
@@ -355,6 +381,45 @@ body::before {
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .transition,
+  .transition-all,
+  .transition-colors,
+  .transition-opacity,
+  .transition-transform {
+    transition-duration: var(--motion-base);
+    transition-timing-function: var(--ease-smooth);
+  }
+
+  .duration-150,
+  .duration-200 {
+    transition-duration: var(--motion-fast);
+  }
+
+  .duration-300,
+  .duration-400 {
+    transition-duration: var(--motion-base);
+  }
+
+  .duration-500 {
+    transition-duration: var(--motion-slow);
+  }
+
+  .ease-out {
+    transition-timing-function: var(--ease-entrance);
+  }
+
+  :where(
+    .card-modern,
+    .btn-primary,
+    .btn-secondary,
+    .gradient-border,
+    .avatar-ring
+  ) {
+    backface-visibility: hidden;
+  }
+}
+
 /* ── Component Classes ────────────────────────── */
 
 @layer components {
@@ -416,9 +481,11 @@ body::before {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-card);
     transition:
-      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 0.3s ease;
+      transform var(--motion-base) var(--ease-entrance),
+      box-shadow var(--motion-base) var(--ease-smooth),
+      border-color var(--motion-base) var(--ease-smooth),
+      background-color var(--motion-base) var(--ease-smooth);
+    will-change: transform, box-shadow;
   }
 
   .card-modern:hover {
@@ -436,9 +503,9 @@ body::before {
     color: var(--primary-foreground);
     box-shadow: var(--shadow-glow);
     transition:
-      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.3s ease,
-      filter 0.3s ease;
+      transform var(--motion-base) var(--ease-entrance),
+      box-shadow var(--motion-base) var(--ease-smooth),
+      filter var(--motion-base) var(--ease-smooth);
     position: relative;
     overflow: hidden;
   }
@@ -453,7 +520,7 @@ body::before {
       transparent 60%
     );
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -487,10 +554,10 @@ body::before {
     border: 1px solid rgb(208 227 218 / 0.8);
     box-shadow: 0 1px 3px rgb(13 37 31 / 0.04);
     transition:
-      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.3s ease,
-      border-color 0.3s ease,
-      background 0.3s ease;
+      transform var(--motion-base) var(--ease-entrance),
+      box-shadow var(--motion-base) var(--ease-smooth),
+      border-color var(--motion-base) var(--ease-smooth),
+      background var(--motion-base) var(--ease-smooth);
   }
 
   .btn-secondary:hover {
@@ -577,9 +644,9 @@ body::before {
     border: 1.5px solid var(--border);
     background: var(--surface);
     transition:
-      border-color 0.3s ease,
-      box-shadow 0.3s ease,
-      transform 0.2s ease;
+      border-color var(--motion-base) var(--ease-smooth),
+      box-shadow var(--motion-base) var(--ease-smooth),
+      transform var(--motion-fast) var(--ease-smooth);
   }
 
   .field:focus {
@@ -705,7 +772,7 @@ body::before {
     -webkit-mask-composite: xor;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .gradient-border:hover::before {
@@ -783,7 +850,7 @@ body::before {
     background: linear-gradient(135deg, var(--primary-300), var(--accent-400));
     z-index: -1;
     opacity: 0.5;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .avatar-ring:hover::before {
