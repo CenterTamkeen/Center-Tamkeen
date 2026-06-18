@@ -151,6 +151,11 @@ export const forgotPasswordSchema = z.object({
   email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
 });
 
+export const emailVerificationCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "اكتب كود التفعيل المكون من 6 أرقام.");
+
 export const resetPasswordSchema = z
   .object({
     password: z
@@ -164,6 +169,26 @@ export const resetPasswordSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "تأكيد كلمة المرور غير مطابق.",
     path: ["confirmPassword"],
+  });
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة."),
+    newPassword: z
+      .string()
+      .regex(
+        passwordRegex,
+        "كلمة المرور الجديدة لازم تكون 8 أحرف على الأقل وتحتوي حرف كبير وصغير ورقم.",
+      ),
+    confirmNewPassword: z.string().min(1, "تأكيد كلمة المرور مطلوب."),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "تأكيد كلمة المرور الجديدة غير مطابق.",
+    path: ["confirmNewPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "كلمة المرور الجديدة لازم تكون مختلفة عن الحالية.",
+    path: ["newPassword"],
   });
 
 const baseStudentSignUpSchema = z
@@ -186,6 +211,7 @@ const baseStudentSignUpSchema = z
         message: "اختار المسار المناسب.",
       }),
     email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
+    emailCode: emailVerificationCodeSchema,
     password: z
       .string()
       .regex(

@@ -714,6 +714,36 @@ export type Database = {
           },
         ];
       };
+      email_verification_codes: {
+        Row: {
+          id: string;
+          email: string;
+          purpose: "student_signup";
+          code_hash: string;
+          attempts: number;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          purpose: "student_signup";
+          code_hash: string;
+          attempts?: number;
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          purpose?: "student_signup";
+          code_hash?: string;
+          attempts?: number;
+          expires_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

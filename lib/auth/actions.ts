@@ -4,13 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
+import { verifyStudentSignupCode } from "@/lib/auth/email-codes";
 import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
+import { sendEmail } from "@/lib/email/smtp";
 import { getRoleHomePath } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   getStudentPhotoValidationMessage,
   getTeacherCoverValidationMessage,
+  changePasswordSchema,
   loginSchema,
   profileUpdateSchema,
   resetPasswordSchema,
@@ -69,6 +72,23 @@ function getOptionalUpload(formData: FormData, key: string) {
 
 function fieldErrors(error: { flatten: () => { fieldErrors: unknown } }) {
   return error.flatten().fieldErrors as Record<string, string[]>;
+}
+
+function getPasswordResetEmailHtml(actionLink: string) {
+  return `
+    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #12352c;">
+      <h2 style="margin: 0 0 12px;">تغيير كلمة مرور تمكين</h2>
+      <p>اضغط على الزر التالي لاختيار كلمة مرور جديدة:</p>
+      <p>
+        <a href="${actionLink}" style="display: inline-block; background: #146b57; color: white; text-decoration: none; border-radius: 12px; padding: 12px 18px; font-weight: 700;">
+          تغيير كلمة المرور
+        </a>
+      </p>
+      <p>لو الزر مش شغال، انسخ الرابط وافتحه في المتصفح:</p>
+      <p dir="ltr" style="word-break: break-all; color: #315f52;">${actionLink}</p>
+      <p style="color: #5f766f;">لو أنت ماطلبتش تغيير كلمة المرور، تجاهل الرسالة.</p>
+    </div>
+  `;
 }
 
 function getAdminClient() {
@@ -225,23 +245,57 @@ export async function forgotPasswordAction(
     );
   }
 
-  const supabase = await createClient();
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure(
+      "إعدادات استعادة كلمة المرور على السيرفر غير مكتملة.",
+      undefined,
+      values,
+    );
+  }
+
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    parsed.data.email,
-    {
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: parsed.data.email,
+    options: {
       redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
     },
-  );
+  });
 
   if (error) {
+    console.error("Failed to generate password reset link.", error);
+    if (error.message.toLowerCase().includes("not found")) {
+      return success(
+        "لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق.",
+      );
+    }
+
     return failure(
       "تعذر إرسال رابط الاستعادة. جرّب مرة أخرى.",
       undefined,
       values,
     );
+  }
+
+  if (data.properties?.action_link) {
+    const { error: sendError } = await sendEmail({
+      to: parsed.data.email,
+      subject: "تغيير كلمة مرور تمكين",
+      html: getPasswordResetEmailHtml(data.properties.action_link),
+    });
+
+    if (sendError) {
+      console.error("Failed to send password reset email.", sendError);
+      return failure(
+        "تعذر إرسال رابط الاستعادة. جرّب مرة أخرى.",
+        undefined,
+        values,
+      );
+    }
   }
 
   return success("لو البريد مسجل، هيوصل رابط تغيير كلمة المرور خلال دقائق.");
@@ -282,6 +336,64 @@ export async function resetPasswordAction(
   redirect("/login?passwordChanged=1");
 }
 
+export async function changePasswordAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const values = getFormValues(formData, [
+    "currentPassword",
+    "newPassword",
+    "confirmNewPassword",
+  ]);
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: getString(formData, "currentPassword"),
+    newPassword: getString(formData, "newPassword"),
+    confirmNewPassword: getString(formData, "confirmNewPassword"),
+  });
+
+  if (!parsed.success) {
+    return failure(
+      "راجع بيانات كلمة المرور.",
+      fieldErrors(parsed.error),
+      values,
+    );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    redirect("/login");
+  }
+
+  const { error: passwordError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: parsed.data.currentPassword,
+  });
+
+  if (passwordError) {
+    return failure(
+      "كلمة المرور الحالية غير صحيحة.",
+      {
+        currentPassword: ["كلمة المرور الحالية غير صحيحة."],
+      },
+      values,
+    );
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: parsed.data.newPassword,
+  });
+
+  if (updateError) {
+    return failure("تعذر تغيير كلمة المرور. جرّب مرة أخرى.", undefined, values);
+  }
+
+  return success("تم تغيير كلمة المرور بنجاح.");
+}
+
 export async function studentSignUpAction(
   _previousState: ActionState,
   formData: FormData,
@@ -295,6 +407,7 @@ export async function studentSignUpAction(
     "grade",
     "section",
     "email",
+    "emailCode",
     "password",
     "confirmPassword",
   ]);
@@ -307,6 +420,7 @@ export async function studentSignUpAction(
     grade: getString(formData, "grade"),
     section: getString(formData, "section"),
     email: getString(formData, "email"),
+    emailCode: getString(formData, "emailCode"),
     password: getString(formData, "password"),
     confirmPassword: getString(formData, "confirmPassword"),
     photo: formData.get("photo"),
@@ -314,6 +428,21 @@ export async function studentSignUpAction(
 
   if (!parsed.success) {
     return failure("راجع بيانات التسجيل.", fieldErrors(parsed.error), values);
+  }
+
+  const codeError = await verifyStudentSignupCode(
+    parsed.data.email,
+    parsed.data.emailCode,
+  );
+
+  if (codeError) {
+    return failure(
+      codeError,
+      {
+        emailCode: [codeError],
+      },
+      values,
+    );
   }
 
   const photo = getOptionalUpload(formData, "photo");

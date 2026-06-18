@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-  const { profile } = await requireUser("/profile");
+  const { profile, user } = await requireUser("/profile");
   const supabase = await createClient();
   const { data: student } =
     profile.role === "student"
@@ -58,7 +58,12 @@ export default async function ProfilePage() {
           className="card-modern animate-fade-up p-6"
           style={{ animationDelay: "0.1s" }}
         >
-          <ProfileForm profile={profile} student={student} teacher={teacher} />
+          <ProfileForm
+            profile={profile}
+            student={student}
+            teacher={teacher}
+            email={user.email}
+          />
         </div>
       </div>
     </DashboardShell>

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -13,6 +14,8 @@ import { forgotPasswordSchema } from "@/lib/validations/auth";
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email") ?? "";
   const [state, formAction, isPending] = useActionState(
     forgotPasswordAction,
     initialActionState,
@@ -25,7 +28,7 @@ export function ForgotPasswordForm() {
     resolver: zodResolver(forgotPasswordSchema),
     mode: "onBlur",
     values: {
-      email: state.values?.email ?? "",
+      email: state.values?.email ?? emailParam,
     },
   });
 
