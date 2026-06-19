@@ -558,6 +558,62 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   };
 }
 
+export async function getCurrentStudentEnrollmentCourseIds(
+  courseIds?: string[],
+) {
+  if (courseIds && courseIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return [];
+  }
+
+  const { data: student, error: studentError } = await admin
+    .from("students")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (studentError) {
+    logStorefrontError("current-student", studentError.message);
+    return [];
+  }
+
+  if (!student) {
+    return [];
+  }
+
+  let query = admin
+    .from("enrollments")
+    .select("course_id")
+    .eq("student_id", student.id);
+
+  if (courseIds) {
+    query = query.in("course_id", courseIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    logStorefrontError("current-student-enrollments", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((enrollment) => enrollment.course_id);
+}
+
 export async function getCoursesByTeacher(teacherId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

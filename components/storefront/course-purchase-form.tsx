@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { initialActionState } from "@/lib/auth/action-state";
@@ -12,6 +13,7 @@ type CoursePurchaseFormProps = {
   courseId: string;
   price: number;
   isStudent: boolean;
+  isEnrolled?: boolean;
 };
 
 function formatPrice(price: number) {
@@ -26,6 +28,7 @@ export function CoursePurchaseForm({
   courseId,
   price,
   isStudent,
+  isEnrolled = false,
 }: CoursePurchaseFormProps) {
   const [couponCode, setCouponCode] = useState("");
   const [couponState, applyCouponAction, isApplying] = useActionState(
@@ -56,6 +59,27 @@ export function CoursePurchaseForm({
       >
         سجّل كطالب للشراء
       </a>
+    );
+  }
+
+  if (isEnrolled) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl border bg-white/65 p-4">
+          <p className="text-primary-700 text-sm font-black">
+            أنت مشترك بالفعل في هذا الكورس.
+          </p>
+          <p className="text-foreground/60 mt-1 text-sm leading-6">
+            تقدر ترجع لمحتوى الكورس وتكمل من آخر درس.
+          </p>
+        </div>
+        <Link
+          href={`/courses/${courseId}#study`}
+          className="btn-primary flex w-full justify-center py-3.5"
+        >
+          اكمل الدراسة
+        </Link>
+      </div>
     );
   }
 

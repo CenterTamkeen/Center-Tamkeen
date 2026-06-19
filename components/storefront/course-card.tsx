@@ -6,20 +6,25 @@ import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 type CourseCardProps = {
   course: CourseSummary;
+  isEnrolled?: boolean;
 };
 
-export function CourseCard({ course }: CourseCardProps) {
+export function CourseCard({ course, isEnrolled = false }: CourseCardProps) {
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
   const sectionLabel = course.target_section
     ? (sectionLabels[course.target_section as keyof typeof sectionLabels] ??
       course.target_section)
     : null;
+  const courseHref = `/courses/${course.id}`;
+  const actionHref = isEnrolled
+    ? `${courseHref}#study`
+    : `${courseHref}#purchase`;
 
   return (
     <article className="card-modern gradient-border group flex h-full flex-col">
       {/* Thumbnail */}
       <Link
-        href={`/courses/${course.id}`}
+        href={courseHref}
         className="relative block aspect-video overflow-hidden"
       >
         {course.thumbnail_url ? (
@@ -44,7 +49,7 @@ export function CourseCard({ course }: CourseCardProps) {
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="space-y-2.5">
           <p className="eyebrow">{course.teacher?.subject ?? "كورس تعليمي"}</p>
-          <Link href={`/courses/${course.id}`}>
+          <Link href={courseHref}>
             <h2 className="group-hover:text-primary-700 line-clamp-2 text-lg leading-7 font-bold transition-colors duration-300">
               {course.title}
             </h2>
@@ -92,6 +97,15 @@ export function CourseCard({ course }: CourseCardProps) {
             {formatPrice(course.price)}
           </p>
         </div>
+
+        <Link
+          href={actionHref}
+          className={`flex w-full justify-center px-4 py-3 text-sm ${
+            isEnrolled ? "btn-secondary" : "btn-primary"
+          }`}
+        >
+          {isEnrolled ? "اكمل الدراسة" : "شراء الكورس"}
+        </Link>
       </div>
     </article>
   );

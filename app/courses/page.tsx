@@ -11,6 +11,7 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import {
   getCourseSubjects,
   getCoursesPage,
+  getCurrentStudentEnrollmentCourseIds,
   getFeaturedTeachers,
 } from "@/lib/storefront/data";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
@@ -23,6 +24,8 @@ export const metadata: Metadata = {
   title: "الكورسات",
   description: "تصفح كورسات منصة تمكين التعليمية وفلتر حسب المدرس والسعر.",
 };
+
+export const dynamic = "force-dynamic";
 
 type CoursesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -116,6 +119,11 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     }),
   ]);
   const { courses, totalCount, totalPages } = coursePage;
+  const enrolledCourseIds = new Set(
+    await getCurrentStudentEnrollmentCourseIds(
+      courses.map((course) => course.id),
+    ),
+  );
 
   return (
     <>
@@ -188,7 +196,10 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((course, i) => (
                 <ScrollReveal key={course.id} delay={i * 0.06}>
-                  <CourseCard course={course} />
+                  <CourseCard
+                    course={course}
+                    isEnrolled={enrolledCourseIds.has(course.id)}
+                  />
                 </ScrollReveal>
               ))}
             </div>

@@ -66,3 +66,7 @@ export const orderRejectSchema = z.object({
     .min(3, "اكتب سبب الإلغاء أو الاسترجاع.")
     .max(300, "سبب الإلغاء لا يزيد عن 300 حرف."),
 });
+
+export const orderAcceptSchema = z.object({
+  orderId: z.string().uuid("الطلب غير صحيح."),
+});

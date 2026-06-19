@@ -7,6 +7,7 @@ import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  orderAcceptSchema,
   orderRejectSchema,
   teacherCreateSchema,
   teacherUpdateSchema,
@@ -644,4 +645,47 @@ export async function rejectOrderAction(
   revalidatePath("/dashboard/admin/orders");
   revalidatePath("/dashboard/admin/reports");
   return success("تم تسجيل إلغاء الطلب.");
+}
+
+export async function acceptOrderAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole("admin", "/dashboard/admin/orders");
+
+  const values = getFormValues(formData, ["orderId"]);
+  const parsed = orderAcceptSchema.safeParse({
+    orderId: getString(formData, "orderId"),
+  });
+
+  if (!parsed.success) {
+    return failure("الطلب غير صحيح.", fieldErrors(parsed.error), values);
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
+  }
+
+  const { error } = await admin
+    .from("orders")
+    .update({
+      status: "completed",
+      rejection_reason: null,
+    })
+    .eq("id", parsed.data.orderId);
+
+  if (error) {
+    return failure("تعذر قبول الطلب.", undefined, values);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/orders");
+  revalidatePath("/dashboard/admin/reports");
+  revalidatePath("/dashboard/student");
+  revalidatePath("/dashboard/teacher");
+  return success("تم قبول الطلب وتفعيل الكورس للطالب.");
 }

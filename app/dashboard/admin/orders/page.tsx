@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { OrderAcceptForm } from "@/components/admin/order-accept-form";
 import { OrderRejectForm } from "@/components/admin/order-reject-form";
 import { getAdminOrders } from "@/lib/admin/data";
 import { formatPrice } from "@/lib/storefront/data";
@@ -101,8 +102,13 @@ export default async function AdminOrdersPage({
                       سبب الرفض: {order.rejection_reason}
                     </p>
                   ) : null}
-                  {order.status !== "rejected" ? (
-                    <OrderRejectForm orderId={order.id} />
+                  {order.status !== "completed" ? (
+                    <div className="mt-4 space-y-3">
+                      <OrderAcceptForm orderId={order.id} />
+                      {order.status !== "rejected" ? (
+                        <OrderRejectForm orderId={order.id} />
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
                 <div className="text-left">
