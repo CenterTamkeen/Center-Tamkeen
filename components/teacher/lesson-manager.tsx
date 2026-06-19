@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import Image from "next/image";
+import type { FormEvent } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
+import * as tus from "tus-js-client";
 
 import { initialActionState } from "@/lib/auth/action-state";
 import {
   bulkDeleteLessonsAction,
   createLessonAction,
   deleteLessonAction,
-  duplicateLessonAction,
   moveLessonAction,
   moveLessonToCourseAction,
   reorderLessonsAction,
@@ -21,16 +23,169 @@ function minutesFromSeconds(seconds: number | null) {
   return seconds ? Math.round(seconds / 60) : "";
 }
 
+type TusCredentials = {
+  videoId: string;
+  libraryId: string;
+  expirationTime: number;
+  signature: string;
+};
+
+function getSelectedFile(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "size" in value &&
+    typeof value.size === "number" &&
+    value.size > 0
+  ) {
+    return value as File;
+  }
+
+  return null;
+}
+
+async function uploadVideoDirectlyToBunny({
+  courseId,
+  title,
+  file,
+  onProgress,
+}: {
+  courseId: string;
+  title: string;
+  file: File;
+  onProgress: (progress: number) => void;
+}) {
+  const response = await fetch("/api/bunny/tus-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ courseId, title }),
+  });
+
+  if (!response.ok) {
+    throw new Error("تعذر تجهيز رفع الفيديو.");
+  }
+
+  const credentials = (await response.json()) as TusCredentials;
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: "https://video.bunnycdn.com/tusupload",
+      retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
+      removeFingerprintOnSuccess: true,
+      headers: {
+        AuthorizationSignature: credentials.signature,
+        AuthorizationExpire: String(credentials.expirationTime),
+        VideoId: credentials.videoId,
+        LibraryId: credentials.libraryId,
+      },
+      metadata: {
+        filetype: file.type || "video/mp4",
+        title,
+      },
+      onProgress(bytesUploaded, bytesTotal) {
+        onProgress(Math.round((bytesUploaded / bytesTotal) * 100));
+      },
+      onError(error) {
+        reject(error);
+      },
+      onSuccess() {
+        resolve();
+      },
+    });
+
+    upload.start();
+  });
+
+  const hasUploadedBytes = await waitForBunnyUploadedBytes(credentials.videoId);
+
+  if (!hasUploadedBytes) {
+    throw new Error("Bunny did not receive the uploaded video bytes.");
+  }
+
+  return credentials.videoId;
+}
+
+async function waitForBunnyUploadedBytes(videoId: string) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const response = await fetch(
+      `/api/bunny/video-status?videoId=${encodeURIComponent(videoId)}`,
+    );
+
+    if (response.ok) {
+      const status = (await response.json()) as { storageSize?: number | null };
+
+      if (typeof status.storageSize === "number" && status.storageSize > 0) {
+        return true;
+      }
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 1000));
+  }
+
+  return false;
+}
+
 function CreateLessonForm({ courseId }: { courseId: string }) {
   const [state, formAction, isPending] = useActionState(
     createLessonAction,
     initialActionState,
   );
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setUploadError("");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const videoFile = getSelectedFile(formData, "videoFile");
+
+    if (videoFile) {
+      try {
+        setUploadProgress(0);
+        const videoId = await uploadVideoDirectlyToBunny({
+          courseId,
+          title: String(formData.get("title") ?? "حصة جديدة"),
+          file: videoFile,
+          onProgress: setUploadProgress,
+        });
+        formData.set("bunnyVideoId", videoId);
+      } catch {
+        setUploadError("تعذر رفع الفيديو. تأكد من الاتصال وحاول مرة تانية.");
+        setUploadProgress(null);
+        return;
+      }
+    }
+
+    if (!formData.get("bunnyVideoId")) {
+      setUploadError("اختار فيديو الحصة قبل الإضافة.");
+      setUploadProgress(null);
+      return;
+    }
+
+    formData.delete("videoFile");
+    setUploadProgress(null);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
 
   return (
-    <form action={formAction} className="card-modern space-y-4 p-5">
+    <form onSubmit={handleSubmit} className="card-modern space-y-4 p-5">
       <input type="hidden" name="courseId" value={courseId} />
+      <input type="hidden" name="bunnyVideoId" value="" />
       <FormFeedback state={state} />
+      {uploadError ? <ErrorText message={uploadError} /> : null}
+      {uploadProgress !== null ? (
+        <p className="text-primary-700 text-sm font-bold">
+          جاري رفع الفيديو: {uploadProgress.toLocaleString("ar-EG")}%
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 sm:col-span-2">
           <span className="text-foreground/80 text-sm font-semibold">
@@ -43,17 +198,29 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
           />
           <ErrorText message={state.fieldErrors?.title?.[0]} />
         </label>
-        <label className="space-y-2">
+        <label className="space-y-2 sm:col-span-2">
           <span className="text-foreground/80 text-sm font-semibold">
-            VdoCipher Video ID
+            الصورة المصغرة للحصة
           </span>
           <input
-            name="vdocipherVideoId"
-            defaultValue={state.values?.vdocipherVideoId ?? ""}
-            className="field bg-background/60 py-2.5 text-left"
-            dir="ltr"
+            name="thumbnail"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="field bg-background/60 py-2.5"
           />
-          <ErrorText message={state.fieldErrors?.vdocipherVideoId?.[0]} />
+          <ErrorText message={state.fieldErrors?.thumbnail?.[0]} />
+        </label>
+        <label className="space-y-2 sm:col-span-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            فيديو الحصة
+          </span>
+          <input
+            name="videoFile"
+            type="file"
+            accept="video/*"
+            className="field bg-background/60 py-2.5"
+          />
+          <ErrorText message={state.fieldErrors?.videoFile?.[0]} />
         </label>
         <label className="space-y-2">
           <span className="text-foreground/80 text-sm font-semibold">
@@ -78,8 +245,16 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
         />
         حصة Preview مجانية
       </label>
-      <button type="submit" disabled={isPending} className="btn-primary">
-        {isPending ? "جاري الإضافة..." : "إضافة حصة"}
+      <button
+        type="submit"
+        disabled={isPending || uploadProgress !== null}
+        className="btn-primary"
+      >
+        {uploadProgress !== null
+          ? `جاري رفع الفيديو ${uploadProgress.toLocaleString("ar-EG")}%`
+          : isPending
+            ? "جاري الإضافة..."
+            : "إضافة حصة"}
       </button>
     </form>
   );
@@ -96,14 +271,52 @@ function LessonEditForm({
     updateLessonAction,
     initialActionState,
   );
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setUploadError("");
+
+    const formData = new FormData(event.currentTarget);
+    const videoFile = getSelectedFile(formData, "videoFile");
+
+    if (videoFile) {
+      try {
+        setUploadProgress(0);
+        const videoId = await uploadVideoDirectlyToBunny({
+          courseId,
+          title: String(formData.get("title") ?? lesson.title),
+          file: videoFile,
+          onProgress: setUploadProgress,
+        });
+        formData.set("bunnyVideoId", videoId);
+      } catch {
+        setUploadError("تعذر رفع الفيديو. تأكد من الاتصال وحاول مرة تانية.");
+        setUploadProgress(null);
+        return;
+      }
+    }
+
+    formData.delete("videoFile");
+    setUploadProgress(null);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
 
   return (
     <form
-      action={formAction}
-      className="grid gap-3 lg:grid-cols-[1fr_170px_120px_auto]"
+      onSubmit={handleSubmit}
+      className="grid gap-3 lg:grid-cols-[1fr_180px_180px_120px_auto]"
     >
       <input type="hidden" name="lessonId" value={lesson.id} />
       <input type="hidden" name="courseId" value={courseId} />
+      <input
+        type="hidden"
+        name="bunnyVideoId"
+        value={lesson.bunny_video_id ?? lesson.vdocipher_video_id ?? ""}
+      />
       <div className="space-y-2">
         <input
           name="title"
@@ -113,13 +326,18 @@ function LessonEditForm({
         <ErrorText message={state.fieldErrors?.title?.[0]} />
       </div>
       <input
-        name="vdocipherVideoId"
-        defaultValue={
-          state.values?.vdocipherVideoId ?? lesson.vdocipher_video_id ?? ""
-        }
-        className="field bg-background/60 py-2.5 text-left"
-        dir="ltr"
-        placeholder="Video ID"
+        name="thumbnail"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="field bg-background/60 py-2.5 text-xs"
+        aria-label="الصورة المصغرة للحصة"
+      />
+      <input
+        name="videoFile"
+        type="file"
+        accept="video/*"
+        className="field bg-background/60 py-2.5 text-xs"
+        aria-label="فيديو الحصة"
       />
       <input
         name="durationMinutes"
@@ -144,13 +362,19 @@ function LessonEditForm({
         </label>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || uploadProgress !== null}
           className="btn-secondary px-3 py-2 text-xs"
         >
           حفظ
         </button>
       </div>
-      <div className="lg:col-span-4">
+      <div className="lg:col-span-5">
+        {uploadError ? <ErrorText message={uploadError} /> : null}
+        {uploadProgress !== null ? (
+          <p className="text-primary-700 mb-2 text-sm font-bold">
+            جاري رفع الفيديو: {uploadProgress.toLocaleString("ar-EG")}%
+          </p>
+        ) : null}
         <FormFeedback state={state} />
       </div>
     </form>
@@ -267,6 +491,17 @@ export function LessonManager({
                     }}
                     className="accent-primary-600 h-4 w-4"
                   />
+                  {lesson.thumbnail_url ? (
+                    <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg">
+                      <Image
+                        src={lesson.thumbnail_url}
+                        alt={lesson.title}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : null}
                   <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
                     {(index + 1).toLocaleString("ar-EG")}
                   </span>
@@ -305,16 +540,6 @@ export function LessonManager({
                       className="btn-secondary px-3 py-2 text-xs text-red-700"
                     >
                       حذف
-                    </button>
-                  </form>
-                  <form action={duplicateLessonAction}>
-                    <input type="hidden" name="courseId" value={courseId} />
-                    <input type="hidden" name="lessonId" value={lesson.id} />
-                    <button
-                      type="submit"
-                      className="btn-secondary px-3 py-2 text-xs"
-                    >
-                      نسخ
                     </button>
                   </form>
                 </div>

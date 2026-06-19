@@ -60,7 +60,14 @@ export type CourseSummary = Pick<
 export type CourseDetails = CourseSummary & {
   lessons: Pick<
     LessonRow,
-    "id" | "title" | "order_index" | "duration" | "is_free_preview"
+    | "id"
+    | "title"
+    | "order_index"
+    | "duration"
+    | "is_free_preview"
+    | "bunny_video_id"
+    | "thumbnail_url"
+    | "video_provider"
   >[];
   reviews: (Pick<ReviewRow, "id" | "rating" | "comment" | "created_at"> & {
     student: {
@@ -621,7 +628,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
     )
     .eq("id", id)
     .eq("is_published", true)

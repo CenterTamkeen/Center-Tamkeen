@@ -21,6 +21,19 @@ const imageSchema = z
     },
   );
 
+const videoSchema = z
+  .instanceof(File)
+  .optional()
+  .refine((file) => !file || file.size === 0 || file.size <= 2 * 1024 ** 3, {
+    message: "الفيديو يجب ألا يتجاوز 2GB.",
+  })
+  .refine(
+    (file) => !file || file.size === 0 || file.type.startsWith("video/"),
+    {
+      message: "ارفع ملف فيديو صحيح.",
+    },
+  );
+
 export const courseSchema = z.object({
   title: z.string().trim().min(3, "عنوان الكورس مطلوب بحد أدنى 3 حروف."),
   description: z.string().trim().max(1200, "الوصف طويل جدًا.").optional(),
@@ -36,7 +49,9 @@ export const courseSchema = z.object({
 export const lessonSchema = z.object({
   courseId: z.uuid("الكورس غير صحيح."),
   title: z.string().trim().min(3, "عنوان الحصة مطلوب بحد أدنى 3 حروف."),
-  vdocipherVideoId: z.string().trim().optional(),
+  bunnyVideoId: z.string().trim().optional(),
+  videoFile: videoSchema,
+  thumbnail: imageSchema,
   durationMinutes: z.coerce
     .number()
     .min(0, "المدة لا يمكن أن تكون أقل من صفر.")

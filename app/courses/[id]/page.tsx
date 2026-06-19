@@ -6,9 +6,14 @@ import { notFound } from "next/navigation";
 import { BackButton } from "@/components/navigation/back-button";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { BunnyVideoPlayer } from "@/components/storefront/bunny-video-player";
 import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
+import {
+  buildBunnyStreamEmbedUrl,
+  getBunnyStreamVideoStatus,
+} from "@/lib/bunny-stream";
 import {
   formatDuration,
   formatPrice,
@@ -20,6 +25,8 @@ type CoursePageProps = {
     id: string;
   }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -52,6 +59,15 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
+  const playableLesson = course.lessons.find((lesson) => lesson.bunny_video_id);
+  const playableVideoStatus = playableLesson?.bunny_video_id
+    ? await getBunnyStreamVideoStatus(playableLesson.bunny_video_id)
+    : undefined;
+  const previewVideoStatus =
+    previewLesson?.bunny_video_id &&
+    previewLesson.bunny_video_id !== playableLesson?.bunny_video_id
+      ? await getBunnyStreamVideoStatus(previewLesson.bunny_video_id)
+      : playableVideoStatus;
   const isStudent = session?.profile.role === "student";
 
   return (
@@ -181,6 +197,25 @@ export default async function CoursePage({ params }: CoursePageProps) {
         {/* Content */}
         <section className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_320px]">
           <div className="space-y-10">
+            {playableLesson ? (
+              <ScrollReveal as="section">
+                <div className="mb-5">
+                  <p className="eyebrow">تشغيل الحصة</p>
+                  <h2 className="heading-gradient mt-1 text-2xl font-black">
+                    {playableLesson.title}
+                  </h2>
+                </div>
+                <BunnyVideoPlayer
+                  embedUrl={buildBunnyStreamEmbedUrl(
+                    playableLesson.bunny_video_id,
+                  )}
+                  videoId={playableLesson.bunny_video_id}
+                  title={playableLesson.title}
+                  initialStatus={playableVideoStatus}
+                />
+              </ScrollReveal>
+            ) : null}
+
             {/* Lessons */}
             <ScrollReveal as="section">
               <div className="mb-5 flex items-center justify-between gap-4">
@@ -200,6 +235,17 @@ export default async function CoursePage({ params }: CoursePageProps) {
                       style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
                     >
                       <div className="flex items-center gap-3">
+                        {lesson.thumbnail_url ? (
+                          <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
+                            <Image
+                              src={lesson.thumbnail_url}
+                              alt={lesson.title}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : null}
                         <span
                           className="text-foreground/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black"
                           style={{
@@ -330,14 +376,26 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   حصة Preview
                 </h2>
                 {previewLesson ? (
-                  <div
-                    className="mt-4 space-y-2 rounded-xl p-3"
-                    style={{ background: "rgb(236 245 241 / 0.5)" }}
-                  >
-                    <p className="font-bold">{previewLesson.title}</p>
-                    <p className="text-foreground/55 text-sm">
-                      {formatDuration(previewLesson.duration)}
-                    </p>
+                  <div className="mt-4 space-y-3">
+                    <div
+                      className="space-y-2 rounded-xl p-3"
+                      style={{ background: "rgb(236 245 241 / 0.5)" }}
+                    >
+                      <p className="font-bold">{previewLesson.title}</p>
+                      <p className="text-foreground/55 text-sm">
+                        {formatDuration(previewLesson.duration)}
+                      </p>
+                    </div>
+                    {previewLesson.bunny_video_id ? (
+                      <BunnyVideoPlayer
+                        embedUrl={buildBunnyStreamEmbedUrl(
+                          previewLesson.bunny_video_id,
+                        )}
+                        videoId={previewLesson.bunny_video_id}
+                        title={previewLesson.title}
+                        initialStatus={previewVideoStatus}
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-foreground/60 mt-4 text-sm leading-7">

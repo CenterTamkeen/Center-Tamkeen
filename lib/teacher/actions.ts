@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
+import { deleteBunnyStreamVideo } from "@/lib/bunny-stream";
 import { uploadImage } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -41,6 +42,11 @@ function success(message: string): ActionState {
     status: "success",
     message,
   };
+}
+
+function revalidateLessonPaths(courseId: string) {
+  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidatePath(`/courses/${courseId}`);
 }
 
 function getString(formData: FormData, key: string) {
@@ -138,6 +144,18 @@ async function uploadThumbnail(teacherId: string, file?: File) {
   return result.secureUrl;
 }
 
+async function uploadLessonThumbnail(teacherId: string, file?: File) {
+  if (!file) {
+    return null;
+  }
+
+  const result = await uploadImage(file, {
+    folder: `tamkeen/teachers/${teacherId}/lessons`,
+    publicId: `lesson-${Date.now()}`,
+  });
+  return result.secureUrl;
+}
+
 async function assertOwnsCourse(teacherId: string, courseId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -148,6 +166,45 @@ async function assertOwnsCourse(teacherId: string, courseId: string) {
     .maybeSingle();
 
   return Boolean(data);
+}
+
+async function deleteBunnyVideos(videoIds: (string | null | undefined)[]) {
+  await Promise.all(
+    Array.from(new Set(videoIds.filter(Boolean))).map(async (videoId) => {
+      try {
+        await deleteBunnyStreamVideo(videoId);
+      } catch (error) {
+        console.error("Failed to delete Bunny Stream video.", error);
+      }
+    }),
+  );
+}
+
+async function getUnusedBunnyVideoIds(
+  courseId: string,
+  videoIds: (string | null | undefined)[],
+  excludedLessonIds: string[],
+) {
+  const filteredVideoIds = Array.from(
+    new Set(videoIds.filter(Boolean)),
+  ) as string[];
+
+  if (filteredVideoIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data: reusedLessons } = await supabase
+    .from("lessons")
+    .select("bunny_video_id")
+    .eq("course_id", courseId)
+    .in("bunny_video_id", filteredVideoIds)
+    .not("id", "in", `(${excludedLessonIds.join(",")})`);
+  const reusedVideoIds = new Set(
+    (reusedLessons ?? []).map((lesson) => lesson.bunny_video_id),
+  );
+
+  return filteredVideoIds.filter((videoId) => !reusedVideoIds.has(videoId));
 }
 
 async function assertTeacherStudents(teacherId: string, studentIds: string[]) {
@@ -344,7 +401,6 @@ export async function createLessonAction(
   const values = getFormValues(formData, [
     "courseId",
     "title",
-    "vdocipherVideoId",
     "durationMinutes",
   ]);
   const { teacher } = await requireTeacher();
@@ -356,13 +412,40 @@ export async function createLessonAction(
   const parsed = lessonSchema.safeParse({
     courseId,
     title: getString(formData, "title"),
-    vdocipherVideoId: getOptionalString(formData, "vdocipherVideoId"),
+    bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
+    videoFile: getOptionalUpload(formData, "videoFile"),
+    thumbnail: getOptionalUpload(formData, "thumbnail"),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
 
   if (!parsed.success) {
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
+  }
+
+  const bunnyVideoId = parsed.data.bunnyVideoId || null;
+
+  if (!bunnyVideoId) {
+    return failure(
+      "ارفع فيديو الحصة قبل الإضافة.",
+      { videoFile: ["ارفع فيديو الحصة."] },
+      values,
+    );
+  }
+
+  let thumbnailUrl: string | null = null;
+
+  try {
+    thumbnailUrl = await uploadLessonThumbnail(
+      teacher.id,
+      parsed.data.thumbnail,
+    );
+  } catch {
+    return failure(
+      "تعذر رفع الصورة المصغّرة للحصة.",
+      { thumbnail: ["تعذر رفع الصورة المصغّرة للحصة."] },
+      values,
+    );
   }
 
   const supabase = await createClient();
@@ -374,7 +457,9 @@ export async function createLessonAction(
     course_id: courseId,
     title: parsed.data.title,
     order_index: count ?? 0,
-    vdocipher_video_id: parsed.data.vdocipherVideoId || null,
+    bunny_video_id: bunnyVideoId,
+    thumbnail_url: thumbnailUrl,
+    video_provider: "bunny",
     duration: parsed.data.durationMinutes
       ? Math.round(parsed.data.durationMinutes * 60)
       : null,
@@ -382,10 +467,18 @@ export async function createLessonAction(
   });
 
   if (error) {
+    if (error.code === "23505") {
+      return failure(
+        "الفيديو ده مضاف بالفعل داخل الكورس.",
+        { videoFile: ["اختار فيديو مختلف أو احذف الحصة القديمة أولًا."] },
+        values,
+      );
+    }
+
     return failure("تعذر إضافة الحصة.", undefined, values);
   }
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
   return success("تمت إضافة الحصة.");
 }
 
@@ -398,7 +491,6 @@ export async function updateLessonAction(
     "lessonId",
     "courseId",
     "title",
-    "vdocipherVideoId",
     "durationMinutes",
   ]);
   const { teacher } = await requireTeacher();
@@ -411,7 +503,9 @@ export async function updateLessonAction(
     lessonId: getString(formData, "lessonId"),
     courseId,
     title: getString(formData, "title"),
-    vdocipherVideoId: getOptionalString(formData, "vdocipherVideoId"),
+    bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
+    videoFile: getOptionalUpload(formData, "videoFile"),
+    thumbnail: getOptionalUpload(formData, "thumbnail"),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
@@ -420,12 +514,30 @@ export async function updateLessonAction(
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
   }
 
+  const bunnyVideoId = parsed.data.bunnyVideoId || null;
+  let thumbnailUrl: string | null = null;
+
+  try {
+    thumbnailUrl = await uploadLessonThumbnail(
+      teacher.id,
+      parsed.data.thumbnail,
+    );
+  } catch {
+    return failure(
+      "تعذر رفع الصورة المصغّرة للحصة.",
+      { thumbnail: ["تعذر رفع الصورة المصغّرة للحصة."] },
+      values,
+    );
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("lessons")
     .update({
       title: parsed.data.title,
-      vdocipher_video_id: parsed.data.vdocipherVideoId || null,
+      bunny_video_id: bunnyVideoId,
+      ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
+      video_provider: "bunny",
       duration: parsed.data.durationMinutes
         ? Math.round(parsed.data.durationMinutes * 60)
         : null,
@@ -438,7 +550,7 @@ export async function updateLessonAction(
     return failure("تعذر حفظ الحصة.", undefined, values);
   }
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
   return success("تم حفظ الحصة.");
 }
 
@@ -452,13 +564,28 @@ export async function deleteLessonAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: lesson } = await supabase
+    .from("lessons")
+    .select("bunny_video_id")
+    .eq("id", lessonId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+
+  const unusedVideoIds = await getUnusedBunnyVideoIds(
+    courseId,
+    [lesson?.bunny_video_id],
+    [lessonId],
+  );
+
+  await deleteBunnyVideos(unusedVideoIds);
+
   await supabase
     .from("lessons")
     .delete()
     .eq("id", lessonId)
     .eq("course_id", courseId);
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
 }
 
 export async function moveLessonAction(formData: FormData) {
@@ -499,7 +626,7 @@ export async function moveLessonAction(formData: FormData) {
       .eq("id", swap.id),
   ]);
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
 }
 
 export async function reorderLessonsAction(formData: FormData) {
@@ -525,7 +652,7 @@ export async function reorderLessonsAction(formData: FormData) {
     ),
   );
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
 }
 
 export async function duplicateLessonAction(formData: FormData) {
@@ -540,7 +667,9 @@ export async function duplicateLessonAction(formData: FormData) {
   const supabase = await createClient();
   const { data: lesson } = await supabase
     .from("lessons")
-    .select("title, vdocipher_video_id, duration, is_free_preview")
+    .select(
+      "title, vdocipher_video_id, bunny_video_id, thumbnail_url, video_provider, duration, is_free_preview",
+    )
     .eq("id", lessonId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -553,16 +682,23 @@ export async function duplicateLessonAction(formData: FormData) {
     return;
   }
 
+  if (lesson.bunny_video_id) {
+    return;
+  }
+
   await supabase.from("lessons").insert({
     course_id: courseId,
     title: `${lesson.title} - نسخة`,
     order_index: count ?? 0,
     vdocipher_video_id: lesson.vdocipher_video_id,
+    bunny_video_id: lesson.bunny_video_id,
+    thumbnail_url: lesson.thumbnail_url,
+    video_provider: lesson.video_provider,
     duration: lesson.duration,
     is_free_preview: lesson.is_free_preview,
   });
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
 }
 
 export async function bulkDeleteLessonsAction(formData: FormData) {
@@ -578,13 +714,27 @@ export async function bulkDeleteLessonsAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("bunny_video_id")
+    .eq("course_id", courseId)
+    .in("id", lessonIds);
+
+  const unusedVideoIds = await getUnusedBunnyVideoIds(
+    courseId,
+    (lessons ?? []).map((lesson) => lesson.bunny_video_id),
+    lessonIds,
+  );
+
+  await deleteBunnyVideos(unusedVideoIds);
+
   await supabase
     .from("lessons")
     .delete()
     .eq("course_id", courseId)
     .in("id", lessonIds);
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
+  revalidateLessonPaths(courseId);
 }
 
 export async function moveLessonToCourseAction(formData: FormData) {
@@ -615,8 +765,8 @@ export async function moveLessonToCourseAction(formData: FormData) {
     .eq("id", lessonId)
     .eq("course_id", courseId);
 
-  revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
-  revalidatePath(`/dashboard/teacher/courses/${targetCourseId}/lessons`);
+  revalidateLessonPaths(courseId);
+  revalidateLessonPaths(targetCourseId);
 }
 
 export async function createCouponAction(

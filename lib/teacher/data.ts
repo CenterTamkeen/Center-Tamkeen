@@ -184,7 +184,7 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, order_index, vdocipher_video_id, duration, is_free_preview, created_at, updated_at",
+      "id, course_id, title, order_index, vdocipher_video_id, bunny_video_id, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at",
     )
     .eq("course_id", courseId)
     .order("order_index", { ascending: true });
