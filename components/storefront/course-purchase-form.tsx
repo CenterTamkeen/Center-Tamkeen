@@ -11,6 +11,7 @@ import {
 
 type CoursePurchaseFormProps = {
   courseId: string;
+  courseHref: string;
   price: number;
   isStudent: boolean;
   isEnrolled?: boolean;
@@ -26,6 +27,7 @@ function formatPrice(price: number) {
 
 export function CoursePurchaseForm({
   courseId,
+  courseHref,
   price,
   isStudent,
   isEnrolled = false,
@@ -74,7 +76,7 @@ export function CoursePurchaseForm({
           </p>
         </div>
         <Link
-          href={`/courses/${courseId}#study`}
+          href={`${courseHref}#study`}
           className="btn-primary flex w-full justify-center py-3.5"
         >
           اكمل الدراسة

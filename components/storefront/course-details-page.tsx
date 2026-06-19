@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BackButton } from "@/components/navigation/back-button";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -20,20 +20,15 @@ import {
   getCourseById,
   getCurrentStudentEnrollmentCourseIds,
 } from "@/lib/storefront/data";
+import { buildCourseHref } from "@/lib/storefront/links";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
-type CoursePageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+type CourseDetailsPageProps = {
+  id: string;
+  teacherSlug?: string;
 };
 
-export const dynamic = "force-dynamic";
-
-export async function generateMetadata({
-  params,
-}: CoursePageProps): Promise<Metadata> {
-  const { id } = await params;
+export async function generateCourseMetadata(id: string): Promise<Metadata> {
   const course = await getCourseById(id);
 
   if (!course) {
@@ -48,8 +43,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function CoursePage({ params }: CoursePageProps) {
-  const { id } = await params;
+export async function CourseDetailsPage({
+  id,
+  teacherSlug,
+}: CourseDetailsPageProps) {
   const [course, session] = await Promise.all([
     getCourseById(id),
     getCurrentUserProfile(),
@@ -57,6 +54,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   if (!course) {
     notFound();
+  }
+
+  const courseHref = buildCourseHref(course);
+
+  if (teacherSlug && course.teacher?.slug !== teacherSlug) {
+    redirect(courseHref);
   }
 
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
@@ -226,6 +229,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
               <div className="space-y-4 p-5 sm:p-6">
                 <CoursePurchaseForm
                   courseId={course.id}
+                  courseHref={courseHref}
                   price={course.price}
                   isStudent={isStudent}
                   isEnrolled={isEnrolled}

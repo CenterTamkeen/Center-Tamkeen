@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { formatPrice, type CourseSummary } from "@/lib/storefront/data";
+import { buildCourseHref } from "@/lib/storefront/links";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 type CourseCardProps = {
@@ -15,10 +16,10 @@ export function CourseCard({ course, isEnrolled = false }: CourseCardProps) {
     ? (sectionLabels[course.target_section as keyof typeof sectionLabels] ??
       course.target_section)
     : null;
-  const courseHref = `/courses/${course.id}`;
+  const courseHref = buildCourseHref(course);
   const actionHref = isEnrolled
-    ? `${courseHref}#study`
-    : `${courseHref}#purchase`;
+    ? buildCourseHref(course, "study")
+    : buildCourseHref(course, "purchase");
 
   return (
     <article className="card-modern gradient-border group flex h-full flex-col">

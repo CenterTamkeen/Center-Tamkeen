@@ -7,6 +7,7 @@ import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { requireRole } from "@/lib/auth/roles";
 import { getProfileNotifications } from "@/lib/notifications/data";
 import { getStudentDashboard } from "@/lib/student/data";
+import { buildCourseHref } from "@/lib/storefront/links";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 export const metadata: Metadata = {
@@ -236,7 +237,7 @@ export default async function StudentDashboardPage() {
 
                   <div className="flex shrink-0 items-center gap-2 sm:flex-col">
                     <Link
-                      href={`/courses/${course.id}`}
+                      href={buildCourseHref(course)}
                       className="btn-primary px-4 py-2 text-sm"
                     >
                       متابعة الدراسة
