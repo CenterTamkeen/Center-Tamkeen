@@ -85,7 +85,7 @@ export default async function AdminOrdersPage({
                   </div>
                   <p className="text-foreground/65 mt-2 text-sm leading-6">
                     رقم الطالب: {order.student?.student_phone ?? "غير متاح"} ·
-                    فوري: {order.fawry_ref_no ?? "لم يصدر بعد"}
+                    مرجع الدفع: {order.fawry_ref_no ?? "غير مسجل"}
                   </p>
                   <div className="text-foreground/65 mt-3 space-y-1 text-sm">
                     {order.order_items.map((item) => (

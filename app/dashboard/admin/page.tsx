@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
         <StatCard
           label="طلبات قيد الانتظار"
           value={stats.pendingOrders.toLocaleString("ar-EG")}
-          hint="متابعة فقط لحين تأكيد فوري تلقائيًا"
+          hint="متابعة الطلبات لحين اعتمادها من الإدارة"
         />
         <StatCard
           label="طلبات مكتملة"

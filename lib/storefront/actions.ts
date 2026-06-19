@@ -63,7 +63,7 @@ async function getStudentAndCourse(profileId: string, courseId: string) {
 
   if (!admin) {
     return {
-      error: "إعدادات الدفع غير مكتملة.",
+      error: "إعدادات السيرفر غير مكتملة.",
       student: null,
       course: null,
       admin: null,
@@ -118,7 +118,7 @@ async function validateCouponForStudent(
   const admin = getAdminClient();
 
   if (!admin) {
-    return { error: "إعدادات الدفع غير مكتملة.", coupon: null };
+    return { error: "إعدادات السيرفر غير مكتملة.", coupon: null };
   }
 
   const { data: coupon, error } = await admin

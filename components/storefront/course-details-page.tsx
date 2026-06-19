@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { BunnyVideoPlayer } from "@/components/storefront/bunny-video-player";
 import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form";
+import { PurchaseScrollButton } from "@/components/storefront/purchase-scroll-button";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
 import {
@@ -63,8 +64,14 @@ export async function CourseDetailsPage({
   }
 
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
+  const isStudent = session?.profile.role === "student";
+  const isEnrolled = (
+    await getCurrentStudentEnrollmentCourseIds([course.id])
+  ).includes(course.id);
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
-  const playableLesson = course.lessons.find((lesson) => lesson.bunny_video_id);
+  const playableLesson = isEnrolled
+    ? course.lessons.find((lesson) => lesson.bunny_video_id)
+    : undefined;
   const playableVideoStatus = playableLesson?.bunny_video_id
     ? await getBunnyStreamVideoStatus(playableLesson.bunny_video_id)
     : undefined;
@@ -73,10 +80,7 @@ export async function CourseDetailsPage({
     previewLesson.bunny_video_id !== playableLesson?.bunny_video_id
       ? await getBunnyStreamVideoStatus(previewLesson.bunny_video_id)
       : playableVideoStatus;
-  const isStudent = session?.profile.role === "student";
-  const isEnrolled = (
-    await getCurrentStudentEnrollmentCourseIds([course.id])
-  ).includes(course.id);
+  const shouldShowPreviewPlayer = !isEnrolled;
   const lessonCount = course.lessons.length;
   const previewCount = course.lessons.filter(
     (lesson) => lesson.is_free_preview,
@@ -270,6 +274,20 @@ export async function CourseDetailsPage({
                   />
                 </div>
               </ScrollReveal>
+            ) : !isEnrolled ? (
+              <ScrollReveal as="section">
+                <div className="glass-panel-strong rounded-2xl p-5 text-center">
+                  <p className="eyebrow">منطقة الدراسة</p>
+                  <h2 className="mt-2 text-2xl font-black">
+                    اشترك في الكورس لفتح الحصص الكاملة
+                  </h2>
+                  <p className="text-foreground/60 mx-auto mt-3 max-w-2xl leading-7">
+                    الفيديوهات الكاملة متاحة فقط للطلاب المشتركين. تقدر تشوف حصة
+                    الـ Preview المجانية لو المدرس محدد واحدة.
+                  </p>
+                  <PurchaseScrollButton />
+                </div>
+              </ScrollReveal>
             ) : null}
 
             {/* Lessons */}
@@ -430,7 +448,7 @@ export async function CourseDetailsPage({
                   </svg>
                   حصة Preview
                 </h2>
-                {previewLesson ? (
+                {shouldShowPreviewPlayer && previewLesson ? (
                   <div className="mt-4 space-y-3">
                     <div
                       className="space-y-2 rounded-xl p-3"
@@ -455,7 +473,9 @@ export async function CourseDetailsPage({
                   </div>
                 ) : (
                   <p className="text-foreground/60 mt-4 text-sm leading-7">
-                    لا توجد حصة مجانية محددة حاليًا.
+                    {isEnrolled
+                      ? "الحصص الكاملة متاحة لك في منطقة الدراسة."
+                      : "لا توجد حصة مجانية محددة حاليًا."}
                   </p>
                 )}
               </div>
