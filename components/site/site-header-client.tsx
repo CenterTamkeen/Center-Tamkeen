@@ -87,7 +87,7 @@ export function SiteHeaderClient({
         borderBottom: `1px solid rgb(var(--header-border-rgb) / ${scrolled ? "0.6" : "0.3"})`,
       }}
     >
-      <div className="container-page flex items-center justify-between gap-4 py-3">
+      <div className="container-page flex items-center justify-between gap-2 py-3 sm:gap-4">
         <Link href="/" className="group flex items-center gap-3">
           <div className="relative">
             <Image
@@ -101,7 +101,7 @@ export function SiteHeaderClient({
             <div className="bg-primary/10 absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
           <span
-            className="group-hover:text-primary-600 text-xl font-black transition-colors duration-300"
+            className="group-hover:text-primary-600 hidden text-xl font-black transition-colors duration-300 sm:inline"
             style={{
               background:
                 "linear-gradient(135deg, var(--primary-700), var(--primary-500))",
@@ -127,7 +127,7 @@ export function SiteHeaderClient({
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           {isLoggedIn ? (
             <div className="relative hidden sm:block" ref={accountMenuRef}>

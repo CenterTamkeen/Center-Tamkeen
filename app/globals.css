@@ -1392,6 +1392,16 @@ body::before {
   color: #05231d;
 }
 
+@media (max-width: 640px) {
+  .theme-toggle {
+    padding-inline: 0.25rem;
+  }
+
+  .theme-toggle__label {
+    display: none;
+  }
+}
+
 .dark :is(.text-foreground\/45, .text-foreground\/50, .text-foreground\/55) {
   color: rgb(232 245 241 / 0.68);
 }

@@ -18,7 +18,9 @@ import {
   formatDuration,
   formatPrice,
   getCourseById,
+  getCurrentStudentEnrollmentCourseIds,
 } from "@/lib/storefront/data";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 type CoursePageProps = {
   params: Promise<{
@@ -69,99 +71,127 @@ export default async function CoursePage({ params }: CoursePageProps) {
       ? await getBunnyStreamVideoStatus(previewLesson.bunny_video_id)
       : playableVideoStatus;
   const isStudent = session?.profile.role === "student";
+  const isEnrolled = (
+    await getCurrentStudentEnrollmentCourseIds([course.id])
+  ).includes(course.id);
+  const lessonCount = course.lessons.length;
+  const previewCount = course.lessons.filter(
+    (lesson) => lesson.is_free_preview,
+  ).length;
+  const totalDuration = course.lessons.reduce(
+    (total, lesson) => total + (lesson.duration ?? 0),
+    0,
+  );
+  const averageRating =
+    course.reviews.length > 0
+      ? course.reviews.reduce((total, review) => total + review.rating, 0) /
+        course.reviews.length
+      : null;
+  const sectionLabel = course.target_section
+    ? (sectionLabels[course.target_section as keyof typeof sectionLabels] ??
+      course.target_section)
+    : null;
+  const gradeLabel = course.target_grade
+    ? gradeLabels[course.target_grade]
+    : null;
 
   return (
     <>
       <SiteHeader />
-      <main>
+      <main className="overflow-x-hidden">
         {/* Hero */}
         <section
-          className="relative overflow-hidden border-b"
+          className="relative isolate overflow-hidden border-b"
           style={{
             borderColor: "var(--footer-border)",
-            background: "var(--panel-wash-background)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            background:
+              "radial-gradient(circle at 82% 18%, rgb(75 200 173 / 0.16), transparent 28rem), radial-gradient(circle at 8% 8%, rgb(245 197 24 / 0.12), transparent 24rem), var(--panel-wash-background)",
           }}
         >
-          <div
-            className="deco-circle"
-            style={{
-              width: 400,
-              height: 400,
-              top: -150,
-              right: -150,
-              background: "rgb(22 138 117 / 0.05)",
-            }}
-          />
-
-          <div className="container-page relative grid gap-8 py-12 lg:grid-cols-[1fr_420px]">
-            <div className="animate-fade-up space-y-5">
-              <BackButton fallbackHref="/courses" label="رجوع للكورسات" />
-              <p className="eyebrow">
-                {course.teacher?.subject ?? "كورس تعليمي"}
-              </p>
-              <h1 className="heading-gradient text-3xl leading-tight font-black sm:text-4xl">
-                {course.title}
-              </h1>
-              <p className="text-foreground/65 max-w-3xl leading-8">
-                {course.description ?? "تفاصيل الكورس هتظهر هنا قريبًا."}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                {course.teacher?.slug ? (
-                  <Link
-                    href={`/teachers/${course.teacher.slug}`}
-                    className="btn-secondary gap-2 px-4 py-2"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    {teacherName}
-                  </Link>
-                ) : (
-                  <span className="btn-secondary px-4 py-2">{teacherName}</span>
-                )}
-                <span
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-black"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgb(254 248 224 / 0.9), rgb(253 238 179 / 0.6))",
-                    color: "var(--accent-700)",
-                  }}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="1" x2="12" y2="23" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                  {formatPrice(course.price)}
+          <div className="container-page relative grid min-w-0 gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_410px] lg:items-start lg:py-14">
+            <div className="animate-fade-up min-w-0 space-y-7">
+              <div className="grid max-w-full gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                <BackButton
+                  fallbackHref="/courses"
+                  label="رجوع للكورسات"
+                  className="w-full max-w-full sm:w-auto"
+                />
+                <span className="chip w-full justify-center sm:w-auto">
+                  {course.teacher?.subject ?? "كورس تعليمي"}
                 </span>
+                {isEnrolled ? <span className="chip">مشترك بالفعل</span> : null}
               </div>
+
+              <div className="max-w-3xl space-y-4 text-center sm:text-right">
+                <p className="eyebrow">تفاصيل الكورس</p>
+                <h1 className="heading-gradient text-3xl leading-tight font-black sm:text-5xl">
+                  {course.title}
+                </h1>
+                <p className="text-foreground/70 max-w-2xl text-base leading-8 sm:text-lg">
+                  {course.description ?? "تفاصيل الكورس هتظهر هنا قريبًا."}
+                </p>
+              </div>
+
+              <div className="grid gap-3 text-center sm:grid-cols-2 sm:text-right xl:grid-cols-4">
+                <InfoTile
+                  label="المدرس"
+                  value={teacherName}
+                  href={
+                    course.teacher?.slug
+                      ? `/teachers/${course.teacher.slug}`
+                      : undefined
+                  }
+                />
+                <InfoTile
+                  label="السعر"
+                  value={formatPrice(course.price)}
+                  tone="gold"
+                />
+                <InfoTile
+                  label="الحصص"
+                  value={`${lessonCount.toLocaleString("ar-EG")} حصة`}
+                />
+                <InfoTile
+                  label="التقييم"
+                  value={
+                    averageRating
+                      ? `${averageRating.toLocaleString("ar-EG", { maximumFractionDigits: 1 })} / ٥`
+                      : "لا يوجد بعد"
+                  }
+                />
+              </div>
+
+              {gradeLabel ||
+              sectionLabel ||
+              totalDuration > 0 ||
+              previewCount > 0 ? (
+                <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                  {gradeLabel ? (
+                    <span className="chip">{gradeLabel}</span>
+                  ) : null}
+                  {sectionLabel ? (
+                    <span className="chip">{sectionLabel}</span>
+                  ) : null}
+                  {totalDuration > 0 ? (
+                    <span className="chip">
+                      مدة تقريبية {formatDuration(totalDuration)}
+                    </span>
+                  ) : null}
+                  {previewCount > 0 ? (
+                    <span className="chip">
+                      {previewCount.toLocaleString("ar-EG")} حصة مجانية
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <aside
-              className="animate-blur-in glass-panel-strong overflow-hidden rounded-2xl"
+              id="purchase"
+              className="animate-blur-in glass-panel-strong min-w-0 overflow-hidden rounded-2xl lg:sticky lg:top-24"
               style={{ animationDelay: "0.2s" }}
             >
-              <div className="relative aspect-video">
+              <div className="relative aspect-[4/3] overflow-hidden sm:aspect-video lg:aspect-[4/3]">
                 {course.thumbnail_url ? (
                   <Image
                     src={course.thumbnail_url}
@@ -173,7 +203,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   />
                 ) : (
                   <div
-                    className="text-primary-700 flex h-full items-center justify-center text-xl font-black"
+                    className="text-primary-700 flex h-full items-center justify-center text-2xl font-black"
                     style={{
                       background:
                         "linear-gradient(135deg, var(--primary-50), var(--accent-100))",
@@ -182,12 +212,23 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     تمكين
                   </div>
                 )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
+                  <p className="text-xs font-black text-white/75">
+                    جاهز للمتابعة
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    {isEnrolled
+                      ? "اكمل من منطقة الدراسة"
+                      : "اشترك وابدأ الكورس"}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-4 p-5">
+              <div className="space-y-4 p-5 sm:p-6">
                 <CoursePurchaseForm
                   courseId={course.id}
                   price={course.price}
                   isStudent={isStudent}
+                  isEnrolled={isEnrolled}
                 />
               </div>
             </aside>
@@ -195,48 +236,61 @@ export default async function CoursePage({ params }: CoursePageProps) {
         </section>
 
         {/* Content */}
-        <section className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-10">
+        <section
+          id="study"
+          className="container-page grid min-w-0 gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_340px]"
+        >
+          <div className="min-w-0 space-y-10">
             {playableLesson ? (
               <ScrollReveal as="section">
-                <div className="mb-5">
-                  <p className="eyebrow">تشغيل الحصة</p>
-                  <h2 className="heading-gradient mt-1 text-2xl font-black">
-                    {playableLesson.title}
-                  </h2>
+                <div className="glass-panel-strong overflow-hidden rounded-2xl p-4 sm:p-5">
+                  <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <p className="eyebrow">تشغيل الحصة</p>
+                      <h2 className="heading-gradient mt-1 text-2xl font-black">
+                        {playableLesson.title}
+                      </h2>
+                    </div>
+                    <span className="chip">
+                      {formatDuration(playableLesson.duration)}
+                    </span>
+                  </div>
+                  <BunnyVideoPlayer
+                    embedUrl={buildBunnyStreamEmbedUrl(
+                      playableLesson.bunny_video_id,
+                    )}
+                    videoId={playableLesson.bunny_video_id}
+                    title={playableLesson.title}
+                    initialStatus={playableVideoStatus}
+                  />
                 </div>
-                <BunnyVideoPlayer
-                  embedUrl={buildBunnyStreamEmbedUrl(
-                    playableLesson.bunny_video_id,
-                  )}
-                  videoId={playableLesson.bunny_video_id}
-                  title={playableLesson.title}
-                  initialStatus={playableVideoStatus}
-                />
               </ScrollReveal>
             ) : null}
 
             {/* Lessons */}
             <ScrollReveal as="section">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <h2 className="heading-gradient text-2xl font-black">
-                  محتوى الكورس
-                </h2>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="eyebrow">خطة الدراسة</p>
+                  <h2 className="heading-gradient text-2xl font-black">
+                    محتوى الكورس
+                  </h2>
+                </div>
                 <span className="chip">
-                  {course.lessons.length.toLocaleString("ar-EG")} حصة
+                  {lessonCount.toLocaleString("ar-EG")} حصة
                 </span>
               </div>
-              <div className="glass-panel-strong overflow-hidden rounded-xl">
+              <div className="glass-panel-strong overflow-hidden rounded-2xl">
                 {course.lessons.length > 0 ? (
                   course.lessons.map((lesson, i) => (
                     <div
                       key={lesson.id}
-                      className="group hover:bg-primary-50/30 flex items-center justify-between gap-4 border-b px-5 py-4 transition-all duration-300 last:border-b-0"
+                      className="group hover:bg-primary-50/30 grid gap-4 border-b px-4 py-4 transition-all duration-300 last:border-b-0 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5"
                       style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         {lesson.thumbnail_url ? (
-                          <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
+                          <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl">
                             <Image
                               src={lesson.thumbnail_url}
                               alt={lesson.title}
@@ -247,14 +301,14 @@ export default async function CoursePage({ params }: CoursePageProps) {
                           </div>
                         ) : null}
                         <span
-                          className="text-foreground/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black"
+                          className="text-foreground/45 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black"
                           style={{
                             background: "rgb(236 245 241 / 0.6)",
                           }}
                         >
                           {(i + 1).toLocaleString("ar-EG")}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <h3 className="group-hover:text-primary-700 font-bold transition-colors duration-300">
                             {lesson.title}
                           </h3>
@@ -274,27 +328,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
                           Preview
                         </span>
                       ) : (
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-foreground/30"
-                        >
-                          <rect
-                            x="3"
-                            y="11"
-                            width="18"
-                            height="11"
-                            rx="2"
-                            ry="2"
-                          />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
+                        <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
+                          مقفلة للطلاب غير المشتركين
+                        </span>
                       )}
                     </div>
                   ))
@@ -308,9 +344,23 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
             {/* Reviews */}
             <ScrollReveal as="section">
-              <h2 className="heading-gradient mb-5 text-2xl font-black">
-                التقييمات
-              </h2>
+              <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="eyebrow">آراء الطلاب</p>
+                  <h2 className="heading-gradient text-2xl font-black">
+                    التقييمات
+                  </h2>
+                </div>
+                {averageRating ? (
+                  <span className="chip">
+                    متوسط{" "}
+                    {averageRating.toLocaleString("ar-EG", {
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    / ٥
+                  </span>
+                ) : null}
+              </div>
               {course.reviews.length > 0 ? (
                 <div className="grid gap-4">
                   {course.reviews.map((review) => (
@@ -357,9 +407,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-5">
+          <aside className="min-w-0 space-y-5">
             <ScrollReveal>
-              <div className="glass-panel-strong sticky top-24 rounded-xl p-5">
+              <div className="glass-panel-strong sticky top-24 rounded-2xl p-5">
                 <h2 className="flex items-center gap-2 text-lg font-black">
                   <svg
                     width="18"
@@ -404,10 +454,85 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 )}
               </div>
             </ScrollReveal>
+
+            <ScrollReveal>
+              <div className="glass-panel rounded-2xl p-5">
+                <p className="eyebrow">ملخص سريع</p>
+                <div className="mt-4 grid gap-3">
+                  <SidebarStat
+                    label="الحصص"
+                    value={`${lessonCount.toLocaleString("ar-EG")} حصة`}
+                  />
+                  <SidebarStat
+                    label="المدة"
+                    value={
+                      totalDuration > 0
+                        ? formatDuration(totalDuration)
+                        : "غير محددة"
+                    }
+                  />
+                  <SidebarStat
+                    label="المراجعات"
+                    value={`${course.reviews.length.toLocaleString("ar-EG")} تقييم`}
+                  />
+                </div>
+              </div>
+            </ScrollReveal>
           </aside>
         </section>
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+function InfoTile({
+  label,
+  value,
+  href,
+  tone = "green",
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  tone?: "green" | "gold";
+}) {
+  const content = (
+    <>
+      <span className="text-foreground/55 block text-xs font-black">
+        {label}
+      </span>
+      <span
+        className={`mt-1 block truncate text-base font-black ${
+          tone === "gold" ? "text-accent-700" : "text-primary-700"
+        }`}
+      >
+        {value}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="glass-panel min-w-0 rounded-2xl px-4 py-3 hover:-translate-y-1"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="glass-panel min-w-0 rounded-2xl px-4 py-3">{content}</div>
+  );
+}
+
+function SidebarStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border bg-white/45 px-3 py-2.5">
+      <span className="text-foreground/55 text-sm font-bold">{label}</span>
+      <span className="font-black">{value}</span>
+    </div>
   );
 }
