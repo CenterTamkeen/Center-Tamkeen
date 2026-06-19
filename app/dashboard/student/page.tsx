@@ -207,7 +207,7 @@ export default async function StudentDashboardPage() {
                     ) : (
                       <div className="from-primary-50 to-accent-100 flex h-full items-center justify-center bg-gradient-to-br">
                         <span className="text-primary-700 px-3 text-center text-sm font-black">
-                          {course.teacher?.subject ?? "تمكين"}
+                          {course.subject ?? course.teacher?.subject ?? "تمكين"}
                         </span>
                       </div>
                     )}

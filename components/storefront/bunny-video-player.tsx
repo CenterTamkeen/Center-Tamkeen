@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 type BunnyVideoStatus = {
@@ -16,6 +17,7 @@ type BunnyVideoPlayerProps = {
   embedUrl: string | null;
   videoId: string | null | undefined;
   title: string;
+  posterUrl?: string | null;
   initialStatus?: BunnyVideoStatus;
 };
 
@@ -31,8 +33,10 @@ export function BunnyVideoPlayer({
   embedUrl,
   videoId,
   title,
+  posterUrl,
   initialStatus,
 }: BunnyVideoPlayerProps) {
+  const [hasStarted, setHasStarted] = useState(!posterUrl);
   const [status, setStatus] = useState<BunnyVideoStatus>(
     initialStatus ?? defaultStatus,
   );
@@ -103,6 +107,45 @@ export function BunnyVideoPlayer({
           </p>
         ) : null}
       </div>
+    );
+  }
+
+  if (posterUrl && !hasStarted) {
+    return (
+      <button
+        type="button"
+        onClick={() => setHasStarted(true)}
+        className="group relative aspect-video w-full overflow-hidden rounded-xl bg-black text-white"
+        aria-label={`تشغيل ${title}`}
+      >
+        <Image
+          src={posterUrl}
+          alt={title}
+          fill
+          sizes="(max-width: 1024px) 100vw, 760px"
+          className="object-cover transition duration-500 group-hover:scale-105"
+        />
+        <span className="absolute inset-0 bg-black/35 transition group-hover:bg-black/25" />
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="text-primary-700 flex h-16 w-16 items-center justify-center rounded-full bg-white/92 shadow-[var(--shadow-card)] transition group-hover:scale-105">
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              className="mr-0.5"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </span>
+        <span className="absolute right-4 bottom-4 left-4 text-right">
+          <span className="inline-flex rounded-xl bg-black/60 px-3 py-2 text-sm font-black backdrop-blur">
+            تشغيل الحصة
+          </span>
+        </span>
+      </button>
     );
   }
 

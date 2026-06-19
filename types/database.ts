@@ -159,6 +159,7 @@ export type Database = {
         Row: {
           id: string;
           teacher_id: string;
+          subject: string | null;
           title: string;
           description: string | null;
           price: number;
@@ -172,6 +173,7 @@ export type Database = {
         Insert: {
           id?: string;
           teacher_id: string;
+          subject?: string | null;
           title: string;
           description?: string | null;
           price?: number;
@@ -185,6 +187,7 @@ export type Database = {
         Update: {
           id?: string;
           teacher_id?: string;
+          subject?: string | null;
           title?: string;
           description?: string | null;
           price?: number;

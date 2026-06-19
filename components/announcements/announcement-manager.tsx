@@ -57,6 +57,10 @@ function CreateAnnouncementForm() {
             accept="image/png,image/jpeg,image/webp"
             className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
           />
+          <p className="text-foreground/50 text-xs leading-5 font-semibold">
+            المقاس المقترح للبانر: 1600 × 700 بكسل بنسبة 16:7. اترك الكلام المهم
+            في منتصف التصميم. JPG/PNG/WebP بحد أقصى 5MB.
+          </p>
           <ErrorText message={state.fieldErrors?.image?.[0]} />
         </label>
 
@@ -145,6 +149,10 @@ function EditAnnouncementForm({
           accept="image/png,image/jpeg,image/webp"
           className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
         />
+        <p className="text-foreground/50 text-xs leading-5 font-semibold">
+          المقاس المقترح للبانر: 1600 × 700 بكسل بنسبة 16:7. JPG/PNG/WebP بحد
+          أقصى 5MB.
+        </p>
         <ErrorText message={state.fieldErrors?.image?.[0]} />
       </label>
 

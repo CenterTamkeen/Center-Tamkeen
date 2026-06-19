@@ -135,7 +135,7 @@ export async function getTeacherCourses(teacherId: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at, lessons(id), enrollments(id, student_id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at, lessons(id), enrollments(id, student_id)",
     )
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false });
@@ -156,7 +156,7 @@ export async function getTeacherCourseById(
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at",
     )
     .eq("teacher_id", teacherId)
     .eq("id", courseId)

@@ -376,6 +376,9 @@ function TeacherEditForm({
             accept="image/jpeg,image/png,image/webp"
             className="field bg-background/70 min-w-0 py-2.5"
           />
+          <p className="text-foreground/50 text-[11px] leading-4 font-semibold">
+            المقاس المقترح: 800 × 800 بكسل بنسبة 1:1. JPG/PNG/WebP بحد أقصى 2MB.
+          </p>
           <ErrorText message={state.fieldErrors?.avatar?.[0]} />
         </label>
 

@@ -55,8 +55,8 @@ export default async function TeacherCoursesPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="text-primary-700 flex h-full items-center justify-center font-black">
-                      تمكين
+                    <div className="text-primary-700 flex h-full items-center justify-center px-3 text-center font-black">
+                      {course.subject ?? teacher.subject}
                     </div>
                   )}
                 </div>
@@ -65,6 +65,9 @@ export default async function TeacherCoursesPage() {
                     <h3 className="text-lg font-black">{course.title}</h3>
                     <span className="chip">
                       {course.is_published ? "منشور" : "مخفي"}
+                    </span>
+                    <span className="chip">
+                      {course.subject ?? teacher.subject}
                     </span>
                   </div>
                   <p className="text-foreground/60 mt-2 line-clamp-2 text-sm leading-6">

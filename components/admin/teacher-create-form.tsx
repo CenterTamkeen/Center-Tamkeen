@@ -178,7 +178,8 @@ export function TeacherCreateForm() {
           className="field bg-background/60 min-w-0 py-3"
         />
         <p className="text-foreground/50 text-xs font-semibold">
-          اختياري: JPG أو PNG أو WebP بحد أقصى 2MB.
+          المقاس المقترح للمصمم: 800 × 800 بكسل بنسبة 1:1. اختياري: JPG أو PNG
+          أو WebP بحد أقصى 2MB.
         </p>
         <ErrorText message={state.fieldErrors?.avatar?.[0]} />
       </label>

@@ -16,6 +16,7 @@ type CourseFormProps = {
   course?: Pick<
     CourseRow,
     | "id"
+    | "subject"
     | "title"
     | "description"
     | "price"
@@ -40,7 +41,23 @@ export function CourseForm({ course }: CourseFormProps) {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 sm:col-span-2">
+        <label className="space-y-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            المادة
+          </span>
+          <input
+            name="subject"
+            defaultValue={state.values?.subject ?? course?.subject ?? ""}
+            className="field bg-background/60 py-2.5"
+            placeholder="مثال: تاريخ وجغرافيا"
+          />
+          <p className="text-foreground/50 text-xs leading-5 font-semibold">
+            المادة دي هتظهر فوق كارد الكورس وفي الفلاتر.
+          </p>
+          <ErrorText message={state.fieldErrors?.subject?.[0]} />
+        </label>
+
+        <label className="space-y-2">
           <span className="text-foreground/80 text-sm font-semibold">
             عنوان الكورس
           </span>
@@ -77,6 +94,10 @@ export function CourseForm({ course }: CourseFormProps) {
             accept="image/png,image/jpeg,image/webp"
             className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
           />
+          <p className="text-foreground/50 text-xs leading-5 font-semibold">
+            المقاس المقترح للمصمم: 1280 × 720 بكسل بنسبة 16:9. JPG/PNG/WebP بحد
+            أقصى 3MB.
+          </p>
           <ErrorText message={state.fieldErrors?.thumbnail?.[0]} />
         </label>
 

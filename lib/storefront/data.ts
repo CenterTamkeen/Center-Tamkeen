@@ -37,6 +37,7 @@ export type CourseSummary = Pick<
   CourseRow,
   | "id"
   | "teacher_id"
+  | "subject"
   | "title"
   | "description"
   | "price"
@@ -308,7 +309,26 @@ export async function getTeacherSubjects() {
 }
 
 export async function getCourseSubjects() {
-  return getTeacherSubjects();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("subject, teacher:teachers!inner(subject, is_active)")
+    .eq("is_published", true)
+    .eq("teacher.is_active", true)
+    .order("subject", { ascending: true });
+
+  if (error) {
+    logStorefrontError("course-subjects", error.message);
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      (data ?? [])
+        .map((course) => course.subject ?? course.teacher?.subject)
+        .filter((subject): subject is string => Boolean(subject)),
+    ),
+  );
 }
 
 export async function getTeachersPage(options: TeacherPageOptions = {}) {
@@ -402,7 +422,7 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("is_published", true)
     .eq("teacher.is_active", true)
@@ -417,7 +437,7 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
   }
 
   if (filters.subject) {
-    query = query.eq("teacher.subject", filters.subject);
+    query = query.eq("subject", filters.subject);
   }
 
   if (filters.grade) {
@@ -477,7 +497,7 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
       {
         count: "exact",
       },
@@ -495,7 +515,7 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   }
 
   if (options.subject) {
-    query = query.eq("teacher.subject", options.subject);
+    query = query.eq("subject", options.subject);
   }
 
   if (options.grade) {
@@ -619,7 +639,7 @@ export async function getCoursesByTeacher(teacherId: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("teacher_id", teacherId)
     .eq("is_published", true)
@@ -684,7 +704,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
     )
     .eq("id", id)
     .eq("is_published", true)

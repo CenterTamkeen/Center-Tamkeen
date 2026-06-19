@@ -314,6 +314,10 @@ export function ProfileForm({
             >
               تغيير الصورة
             </button>
+            <p className="text-foreground/50 max-w-xs text-center text-xs leading-5 font-semibold">
+              المقاس المقترح للصورة الشخصية: 800 × 800 بكسل بنسبة 1:1.
+              JPG/PNG/WebP بحد أقصى 2MB.
+            </p>
             <ErrorText message={state.fieldErrors?.photo?.[0]} />
           </section>
         ) : null}
@@ -389,6 +393,14 @@ export function ProfileForm({
                   تم اختيار صورة شخصية جديدة
                 </p>
               ) : null}
+              <p className="text-foreground/55 mt-4 text-xs leading-5 font-semibold">
+                مقاس بانر صفحة المدرس المقترح: 1600 × 600 بكسل بنسبة 8:3. اترك
+                التفاصيل المهمة في منتصف التصميم. JPG/PNG/WebP بحد أقصى 2MB.
+              </p>
+              <p className="text-foreground/55 mt-3 text-xs leading-5 font-semibold">
+                مقاس صورة المدرس المقترح: 800 × 800 بكسل بنسبة 1:1. JPG/PNG/WebP
+                بحد أقصى 2MB.
+              </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link
                   href="/dashboard/teacher"
@@ -579,6 +591,9 @@ export function ProfileForm({
                   {...register("teacherSubject")}
                   className="field bg-background/60 py-2.5"
                 />
+                <p className="text-foreground/50 text-xs leading-5 font-semibold">
+                  المادة دي هتظهر فوق كروت كورساتك وفي صفحة المدرس.
+                </p>
                 <ErrorText
                   message={
                     errors.teacherSubject?.message ??

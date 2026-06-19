@@ -35,6 +35,11 @@ const videoSchema = z
   );
 
 export const courseSchema = z.object({
+  subject: z
+    .string()
+    .trim()
+    .min(2, "اسم المادة مطلوب بحد أدنى حرفين.")
+    .max(80, "اسم المادة طويل جدًا."),
   title: z.string().trim().min(3, "عنوان الكورس مطلوب بحد أدنى 3 حروف."),
   description: z.string().trim().max(1200, "الوصف طويل جدًا.").optional(),
   price: z.coerce

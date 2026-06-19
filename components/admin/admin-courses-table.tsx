@@ -30,7 +30,10 @@ export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
     () =>
       Array.from(
         new Set(
-          courses.map((course) => course.teacher?.subject ?? "مادة غير محددة"),
+          courses.map(
+            (course) =>
+              course.subject ?? course.teacher?.subject ?? "مادة غير محددة",
+          ),
         ),
       ),
     [courses],
@@ -41,9 +44,12 @@ export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
     return courses.filter((course) => {
       const teacherName =
         course.teacher?.profile?.full_name ?? "مدرس غير معروف";
-      const courseSubject = course.teacher?.subject ?? "مادة غير محددة";
+      const courseSubject =
+        course.subject ?? course.teacher?.subject ?? "مادة غير محددة";
       const matchesQuery =
-        !normalized || course.title.toLowerCase().includes(normalized);
+        !normalized ||
+        course.title.toLowerCase().includes(normalized) ||
+        courseSubject.toLowerCase().includes(normalized);
       const matchesStatus =
         status === "all" ||
         (status === "published" ? course.is_published : !course.is_published);
@@ -106,7 +112,9 @@ export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
                 <h3 className="text-base font-black">{course.title}</h3>
                 <p className="text-foreground/60 mt-2 text-sm leading-6">
                   {course.teacher?.profile?.full_name ?? "مدرس غير معروف"} ·{" "}
-                  {course.teacher?.subject ?? "مادة غير محددة"}
+                  {course.subject ??
+                    course.teacher?.subject ??
+                    "مادة غير محددة"}
                 </p>
               </div>
               <span className="chip shrink-0">
@@ -183,7 +191,9 @@ export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
                 <td className="px-4 py-4">
                   {course.teacher?.profile?.full_name ?? "مدرس غير معروف"}
                   <p className="text-foreground/55 mt-1">
-                    {course.teacher?.subject ?? "مادة غير محددة"}
+                    {course.subject ??
+                      course.teacher?.subject ??
+                      "مادة غير محددة"}
                   </p>
                 </td>
                 <td className="px-4 py-4">

@@ -228,6 +228,7 @@ export async function createCourseAction(
   formData: FormData,
 ): Promise<ActionState> {
   const values = getFormValues(formData, [
+    "subject",
     "title",
     "description",
     "price",
@@ -244,6 +245,7 @@ export async function createCourseAction(
   }
 
   const parsed = courseSchema.safeParse({
+    subject: getString(formData, "subject"),
     title: getString(formData, "title"),
     description: getOptionalString(formData, "description"),
     price: getString(formData, "price"),
@@ -271,6 +273,7 @@ export async function createCourseAction(
   const supabase = await createClient();
   const { error } = await supabase.from("courses").insert({
     teacher_id: teacherId,
+    subject: parsed.data.subject,
     title: parsed.data.title,
     description: parsed.data.description || null,
     price: parsed.data.price,
@@ -300,6 +303,7 @@ export async function updateCourseAction(
 ): Promise<ActionState> {
   const courseId = getString(formData, "courseId");
   const values = getFormValues(formData, [
+    "subject",
     "title",
     "description",
     "price",
@@ -313,6 +317,7 @@ export async function updateCourseAction(
   }
 
   const parsed = courseSchema.safeParse({
+    subject: getString(formData, "subject"),
     title: getString(formData, "title"),
     description: getOptionalString(formData, "description"),
     price: getString(formData, "price"),
@@ -342,6 +347,7 @@ export async function updateCourseAction(
     .from("courses")
     .update({
       title: parsed.data.title,
+      subject: parsed.data.subject,
       description: parsed.data.description || null,
       price: parsed.data.price,
       target_grade: (parsed.data.targetGrade || null) as StudentGrade | null,

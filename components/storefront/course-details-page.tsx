@@ -120,7 +120,7 @@ export async function CourseDetailsPage({
                   className="w-full max-w-full sm:w-auto"
                 />
                 <span className="chip w-full justify-center sm:w-auto">
-                  {course.teacher?.subject ?? "كورس تعليمي"}
+                  {course.subject ?? course.teacher?.subject ?? "كورس تعليمي"}
                 </span>
                 {isEnrolled ? <span className="chip">مشترك بالفعل</span> : null}
               </div>
@@ -265,6 +265,7 @@ export async function CourseDetailsPage({
                     )}
                     videoId={playableLesson.bunny_video_id}
                     title={playableLesson.title}
+                    posterUrl={playableLesson.thumbnail_url}
                     initialStatus={playableVideoStatus}
                   />
                 </div>
@@ -447,6 +448,7 @@ export async function CourseDetailsPage({
                         )}
                         videoId={previewLesson.bunny_video_id}
                         title={previewLesson.title}
+                        posterUrl={previewLesson.thumbnail_url}
                         initialStatus={previewVideoStatus}
                       />
                     ) : null}

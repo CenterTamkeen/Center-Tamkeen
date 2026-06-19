@@ -208,6 +208,10 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
             accept="image/jpeg,image/png,image/webp"
             className="field bg-background/60 py-2.5"
           />
+          <p className="text-foreground/50 text-xs leading-5 font-semibold">
+            المقاس المقترح للمصمم: 1280 × 720 بكسل بنسبة 16:9. JPG/PNG/WebP بحد
+            أقصى 3MB.
+          </p>
           <ErrorText message={state.fieldErrors?.thumbnail?.[0]} />
         </label>
         <label className="space-y-2 sm:col-span-2">
@@ -325,13 +329,18 @@ function LessonEditForm({
         />
         <ErrorText message={state.fieldErrors?.title?.[0]} />
       </div>
-      <input
-        name="thumbnail"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="field bg-background/60 py-2.5 text-xs"
-        aria-label="الصورة المصغرة للحصة"
-      />
+      <div className="space-y-1.5">
+        <input
+          name="thumbnail"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="field bg-background/60 py-2.5 text-xs"
+          aria-label="الصورة المصغرة للحصة"
+        />
+        <p className="text-foreground/50 text-[11px] leading-4 font-semibold">
+          1280 × 720 بكسل
+        </p>
+      </div>
       <input
         name="videoFile"
         type="file"

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type StudentDashboardCourse = {
   id: string;
+  subject: string | null;
   title: string;
   description: string | null;
   thumbnail_url: string | null;
@@ -42,7 +43,7 @@ export async function getStudentDashboard(profileId: string) {
   const { data, error } = await supabase
     .from("students")
     .select(
-      "id, student_phone, school_name, grade, section, enrollments(id, enrolled_at, course:courses(id, title, description, price, thumbnail_url, teacher:teachers(slug, subject, profile:profiles(full_name)), lessons(id)))",
+      "id, student_phone, school_name, grade, section, enrollments(id, enrolled_at, course:courses(id, subject, title, description, price, thumbnail_url, teacher:teachers(slug, subject, profile:profiles(full_name)), lessons(id)))",
     )
     .eq("profile_id", profileId)
     .maybeSingle();
