@@ -82,18 +82,56 @@ export function CourseCard({ course, isEnrolled = false }: CourseCardProps) {
           className="mt-auto grid gap-4 border-t pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
           style={{ borderColor: "rgb(208 227 218 / 0.5)" }}
         >
-          <div className="min-w-0">
-            <p className="text-foreground/50 text-xs font-black">المدرس</p>
+          <div className="flex min-w-0 items-center gap-3">
             {course.teacher?.slug ? (
               <Link
                 href={`/teachers/${course.teacher.slug}`}
-                className="hover:text-primary-700 mt-1 block truncate text-sm font-black transition-colors duration-300"
+                className="shrink-0"
               >
-                {teacherName}
+                {course.teacher.avatar_url ? (
+                  <Image
+                    src={course.teacher.avatar_url}
+                    alt={teacherName}
+                    width={44}
+                    height={44}
+                    className="rounded-full border-2 border-white/20 object-cover shadow-md transition-transform duration-300 group-hover:scale-105"
+                    style={{ width: 44, height: 44 }}
+                  />
+                ) : (
+                  <span className="from-primary-600 to-primary-700 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-sm font-black text-white shadow-md">
+                    {teacherName.charAt(0)}
+                  </span>
+                )}
               </Link>
+            ) : course.teacher?.avatar_url ? (
+              <Image
+                src={course.teacher.avatar_url}
+                alt={teacherName}
+                width={44}
+                height={44}
+                className="shrink-0 rounded-full border-2 border-white/20 object-cover shadow-md"
+                style={{ width: 44, height: 44 }}
+              />
             ) : (
-              <p className="mt-1 truncate text-sm font-black">{teacherName}</p>
+              <span className="from-primary-600 to-primary-700 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-black text-white shadow-md">
+                {teacherName.charAt(0)}
+              </span>
             )}
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground/50 text-xs font-black">المدرس</p>
+              {course.teacher?.slug ? (
+                <Link
+                  href={`/teachers/${course.teacher.slug}`}
+                  className="hover:text-primary-700 mt-1 block truncate text-sm font-black transition-colors duration-300"
+                >
+                  {teacherName}
+                </Link>
+              ) : (
+                <p className="mt-1 truncate text-sm font-black">
+                  {teacherName}
+                </p>
+              )}
+            </div>
           </div>
           <div className="border-primary-100 bg-primary-50/80 rounded-xl border px-4 py-2.5 text-center sm:text-left">
             <p className="text-foreground/50 text-[11px] font-black">السعر</p>

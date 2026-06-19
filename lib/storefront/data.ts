@@ -51,6 +51,7 @@ export type CourseSummary = Pick<
     slug: string;
     subject: string;
     is_active: boolean;
+    avatar_url: string | null;
     profile: {
       full_name: string;
     } | null;
@@ -422,7 +423,7 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("is_published", true)
     .eq("teacher.is_active", true)
@@ -497,7 +498,7 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id)",
       {
         count: "exact",
       },
@@ -639,7 +640,7 @@ export async function getCoursesByTeacher(teacherId: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("teacher_id", teacherId)
     .eq("is_published", true)
@@ -704,7 +705,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
     )
     .eq("id", id)
     .eq("is_published", true)
