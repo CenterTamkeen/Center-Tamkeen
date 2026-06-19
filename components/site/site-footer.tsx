@@ -34,8 +34,7 @@ export async function SiteFooter() {
       <div
         className="relative"
         style={{
-          background:
-            "linear-gradient(180deg, rgb(236 245 241 / 0.5) 0%, rgb(255 255 255 / 0.6) 100%)",
+          background: "var(--footer-background)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
         }}
@@ -137,7 +136,7 @@ export async function SiteFooter() {
         {/* Bottom bar */}
         <div
           className="border-t py-5"
-          style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
+          style={{ borderColor: "var(--footer-border)" }}
         >
           <div className="container-page text-foreground/45 flex items-center justify-between text-xs">
             <p>© {new Date().getFullYear()} تمكين. جميع الحقوق محفوظة.</p>

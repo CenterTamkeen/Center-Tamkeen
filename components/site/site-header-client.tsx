@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { signOutAction } from "@/lib/auth/actions";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 import type { AppRole } from "@/lib/auth/roles";
 
 type SiteHeaderClientProps = {
@@ -79,11 +80,11 @@ export function SiteHeaderClient({
       }`}
       style={{
         background: scrolled
-          ? "rgb(255 255 255 / 0.82)"
-          : "rgb(255 255 255 / 0.55)",
+          ? "rgb(var(--header-surface-rgb) / 0.82)"
+          : "rgb(var(--header-surface-rgb) / 0.55)",
         backdropFilter: `blur(${scrolled ? "24px" : "16px"}) saturate(180%)`,
         WebkitBackdropFilter: `blur(${scrolled ? "24px" : "16px"}) saturate(180%)`,
-        borderBottom: `1px solid rgb(208 227 218 / ${scrolled ? "0.6" : "0.3"})`,
+        borderBottom: `1px solid rgb(var(--header-border-rgb) / ${scrolled ? "0.6" : "0.3"})`,
       }}
     >
       <div className="container-page flex items-center justify-between gap-4 py-3">
@@ -127,6 +128,7 @@ export function SiteHeaderClient({
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {isLoggedIn ? (
             <div className="relative hidden sm:block" ref={accountMenuRef}>
               <button
@@ -269,7 +271,7 @@ export function SiteHeaderClient({
             : "max-h-0 border-t-transparent opacity-0"
         }`}
         style={{
-          background: "rgb(255 255 255 / 0.92)",
+          background: "rgb(var(--header-surface-rgb) / 0.92)",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
         }}

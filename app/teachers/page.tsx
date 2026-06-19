@@ -65,7 +65,10 @@ export default async function TeachersPage({
     <>
       <SiteHeader />
       <main>
-        <section className="border-border/50 relative overflow-hidden border-b bg-[linear-gradient(180deg,#ffffff_0%,#f5faf8_100%)]">
+        <section
+          className="border-border/50 relative overflow-hidden border-b"
+          style={{ background: "var(--hero-wash-background)" }}
+        >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgb(22_138_117/0.08),transparent_28%),radial-gradient(circle_at_82%_26%,rgb(245_197_24/0.12),transparent_24%)]" />
           <div className="container-page relative py-16">
             <BackButton

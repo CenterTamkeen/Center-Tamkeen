@@ -70,8 +70,11 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-white">
-        <section className="border-border/60 relative overflow-hidden border-b bg-[linear-gradient(180deg,#ffffff_0%,#f5faf8_100%)]">
+      <main className="bg-background">
+        <section
+          className="border-border/60 relative overflow-hidden border-b"
+          style={{ background: "var(--hero-wash-background)" }}
+        >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgb(22_138_117/0.08),transparent_28%),radial-gradient(circle_at_78%_30%,rgb(245_197_24/0.12),transparent_24%)]" />
           <div className="container-page relative grid min-h-[860px] items-center gap-14 py-24 lg:grid-cols-[1fr_580px] lg:py-32">
             <div className="max-w-4xl space-y-8">

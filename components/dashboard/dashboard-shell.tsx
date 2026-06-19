@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { getCurrentUserProfile, getRoleHomePath } from "@/lib/auth/roles";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 
 import { DashboardAccountMenu } from "./dashboard-account-menu";
 
@@ -39,10 +40,10 @@ export async function DashboardShell({
       <header
         className="sticky top-0 z-30"
         style={{
-          background: "rgb(255 255 255 / 0.82)",
+          background: "rgb(var(--header-surface-rgb) / 0.88)",
           backdropFilter: "blur(24px) saturate(180%)",
           WebkitBackdropFilter: "blur(24px) saturate(180%)",
-          borderBottom: "1px solid rgb(208 227 218 / 0.5)",
+          borderBottom: "1px solid rgb(var(--header-border-rgb) / 0.42)",
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
@@ -57,13 +58,16 @@ export async function DashboardShell({
             <span className="eyebrow text-xl whitespace-nowrap">تمكين</span>
           </Link>
 
-          <DashboardAccountMenu
-            userRole={userRole}
-            dashboardHref={dashboardHref}
-            userName={session?.profile.full_name ?? null}
-            userEmail={session?.user.email ?? null}
-            userAvatarUrl={session?.profile.avatar_url ?? null}
-          />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <DashboardAccountMenu
+              userRole={userRole}
+              dashboardHref={dashboardHref}
+              userName={session?.profile.full_name ?? null}
+              userEmail={session?.user.email ?? null}
+              userAvatarUrl={session?.profile.avatar_url ?? null}
+            />
+          </div>
         </div>
       </header>
 

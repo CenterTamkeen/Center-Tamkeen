@@ -3,6 +3,21 @@ import { Cairo } from "next/font/google";
 import { BackToTop } from "@/components/site/back-to-top";
 import "./globals.css";
 
+const themeInitScript = `
+(() => {
+  try {
+    const storedTheme = localStorage.getItem("tamkeen-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const theme = storedTheme || (prefersDark ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+  } catch {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.style.colorScheme = "light";
+  }
+})();
+`;
+
 const cairo = Cairo({
   variable: "--font-cairo",
   subsets: ["arabic", "latin"],
@@ -41,6 +56,7 @@ export default function RootLayout({
         className="bg-background text-foreground flex min-h-full flex-col"
         suppressHydrationWarning
       >
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
         <BackToTop />
       </body>

@@ -104,8 +104,8 @@ export function AdminSidebar() {
               className={cn(
                 "flex min-w-fit items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black transition-all duration-300",
                 active
-                  ? "bg-primary-50 text-primary-700 shadow-[inset_0_0_0_1px_rgb(22_138_117/0.14)]"
-                  : "text-foreground/65 hover:bg-primary-50/50 hover:text-primary-700",
+                  ? "bg-primary-500/12 text-primary-700 dark:bg-primary-400/12 dark:text-primary-700 shadow-[inset_0_0_0_1px_rgb(75_200_173/0.24)]"
+                  : "text-foreground/70 hover:bg-primary-500/10 hover:text-primary-700 dark:hover:bg-primary-400/10",
               )}
             >
               <svg

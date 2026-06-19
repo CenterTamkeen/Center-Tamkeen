@@ -62,7 +62,7 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
       <SiteHeader />
       <main>
         {/* Hero */}
-        <section className="border-border/50 relative overflow-hidden border-b bg-white/60">
+        <section className="border-border/50 bg-surface/70 relative overflow-hidden border-b">
           <div className="relative h-64 sm:h-80 lg:h-96">
             {cover ? (
               <Image

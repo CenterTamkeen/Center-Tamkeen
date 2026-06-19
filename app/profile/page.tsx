@@ -42,9 +42,8 @@ export default async function ProfilePage() {
         <section
           className="relative overflow-hidden border-b"
           style={{
-            borderColor: "rgb(208 227 218 / 0.4)",
-            background:
-              "linear-gradient(180deg, rgb(236 245 241 / 0.5) 0%, rgb(255 255 255 / 0.3) 100%)",
+            borderColor: "var(--footer-border)",
+            background: "var(--panel-wash-background)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
           }}
