@@ -291,10 +291,14 @@ export function SiteHeaderClient({
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="text-foreground/75 hover:bg-primary-50/60 hover:text-primary-700 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-300 hover:pr-6"
+              className="group text-foreground/75 hover:text-primary-700 relative overflow-hidden rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 ease-out hover:-translate-x-1 hover:shadow-[0_10px_24px_rgb(22_138_117/0.08)]"
               style={{ animationDelay: `${i * 0.05}s` }}
             >
-              {link.label}
+              <span className="bg-primary-50/80 absolute inset-0 origin-right scale-x-0 rounded-xl opacity-0 transition-all duration-300 ease-out group-hover:scale-x-100 group-hover:opacity-100" />
+              <span className="relative flex items-center gap-2">
+                <span className="bg-primary-500 h-1.5 w-1.5 scale-0 rounded-full opacity-0 transition-all duration-300 ease-out group-hover:scale-100 group-hover:opacity-100" />
+                {link.label}
+              </span>
             </Link>
           ))}
           {isLoggedIn ? (
