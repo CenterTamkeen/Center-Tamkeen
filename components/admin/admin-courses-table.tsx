@@ -8,6 +8,7 @@ import {
 } from "@/lib/admin/actions";
 import type { AdminCourse } from "@/lib/admin/data";
 import { formatPrice } from "@/lib/format";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
   const [query, setQuery] = useState("");
@@ -97,7 +98,74 @@ export function AdminCoursesTable({ courses }: { courses: AdminCourse[] }) {
         </select>
       </div>
 
-      <div className="glass-panel-strong overflow-x-auto rounded-xl">
+      <div className="grid gap-3 md:hidden">
+        {filtered.map((course) => (
+          <article key={course.id} className="card-modern p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-base font-black">{course.title}</h3>
+                <p className="text-foreground/60 mt-2 text-sm leading-6">
+                  {course.teacher?.profile?.full_name ?? "مدرس غير معروف"} ·{" "}
+                  {course.teacher?.subject ?? "مادة غير محددة"}
+                </p>
+              </div>
+              <span className="chip shrink-0">
+                {course.is_published ? "منشور" : "مخفي"}
+              </span>
+            </div>
+            <div className="text-foreground/60 mt-3 flex flex-wrap gap-2 text-sm font-semibold">
+              <span>{formatPrice(course.price)}</span>
+              <span>{course.lessons.length.toLocaleString("ar-EG")} حصة</span>
+              <span>
+                {course.enrollments.length.toLocaleString("ar-EG")} اشتراك
+              </span>
+              {course.target_grade ? (
+                <span>{gradeLabels[course.target_grade]}</span>
+              ) : null}
+              {course.target_section ? (
+                <span>
+                  {sectionLabels[
+                    course.target_section as keyof typeof sectionLabels
+                  ] ?? course.target_section}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <form action={toggleAdminCoursePublishAction}>
+                <input type="hidden" name="courseId" value={course.id} />
+                <input
+                  type="hidden"
+                  name="nextPublished"
+                  value={course.is_published ? "false" : "true"}
+                />
+                <button className="btn-secondary w-full px-3 py-2 text-xs">
+                  {course.is_published ? "إخفاء" : "نشر"}
+                </button>
+              </form>
+              <form action={deleteAdminCourseAction}>
+                <input type="hidden" name="courseId" value={course.id} />
+                <button
+                  className="btn-secondary w-full px-3 py-2 text-xs text-red-700"
+                  onClick={(event) => {
+                    if (!confirm("هل تريد حذف الكورس؟")) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  حذف
+                </button>
+              </form>
+            </div>
+          </article>
+        ))}
+        {filtered.length === 0 ? (
+          <p className="glass-panel text-foreground/60 rounded-xl px-5 py-12 text-center">
+            لا توجد نتائج مطابقة.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="glass-panel-strong hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[860px] text-sm">
           <thead className="bg-primary-50/70 text-primary-800">
             <tr>

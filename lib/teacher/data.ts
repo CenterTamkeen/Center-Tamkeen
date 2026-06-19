@@ -135,7 +135,7 @@ export async function getTeacherCourses(teacherId: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, updated_at, lessons(id), enrollments(id, student_id)",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at, lessons(id), enrollments(id, student_id)",
     )
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false });
@@ -156,7 +156,7 @@ export async function getTeacherCourseById(
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, updated_at",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, updated_at",
     )
     .eq("teacher_id", teacherId)
     .eq("id", courseId)
@@ -529,8 +529,8 @@ export async function getTeacherStudents(teacherId: string) {
 
 export async function getTeacherDashboardDetails(teacherId: string) {
   const supabase = await createClient();
-  const [courses, coupons, earningsQuery, enrollmentsQuery, reviewsQuery] =
-    await Promise.all([
+  const [courses, coupons, earningsQuery, enrollmentsQuery] = await Promise.all(
+    [
       getTeacherCourses(teacherId),
       getTeacherCoupons(teacherId),
       supabase
@@ -546,11 +546,8 @@ export async function getTeacherDashboardDetails(teacherId: string) {
         .eq("course.teacher_id", teacherId)
         .order("enrolled_at", { ascending: false })
         .limit(8),
-      supabase
-        .from("reviews")
-        .select("rating, course:courses!inner(id, title, teacher_id)")
-        .eq("course.teacher_id", teacherId),
-    ]);
+    ],
+  );
 
   if (earningsQuery.error) {
     logTeacherError("dashboard-earnings", earningsQuery.error.message);
@@ -558,10 +555,6 @@ export async function getTeacherDashboardDetails(teacherId: string) {
 
   if (enrollmentsQuery.error) {
     logTeacherError("dashboard-enrollments", enrollmentsQuery.error.message);
-  }
-
-  if (reviewsQuery.error) {
-    logTeacherError("dashboard-reviews", reviewsQuery.error.message);
   }
 
   const salesByMonth = new Map<string, number>();
@@ -572,29 +565,6 @@ export async function getTeacherDashboardDetails(teacherId: string) {
       year: "numeric",
     }).format(new Date(earning.created_at));
     salesByMonth.set(month, (salesByMonth.get(month) ?? 0) + earning.amount);
-  }
-
-  const ratingsByCourse = new Map<
-    string,
-    { courseId: string; title: string; total: number; count: number }
-  >();
-
-  for (const review of reviewsQuery.data ?? []) {
-    const course = review.course;
-
-    if (!course) {
-      continue;
-    }
-
-    const current = ratingsByCourse.get(course.id) ?? {
-      courseId: course.id,
-      title: course.title,
-      total: 0,
-      count: 0,
-    };
-    current.total += review.rating;
-    current.count += 1;
-    ratingsByCourse.set(course.id, current);
   }
 
   return {
@@ -626,11 +596,5 @@ export async function getTeacherDashboardDetails(teacherId: string) {
       }))
       .sort((a, b) => b.usedCount - a.usedCount)
       .slice(0, 5),
-    courseRatings: Array.from(ratingsByCourse.values()).map((item) => ({
-      courseId: item.courseId,
-      title: item.title,
-      average: item.count ? item.total / item.count : 0,
-      count: item.count,
-    })),
   };
 }

@@ -9,6 +9,7 @@ import {
 import { getCurrentTeacher, getTeacherCourses } from "@/lib/teacher/data";
 import { requireRole } from "@/lib/auth/roles";
 import { formatPrice } from "@/lib/storefront/data";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 export const metadata: Metadata = {
   title: "كورسات المدرس",
@@ -43,8 +44,8 @@ export default async function TeacherCoursesPage() {
         {courses.length > 0 ? (
           courses.map((course) => (
             <article key={course.id} className="card-modern p-4">
-              <div className="grid gap-4 lg:grid-cols-[180px_1fr_auto]">
-                <div className="bg-primary-50 relative aspect-video overflow-hidden rounded-xl">
+              <div className="grid gap-4 md:grid-cols-[180px_1fr] lg:grid-cols-[180px_1fr_auto]">
+                <div className="bg-primary-50 relative aspect-video overflow-hidden rounded-xl md:h-full">
                   {course.thumbnail_url ? (
                     <Image
                       src={course.thumbnail_url}
@@ -77,9 +78,19 @@ export default async function TeacherCoursesPage() {
                     <span>
                       {course.enrollments.length.toLocaleString("ar-EG")} اشتراك
                     </span>
+                    {course.target_grade ? (
+                      <span>{gradeLabels[course.target_grade]}</span>
+                    ) : null}
+                    {course.target_section ? (
+                      <span>
+                        {sectionLabels[
+                          course.target_section as keyof typeof sectionLabels
+                        ] ?? course.target_section}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch">
+                <div className="flex flex-wrap items-center gap-2 md:col-span-2 lg:col-span-1 lg:flex-col lg:items-stretch">
                   <Link
                     href={`/dashboard/teacher/courses/${course.id}/lessons`}
                     className="btn-secondary px-3 py-2 text-xs"

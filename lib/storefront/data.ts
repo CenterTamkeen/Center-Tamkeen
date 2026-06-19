@@ -6,6 +6,8 @@ type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
 type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
+type StudentGrade = Database["public"]["Enums"]["student_grade"];
+type StudentSection = Database["public"]["Enums"]["student_section"];
 
 export type TeacherSummary = Pick<
   TeacherRow,
@@ -38,6 +40,8 @@ export type CourseSummary = Pick<
   | "title"
   | "description"
   | "price"
+  | "target_grade"
+  | "target_section"
   | "thumbnail_url"
   | "is_published"
   | "created_at"
@@ -50,6 +54,7 @@ export type CourseSummary = Pick<
       full_name: string;
     } | null;
   } | null;
+  enrollments?: { id: string }[];
 };
 
 export type CourseDetails = CourseSummary & {
@@ -83,7 +88,13 @@ export type ReviewSummary = Pick<
 type CourseFilters = {
   query?: string;
   teacher?: string;
-  sort?: "price_asc" | "price_desc" | "newest";
+  subject?: string;
+  grade?: StudentGrade;
+  section?: StudentSection;
+  priceType?: "free" | "paid";
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: "price_asc" | "price_desc" | "newest" | "popular";
 };
 
 type TeacherFilters = {
@@ -289,6 +300,10 @@ export async function getTeacherSubjects() {
   );
 }
 
+export async function getCourseSubjects() {
+  return getTeacherSubjects();
+}
+
 export async function getTeachersPage(options: TeacherPageOptions = {}) {
   const page = Math.max(1, options.page ?? 1);
   const pageSize = Math.min(24, Math.max(6, options.pageSize ?? 12));
@@ -380,7 +395,7 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name))",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("is_published", true)
     .eq("teacher.is_active", true)
@@ -392,6 +407,32 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
 
   if (filters.teacher) {
     query = query.eq("teacher_id", filters.teacher);
+  }
+
+  if (filters.subject) {
+    query = query.eq("teacher.subject", filters.subject);
+  }
+
+  if (filters.grade) {
+    query = query.eq("target_grade", filters.grade);
+  }
+
+  if (filters.section) {
+    query = query.eq("target_section", filters.section);
+  }
+
+  if (filters.priceType === "free") {
+    query = query.eq("price", 0);
+  } else if (filters.priceType === "paid") {
+    query = query.gt("price", 0);
+  }
+
+  if (typeof filters.minPrice === "number") {
+    query = query.gte("price", filters.minPrice);
+  }
+
+  if (typeof filters.maxPrice === "number") {
+    query = query.lte("price", filters.maxPrice);
   }
 
   if (filters.sort === "price_asc") {
@@ -409,7 +450,15 @@ export async function getCourses(filters: CourseFilters = {}, limit = 24) {
     return [];
   }
 
-  return (data ?? []) as CourseSummary[];
+  const courses = (data ?? []) as CourseSummary[];
+
+  if (filters.sort === "popular") {
+    return courses.sort(
+      (a, b) => (b.enrollments?.length ?? 0) - (a.enrollments?.length ?? 0),
+    );
+  }
+
+  return courses;
 }
 
 export async function getCoursesPage(options: CoursePageOptions = {}) {
@@ -421,7 +470,7 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   let query = supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name))",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
       {
         count: "exact",
       },
@@ -436,6 +485,32 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
 
   if (options.teacher) {
     query = query.eq("teacher_id", options.teacher);
+  }
+
+  if (options.subject) {
+    query = query.eq("teacher.subject", options.subject);
+  }
+
+  if (options.grade) {
+    query = query.eq("target_grade", options.grade);
+  }
+
+  if (options.section) {
+    query = query.eq("target_section", options.section);
+  }
+
+  if (options.priceType === "free") {
+    query = query.eq("price", 0);
+  } else if (options.priceType === "paid") {
+    query = query.gt("price", 0);
+  }
+
+  if (typeof options.minPrice === "number") {
+    query = query.gte("price", options.minPrice);
+  }
+
+  if (typeof options.maxPrice === "number") {
+    query = query.lte("price", options.maxPrice);
   }
 
   if (options.sort === "price_asc") {
@@ -460,8 +535,16 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
 
   const totalCount = count ?? 0;
 
+  const courses = (data ?? []) as CourseSummary[];
+
   return {
-    courses: (data ?? []) as CourseSummary[],
+    courses:
+      options.sort === "popular"
+        ? courses.sort(
+            (a, b) =>
+              (b.enrollments?.length ?? 0) - (a.enrollments?.length ?? 0),
+          )
+        : courses,
     totalCount,
     totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
     page,
@@ -473,7 +556,7 @@ export async function getCoursesByTeacher(teacherId: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name))",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id)",
     )
     .eq("teacher_id", teacherId)
     .eq("is_published", true)
@@ -538,7 +621,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, title, description, price, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), lessons(id, title, order_index, duration, is_free_preview), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
+      "id, teacher_id, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
     )
     .eq("id", id)
     .eq("is_published", true)

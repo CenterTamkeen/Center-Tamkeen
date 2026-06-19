@@ -85,7 +85,85 @@ export function TeacherStudentsTable({
         </select>
       </div>
 
-      <div className="glass-panel-strong overflow-x-auto rounded-xl">
+      <div className="grid gap-3 md:hidden">
+        {visible.map((student) => {
+          const teacherBlock = student.student_blocks.find(
+            (block) => block.reason !== "__global_placeholder__",
+          );
+          const firstEnrollment = student.enrollments[0];
+
+          return (
+            <article key={student.id} className="card-modern p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-black">
+                    {student.profile?.full_name ?? "طالب بدون اسم"}
+                  </h3>
+                  <p className="text-foreground/55 mt-1 text-sm leading-6">
+                    {student.student_phone} · {student.school_name}
+                  </p>
+                </div>
+                <span className="chip shrink-0">
+                  {teacherBlock ? "محظور" : "نشط"}
+                </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {student.enrollments.map((enrollment) => (
+                  <span key={enrollment.id} className="chip">
+                    {enrollment.course?.title ?? "كورس غير معروف"}
+                  </span>
+                ))}
+              </div>
+
+              <p className="text-foreground/55 mt-3 text-xs font-semibold">
+                تاريخ الاشتراك:{" "}
+                {firstEnrollment?.enrolled_at
+                  ? new Date(firstEnrollment.enrolled_at).toLocaleDateString(
+                      "ar-EG",
+                    )
+                  : "غير متاح"}
+              </p>
+
+              {teacherBlock?.reason ? (
+                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                  {teacherBlock.reason}
+                </p>
+              ) : null}
+
+              <div className="mt-4">
+                {teacherBlock ? (
+                  <form action={unblockStudentAction}>
+                    <input type="hidden" name="studentId" value={student.id} />
+                    <button className="btn-secondary w-full px-3 py-2 text-xs">
+                      فك البلوك
+                    </button>
+                  </form>
+                ) : (
+                  <form action={blockStudentAction} className="grid gap-2">
+                    <input type="hidden" name="studentId" value={student.id} />
+                    <input
+                      name="reason"
+                      placeholder="سبب اختياري"
+                      className="field bg-background/60 py-2 text-sm"
+                    />
+                    <button className="btn-secondary w-full px-3 py-2 text-xs text-red-700">
+                      بلوك
+                    </button>
+                  </form>
+                )}
+              </div>
+            </article>
+          );
+        })}
+        {visible.length === 0 ? (
+          <p className="glass-panel text-foreground/60 rounded-xl px-5 py-12 text-center">
+            لا توجد نتائج مطابقة.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="glass-panel-strong hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-primary-50/70 text-primary-800">
             <tr>

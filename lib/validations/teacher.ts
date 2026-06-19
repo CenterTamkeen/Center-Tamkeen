@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
+
+const gradeValues = Object.keys(gradeLabels) as [string, ...string[]];
+const sectionValues = Object.keys(sectionLabels) as [string, ...string[]];
+
 const imageSchema = z
   .instanceof(File)
   .optional()
@@ -23,6 +28,8 @@ export const courseSchema = z.object({
     .number({ error: "السعر مطلوب." })
     .min(0, "السعر لا يمكن أن يكون أقل من صفر.")
     .max(100000, "السعر أكبر من الحد المسموح."),
+  targetGrade: z.enum(gradeValues).optional().or(z.literal("")),
+  targetSection: z.enum(sectionValues).optional().or(z.literal("")),
   thumbnail: imageSchema,
 });
 

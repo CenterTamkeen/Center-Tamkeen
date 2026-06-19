@@ -162,6 +162,8 @@ export type Database = {
           title: string;
           description: string | null;
           price: number;
+          target_grade: PublicEnums["student_grade"] | null;
+          target_section: PublicEnums["student_section"] | null;
           thumbnail_url: string | null;
           is_published: boolean;
           created_at: string;
@@ -173,6 +175,8 @@ export type Database = {
           title: string;
           description?: string | null;
           price?: number;
+          target_grade?: PublicEnums["student_grade"] | null;
+          target_section?: PublicEnums["student_section"] | null;
           thumbnail_url?: string | null;
           is_published?: boolean;
           created_at?: string;
@@ -184,6 +188,8 @@ export type Database = {
           title?: string;
           description?: string | null;
           price?: number;
+          target_grade?: PublicEnums["student_grade"] | null;
+          target_section?: PublicEnums["student_section"] | null;
           thumbnail_url?: string | null;
           is_published?: boolean;
           created_at?: string;
@@ -195,6 +201,57 @@ export type Database = {
             columns: ["teacher_id"];
             isOneToOne: false;
             referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_profile_id: string;
+          actor_profile_id: string | null;
+          title: string;
+          body: string;
+          href: string | null;
+          kind: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_profile_id: string;
+          actor_profile_id?: string | null;
+          title: string;
+          body: string;
+          href?: string | null;
+          kind?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          recipient_profile_id?: string;
+          actor_profile_id?: string | null;
+          title?: string;
+          body?: string;
+          href?: string | null;
+          kind?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_profile_id_fkey";
+            columns: ["recipient_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_actor_profile_id_fkey";
+            columns: ["actor_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

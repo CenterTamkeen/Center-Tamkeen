@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { formatPrice, type CourseSummary } from "@/lib/storefront/data";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 type CourseCardProps = {
   course: CourseSummary;
@@ -9,6 +10,10 @@ type CourseCardProps = {
 
 export function CourseCard({ course }: CourseCardProps) {
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
+  const sectionLabel = course.target_section
+    ? (sectionLabels[course.target_section as keyof typeof sectionLabels] ??
+      course.target_section)
+    : null;
 
   return (
     <article className="card-modern gradient-border group flex h-full flex-col">
@@ -47,6 +52,16 @@ export function CourseCard({ course }: CourseCardProps) {
           <p className="text-foreground/60 line-clamp-2 text-sm leading-6">
             {course.description ?? "تفاصيل الكورس هتظهر هنا قريبًا."}
           </p>
+          {course.target_grade || course.target_section ? (
+            <div className="flex flex-wrap gap-2">
+              {course.target_grade ? (
+                <span className="chip">{gradeLabels[course.target_grade]}</span>
+              ) : null}
+              {course.target_section ? (
+                <span className="chip">{sectionLabel}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div

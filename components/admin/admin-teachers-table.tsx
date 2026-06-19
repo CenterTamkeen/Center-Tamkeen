@@ -53,7 +53,97 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
         </select>
       </div>
 
-      <div className="glass-panel-strong overflow-x-auto rounded-xl">
+      <div className="grid gap-3 md:hidden">
+        {filtered.map((teacher) => (
+          <article key={teacher.id} className="card-modern p-4">
+            <div className="flex items-start gap-3">
+              <div className="avatar-ring relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                {(teacher.avatar_url ?? teacher.profile?.avatar_url) ? (
+                  <Image
+                    src={
+                      teacher.avatar_url ?? teacher.profile?.avatar_url ?? ""
+                    }
+                    alt={teacher.profile?.full_name ?? "صورة المدرس"}
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="bg-primary-500 text-primary-foreground flex h-full items-center justify-center font-black">
+                    {(teacher.profile?.full_name ?? "م").slice(0, 1)}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-black">
+                      {teacher.profile?.full_name ?? "مدرس بدون اسم"}
+                    </h3>
+                    <p className="text-foreground/55 mt-1 text-sm">
+                      {teacher.subject} · {teacher.slug}
+                    </p>
+                  </div>
+                  <span className="chip shrink-0">
+                    {teacher.is_active ? "مفعل" : "موقوف"}
+                  </span>
+                </div>
+                <p className="text-foreground/60 mt-2 text-sm font-semibold">
+                  {teacher.courses.length.toLocaleString("ar-EG")} كورس
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                href={`/teachers/${teacher.slug}`}
+                className="btn-secondary px-3 py-2 text-center text-xs"
+              >
+                عرض
+              </Link>
+              <button
+                type="button"
+                className="btn-secondary px-3 py-2 text-xs"
+                onClick={() =>
+                  setEditingTeacherId((current) =>
+                    current === teacher.id ? null : teacher.id,
+                  )
+                }
+              >
+                تعديل
+              </button>
+              <form action={toggleTeacherActiveAction}>
+                <input type="hidden" name="teacherId" value={teacher.id} />
+                <input
+                  type="hidden"
+                  name="nextActive"
+                  value={teacher.is_active ? "false" : "true"}
+                />
+                <button className="btn-secondary w-full px-3 py-2 text-xs">
+                  {teacher.is_active ? "إيقاف" : "تفعيل"}
+                </button>
+              </form>
+              <TeacherDeleteForm teacherId={teacher.id} />
+            </div>
+
+            {editingTeacherId === teacher.id ? (
+              <div className="bg-primary-50/30 mt-4 rounded-xl p-3">
+                <TeacherEditForm
+                  teacher={teacher}
+                  onSaved={() => setEditingTeacherId(null)}
+                />
+              </div>
+            ) : null}
+          </article>
+        ))}
+        {filtered.length === 0 ? (
+          <p className="glass-panel text-foreground/60 rounded-xl px-5 py-12 text-center">
+            لا توجد نتائج مطابقة.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="glass-panel-strong hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[960px] text-sm">
           <thead className="bg-primary-50/70 text-primary-800">
             <tr>

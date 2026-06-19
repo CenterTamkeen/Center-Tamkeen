@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { initialActionState } from "@/lib/auth/action-state";
 import { createCourseAction, updateCourseAction } from "@/lib/teacher/actions";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 import type { Database } from "@/types/database";
 
 import { ErrorText, FormFeedback } from "./form-feedback";
@@ -14,7 +15,13 @@ type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type CourseFormProps = {
   course?: Pick<
     CourseRow,
-    "id" | "title" | "description" | "price" | "thumbnail_url"
+    | "id"
+    | "title"
+    | "description"
+    | "price"
+    | "target_grade"
+    | "target_section"
+    | "thumbnail_url"
   > | null;
 };
 
@@ -71,6 +78,48 @@ export function CourseForm({ course }: CourseFormProps) {
             className="bg-background/60 focus:border-primary-400 w-full rounded-xl border px-3 py-2 text-sm transition-all duration-300 file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:font-bold focus:shadow-[0_0_0_4px_rgb(22_138_117/0.08)]"
           />
           <ErrorText message={state.fieldErrors?.thumbnail?.[0]} />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            الصف الدراسي
+          </span>
+          <select
+            name="targetGrade"
+            defaultValue={
+              state.values?.targetGrade ?? course?.target_grade ?? ""
+            }
+            className="field bg-background/60 py-2.5"
+          >
+            <option value="">كل الصفوف</option>
+            {Object.entries(gradeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <ErrorText message={state.fieldErrors?.targetGrade?.[0]} />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            المسار
+          </span>
+          <select
+            name="targetSection"
+            defaultValue={
+              state.values?.targetSection ?? course?.target_section ?? ""
+            }
+            className="field bg-background/60 py-2.5"
+          >
+            <option value="">كل المسارات</option>
+            {Object.entries(sectionLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <ErrorText message={state.fieldErrors?.targetSection?.[0]} />
         </label>
 
         {course?.thumbnail_url ? (

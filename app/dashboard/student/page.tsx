@@ -3,7 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { requireRole } from "@/lib/auth/roles";
+import { getProfileNotifications } from "@/lib/notifications/data";
 import { getStudentDashboard } from "@/lib/student/data";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
@@ -61,7 +63,10 @@ function StudentStatCard({
 
 export default async function StudentDashboardPage() {
   const { profile } = await requireRole("student", "/dashboard/student");
-  const dashboard = await getStudentDashboard(profile.id);
+  const [dashboard, notifications] = await Promise.all([
+    getStudentDashboard(profile.id),
+    getProfileNotifications(profile.id),
+  ]);
 
   if (!dashboard) {
     return (
@@ -258,6 +263,8 @@ export default async function StudentDashboardPage() {
         </div>
 
         <div className="space-y-5">
+          <NotificationsPanel notifications={notifications} />
+
           <section className="glass-panel-strong rounded-2xl p-5">
             <p className="eyebrow">ملخص الحساب</p>
             <h2 className="mt-1 text-xl font-black">بياناتي الدراسية</h2>

@@ -18,6 +18,8 @@ import {
 import type { Database } from "@/types/database";
 
 type DiscountType = Database["public"]["Enums"]["discount_type"];
+type StudentGrade = Database["public"]["Enums"]["student_grade"];
+type StudentSection = Database["public"]["Enums"]["student_section"];
 type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
 type CouponUpdate = Database["public"]["Tables"]["coupons"]["Update"];
 
@@ -168,7 +170,13 @@ export async function createCourseAction(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const values = getFormValues(formData, ["title", "description", "price"]);
+  const values = getFormValues(formData, [
+    "title",
+    "description",
+    "price",
+    "targetGrade",
+    "targetSection",
+  ]);
   let teacherId = "";
 
   try {
@@ -182,6 +190,8 @@ export async function createCourseAction(
     title: getString(formData, "title"),
     description: getOptionalString(formData, "description"),
     price: getString(formData, "price"),
+    targetGrade: getString(formData, "targetGrade"),
+    targetSection: getString(formData, "targetSection"),
     thumbnail: getOptionalUpload(formData, "thumbnail"),
   });
 
@@ -207,6 +217,9 @@ export async function createCourseAction(
     title: parsed.data.title,
     description: parsed.data.description || null,
     price: parsed.data.price,
+    target_grade: (parsed.data.targetGrade || null) as StudentGrade | null,
+    target_section: (parsed.data.targetSection ||
+      null) as StudentSection | null,
     thumbnail_url: thumbnailUrl,
     is_published: false,
   });
@@ -229,7 +242,13 @@ export async function updateCourseAction(
   formData: FormData,
 ): Promise<ActionState> {
   const courseId = getString(formData, "courseId");
-  const values = getFormValues(formData, ["title", "description", "price"]);
+  const values = getFormValues(formData, [
+    "title",
+    "description",
+    "price",
+    "targetGrade",
+    "targetSection",
+  ]);
   const { teacher } = await requireTeacher();
 
   if (!(await assertOwnsCourse(teacher.id, courseId))) {
@@ -240,6 +259,8 @@ export async function updateCourseAction(
     title: getString(formData, "title"),
     description: getOptionalString(formData, "description"),
     price: getString(formData, "price"),
+    targetGrade: getString(formData, "targetGrade"),
+    targetSection: getString(formData, "targetSection"),
     thumbnail: getOptionalUpload(formData, "thumbnail"),
   });
 
@@ -266,6 +287,9 @@ export async function updateCourseAction(
       title: parsed.data.title,
       description: parsed.data.description || null,
       price: parsed.data.price,
+      target_grade: (parsed.data.targetGrade || null) as StudentGrade | null,
+      target_section: (parsed.data.targetSection ||
+        null) as StudentSection | null,
       ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
     })
     .eq("id", courseId)

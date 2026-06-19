@@ -30,7 +30,13 @@ export type AdminTeacher = Pick<
 
 export type AdminCourse = Pick<
   CourseRow,
-  "id" | "title" | "price" | "is_published" | "created_at"
+  | "id"
+  | "title"
+  | "price"
+  | "target_grade"
+  | "target_section"
+  | "is_published"
+  | "created_at"
 > & {
   teacher: {
     subject: string;
@@ -160,7 +166,7 @@ export async function getAdminCourses() {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, title, price, is_published, created_at, teacher:teachers(subject, slug, profile:profiles(full_name)), lessons(id), enrollments(id)",
+      "id, title, price, target_grade, target_section, is_published, created_at, teacher:teachers(subject, slug, profile:profiles(full_name)), lessons(id), enrollments(id)",
     )
     .order("created_at", { ascending: false });
 

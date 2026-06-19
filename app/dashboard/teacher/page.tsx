@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { MiniBarChart } from "@/components/dashboard/mini-bar-chart";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { requireRole } from "@/lib/auth/roles";
+import { getProfileNotifications } from "@/lib/notifications/data";
 import {
   getCurrentTeacher,
   getTeacherDashboardDetails,
@@ -47,9 +49,10 @@ export default async function TeacherDashboardPage() {
     );
   }
 
-  const [stats, details] = await Promise.all([
+  const [stats, details, notifications] = await Promise.all([
     getTeacherStats(teacher.id),
     getTeacherDashboardDetails(teacher.id),
+    getProfileNotifications(profile.id),
   ]);
 
   return (
@@ -135,6 +138,8 @@ export default async function TeacherDashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-3">
+        <NotificationsPanel notifications={notifications} />
+
         <div className="glass-panel-strong rounded-xl p-5">
           <h2 className="text-lg font-black">أحدث الاشتراكات</h2>
           <div className="mt-4 space-y-3">
@@ -179,30 +184,6 @@ export default async function TeacherDashboardPage() {
             {details.topCoupons.length === 0 ? (
               <p className="text-foreground/60 py-8 text-center">
                 لا توجد كوبونات مستخدمة.
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="glass-panel-strong rounded-xl p-5">
-          <h2 className="text-lg font-black">متوسط التقييمات</h2>
-          <div className="mt-4 space-y-3">
-            {details.courseRatings.map((rating) => (
-              <div key={rating.courseId} className="rounded-xl bg-white/60 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-black">{rating.title}</p>
-                  <span className="text-accent-700 font-black">
-                    {rating.average.toFixed(1)} / 5
-                  </span>
-                </div>
-                <p className="text-foreground/55 mt-1 text-sm">
-                  {rating.count.toLocaleString("ar-EG")} تقييم
-                </p>
-              </div>
-            ))}
-            {details.courseRatings.length === 0 ? (
-              <p className="text-foreground/60 py-8 text-center">
-                لا توجد تقييمات بعد.
               </p>
             ) : null}
           </div>

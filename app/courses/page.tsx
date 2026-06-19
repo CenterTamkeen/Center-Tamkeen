@@ -8,7 +8,16 @@ import { CoursesFilterForm } from "@/components/storefront/courses-filter-form";
 import { EmptyState } from "@/components/storefront/empty-state";
 import { Pagination } from "@/components/storefront/pagination";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
-import { getCoursesPage, getFeaturedTeachers } from "@/lib/storefront/data";
+import {
+  getCourseSubjects,
+  getCoursesPage,
+  getFeaturedTeachers,
+} from "@/lib/storefront/data";
+import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
+import type { Database } from "@/types/database";
+
+type StudentGrade = Database["public"]["Enums"]["student_grade"];
+type StudentSection = Database["public"]["Enums"]["student_section"];
 
 export const metadata: Metadata = {
   title: "الكورسات",
@@ -28,11 +37,43 @@ function getParam(
 }
 
 function getSort(value?: string) {
-  if (value === "price_asc" || value === "price_desc" || value === "newest") {
+  if (
+    value === "price_asc" ||
+    value === "price_desc" ||
+    value === "newest" ||
+    value === "popular"
+  ) {
     return value;
   }
 
   return "newest";
+}
+
+function getPriceType(value?: string) {
+  if (value === "free" || value === "paid") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function getOptionalNumber(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function getGrade(value?: string): StudentGrade | undefined {
+  return value && value in gradeLabels ? (value as StudentGrade) : undefined;
+}
+
+function getSection(value?: string): StudentSection | undefined {
+  return value && value in sectionLabels
+    ? (value as StudentSection)
+    : undefined;
 }
 
 function getPage(value?: string) {
@@ -49,13 +90,26 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   const params = await searchParams;
   const query = getParam(params, "q")?.trim();
   const teacher = getParam(params, "teacher")?.trim();
+  const subject = getParam(params, "subject")?.trim();
+  const grade = getGrade(getParam(params, "grade"));
+  const section = getSection(getParam(params, "section"));
+  const priceType = getPriceType(getParam(params, "priceType"));
+  const minPrice = getOptionalNumber(getParam(params, "minPrice"));
+  const maxPrice = getOptionalNumber(getParam(params, "maxPrice"));
   const sort = getSort(getParam(params, "sort"));
   const page = getPage(getParam(params, "page"));
-  const [teachers, coursePage] = await Promise.all([
+  const [teachers, subjects, coursePage] = await Promise.all([
     getFeaturedTeachers(100),
+    getCourseSubjects(),
     getCoursesPage({
       query,
       teacher,
+      subject,
+      grade,
+      section,
+      priceType,
+      minPrice,
+      maxPrice,
       sort,
       page,
       pageSize: 12,
@@ -110,8 +164,15 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         <section className="container-page space-y-7 py-8">
           <CoursesFilterForm
             teachers={teachers}
+            subjects={subjects}
             defaultQuery={query}
             defaultTeacher={teacher}
+            defaultSubject={subject}
+            defaultGrade={grade}
+            defaultSection={section}
+            defaultPriceType={priceType}
+            defaultMinPrice={minPrice?.toString()}
+            defaultMaxPrice={maxPrice?.toString()}
             defaultSort={sort}
           />
 
@@ -144,6 +205,12 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
             searchParams={{
               q: query,
               teacher,
+              subject,
+              grade,
+              section,
+              priceType,
+              minPrice: minPrice?.toString(),
+              maxPrice: maxPrice?.toString(),
               sort,
             }}
           />
