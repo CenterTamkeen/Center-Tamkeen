@@ -153,7 +153,7 @@ export default async function StudentDashboardPage() {
         <StudentStatCard
           label="منتهية"
           value={stats.completedCourses.toLocaleString("ar-EG")}
-          hint="سيتم تحديثها تلقائيًا عند تفعيل تتبع التقدم"
+          hint="كورسات وصلت فيها لكل الحصص المكتملة"
           tone="green"
           icon={
             <svg
@@ -190,7 +190,7 @@ export default async function StudentDashboardPage() {
 
           <div className="space-y-4">
             {courses.length > 0 ? (
-              courses.map(({ enrollmentId, enrolledAt, course }) => (
+              courses.map(({ enrollmentId, enrolledAt, course, progress }) => (
                 <article
                   key={enrollmentId}
                   className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/70 p-4 sm:flex-row sm:items-center"
@@ -233,6 +233,20 @@ export default async function StudentDashboardPage() {
                       المدرس:{" "}
                       {course.teacher?.profile?.full_name ?? "غير معروف"}
                     </p>
+                    <div className="mt-3">
+                      <div className="text-foreground/55 mb-1.5 flex items-center justify-between gap-3 text-xs font-black">
+                        <span>تقدم الكورس</span>
+                        <span>
+                          {progress.progressPercent.toLocaleString("ar-EG")}%
+                        </span>
+                      </div>
+                      <div className="bg-foreground/10 h-2 overflow-hidden rounded-full">
+                        <div
+                          className="from-primary-500 to-accent-500 h-full rounded-full bg-gradient-to-l"
+                          style={{ width: `${progress.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2 sm:flex-col">

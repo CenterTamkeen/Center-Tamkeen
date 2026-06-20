@@ -66,13 +66,7 @@ export function AuthShell({
           }}
         />
 
-        <div
-          className="border-b px-6 py-7 text-center sm:px-8"
-          style={{
-            borderColor: "rgb(208 227 218 / 0.4)",
-            background: "rgb(255 255 255 / 0.4)",
-          }}
-        >
+        <div className="border-border/60 bg-surface-muted/70 dark:bg-surface-muted/35 border-b px-6 py-7 text-center sm:px-8">
           <Link
             href="/"
             className="group inline-flex items-center justify-center gap-3"

@@ -312,6 +312,70 @@ export type Database = {
           },
         ];
       };
+      lesson_progress: {
+        Row: {
+          id: string;
+          student_id: string;
+          course_id: string;
+          lesson_id: string;
+          status: "in_progress" | "completed";
+          watched_seconds: number;
+          started_at: string;
+          last_watched_at: string;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          course_id: string;
+          lesson_id: string;
+          status?: "in_progress" | "completed";
+          watched_seconds?: number;
+          started_at?: string;
+          last_watched_at?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          student_id?: string;
+          course_id?: string;
+          lesson_id?: string;
+          status?: "in_progress" | "completed";
+          watched_seconds?: number;
+          started_at?: string;
+          last_watched_at?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_progress_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey";
+            columns: ["lesson_id"];
+            isOneToOne: false;
+            referencedRelation: "lessons";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       orders: {
         Row: {
           id: string;

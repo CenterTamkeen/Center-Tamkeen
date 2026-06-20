@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/lib/auth/actions";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import type { AppRole } from "@/lib/auth/roles";
+import type { NotificationItem } from "@/lib/notifications/data";
 
 type SiteHeaderClientProps = {
   userRole: AppRole | null;
@@ -14,7 +15,17 @@ type SiteHeaderClientProps = {
   userName: string | null;
   userEmail: string | null;
   userAvatarUrl: string | null;
+  notifications: NotificationItem[];
 };
+
+function formatNotificationDate(value: string) {
+  return new Intl.DateTimeFormat("ar-EG", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 const navLinks = [
   { href: "/", label: "الرئيسية" },
@@ -29,16 +40,20 @@ export function SiteHeaderClient({
   userName,
   userEmail,
   userAvatarUrl,
+  notifications,
 }: SiteHeaderClientProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const isLoggedIn = Boolean(userRole && dashboardHref);
   const userInitial = userName?.trim().charAt(0) || "U";
+  const unreadCount = notifications.filter((item) => !item.read_at).length;
 
   useEffect(() => {
-    if (!accountMenuOpen) {
+    if (!accountMenuOpen && !notificationsOpen) {
       return;
     }
 
@@ -46,11 +61,16 @@ export function SiteHeaderClient({
       if (!accountMenuRef.current?.contains(event.target as Node)) {
         setAccountMenuOpen(false);
       }
+
+      if (!notificationsRef.current?.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setAccountMenuOpen(false);
+        setNotificationsOpen(false);
       }
     }
 
@@ -61,7 +81,7 @@ export function SiteHeaderClient({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [accountMenuOpen]);
+  }, [accountMenuOpen, notificationsOpen]);
 
   useEffect(() => {
     function handleScroll() {
@@ -129,6 +149,113 @@ export function SiteHeaderClient({
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
+          {isLoggedIn ? (
+            <div className="relative" ref={notificationsRef}>
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((open) => !open)}
+                aria-expanded={notificationsOpen}
+                aria-label="فتح الإشعارات"
+                className="border-border/70 bg-surface/80 hover:bg-primary-50/70 dark:hover:bg-surface-muted/90 relative flex h-11 w-11 items-center justify-center rounded-full shadow-[0_10px_30px_rgb(13_37_31/0.08)] backdrop-blur transition-all duration-300"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 ? (
+                  <span className="bg-danger ring-background absolute -top-1 -right-1 min-w-5 rounded-full px-1.5 py-0.5 text-center text-[10px] leading-none font-black text-white ring-2">
+                    {Math.min(unreadCount, 9).toLocaleString("ar-EG")}
+                  </span>
+                ) : null}
+              </button>
+
+              {notificationsOpen ? (
+                <div className="border-border/70 bg-surface/95 absolute top-[calc(100%+0.75rem)] left-0 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl shadow-[0_20px_60px_rgb(15_23_42/0.18)] backdrop-blur-xl">
+                  <div className="border-border/60 flex items-center justify-between border-b px-4 py-3">
+                    <div>
+                      <p className="text-sm font-black">الإشعارات</p>
+                      <p className="text-foreground/55 text-xs font-semibold">
+                        آخر تحديثات الحساب والكورسات
+                      </p>
+                    </div>
+                    {unreadCount > 0 ? (
+                      <span className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-1 text-xs font-black">
+                        {unreadCount.toLocaleString("ar-EG")} جديد
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto p-2">
+                    {notifications.length > 0 ? (
+                      notifications.map((item) => {
+                        const content = (
+                          <div className="hover:bg-primary-50/70 dark:hover:bg-surface-muted/85 rounded-xl px-3 py-3 transition-colors">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 text-right">
+                                <p className="truncate text-sm font-black">
+                                  {item.title}
+                                </p>
+                                <p className="text-foreground/60 mt-1 line-clamp-2 text-xs leading-5">
+                                  {item.body}
+                                </p>
+                              </div>
+                              {!item.read_at ? (
+                                <span className="bg-primary-500 mt-1 h-2.5 w-2.5 shrink-0 rounded-full" />
+                              ) : null}
+                            </div>
+                            <p className="text-foreground/45 mt-2 text-xs font-semibold">
+                              {formatNotificationDate(item.created_at)}
+                            </p>
+                          </div>
+                        );
+
+                        return item.href ? (
+                          <Link
+                            key={item.id}
+                            href={item.href}
+                            onClick={() => setNotificationsOpen(false)}
+                            className="block"
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          <div key={item.id}>{content}</div>
+                        );
+                      })
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <p className="font-black">لا توجد إشعارات بعد</p>
+                        <p className="text-foreground/60 mt-2 text-sm leading-6">
+                          أي قبول اشتراك أو حصة جديدة هيظهر هنا.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {dashboardHref ? (
+                    <Link
+                      href={dashboardHref}
+                      onClick={() => setNotificationsOpen(false)}
+                      className="border-border/60 hover:bg-primary-50/70 dark:hover:bg-surface-muted/90 text-primary-700 flex items-center justify-between border-t px-4 py-3 text-sm font-black"
+                    >
+                      <span>عرض اللوحة</span>
+                      <span aria-hidden="true">←</span>
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {isLoggedIn ? (
             <div className="relative hidden sm:block" ref={accountMenuRef}>
               <button

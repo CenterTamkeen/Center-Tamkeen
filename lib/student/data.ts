@@ -32,6 +32,17 @@ type StudentDashboardRecord = {
   enrollments: StudentDashboardEnrollment[];
 };
 
+function isMissingTable(
+  error: { message?: string; code?: string },
+  table: string,
+) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes(table) ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
 function logStudentError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[student:${label}]`, error);
@@ -78,11 +89,57 @@ export async function getStudentDashboard(profileId: string) {
       } => Boolean(item.course),
     );
 
-  const totalCourses = courses.length;
-  const completedCourses = 0;
+  const courseIds = courses.map((item) => item.course.id);
+  const { data: progressRows, error: progressError } =
+    courseIds.length > 0
+      ? await supabase
+          .from("lesson_progress")
+          .select("course_id, lesson_id, status")
+          .eq("student_id", student.id)
+          .in("course_id", courseIds)
+      : { data: [], error: null };
+
+  if (progressError && !isMissingTable(progressError, "lesson_progress")) {
+    logStudentError("lesson-progress", progressError.message);
+  }
+
+  const progressByCourse = new Map<string, Set<string>>();
+
+  for (const row of progressRows ?? []) {
+    if (row.status !== "completed") {
+      continue;
+    }
+
+    const completedLessons =
+      progressByCourse.get(row.course_id) ?? new Set<string>();
+    completedLessons.add(row.lesson_id);
+    progressByCourse.set(row.course_id, completedLessons);
+  }
+
+  const coursesWithProgress = courses.map((item) => {
+    const lessonCount = item.course.lessons?.length ?? 0;
+    const completedLessons = progressByCourse.get(item.course.id)?.size ?? 0;
+    const progressPercent =
+      lessonCount > 0 ? Math.round((completedLessons / lessonCount) * 100) : 0;
+
+    return {
+      ...item,
+      progress: {
+        lessonCount,
+        completedLessons,
+        progressPercent,
+      },
+    };
+  });
+
+  const totalCourses = coursesWithProgress.length;
+  const completedCourses = coursesWithProgress.filter(
+    (item) =>
+      item.progress.lessonCount > 0 && item.progress.progressPercent >= 100,
+  ).length;
   const activeCourses = Math.max(totalCourses - completedCourses, 0);
-  const totalLessons = courses.reduce(
-    (sum, item) => sum + (item.course.lessons?.length ?? 0),
+  const totalLessons = coursesWithProgress.reduce(
+    (sum, item) => sum + item.progress.lessonCount,
     0,
   );
 
@@ -100,6 +157,6 @@ export async function getStudentDashboard(profileId: string) {
       activeCourses,
       totalLessons,
     },
-    courses,
+    courses: coursesWithProgress,
   };
 }

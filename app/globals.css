@@ -391,6 +391,28 @@ body::before {
   }
 }
 
+@keyframes video-watermark-roam {
+  0% {
+    top: 10%;
+    right: 6%;
+  }
+  25% {
+    top: 10%;
+    right: 58%;
+  }
+  50% {
+    top: 72%;
+    right: 58%;
+  }
+  75% {
+    top: 72%;
+    right: 6%;
+  }
+  100% {
+    top: 10%;
+    right: 6%;
+  }
+}
 @keyframes tamkeen-marquee {
   from {
     transform: translateX(0);
@@ -983,6 +1005,29 @@ body::before {
 
   .tamkeen-loop {
     animation: tamkeen-loop 18s linear infinite;
+  }
+
+  .video-player-shell:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    background: #000;
+  }
+
+  .video-player-shell:fullscreen iframe {
+    width: 100%;
+    height: 100%;
+  }
+
+  .video-player-shell:fullscreen .video-watermark {
+    font-size: clamp(0.85rem, 1.4vw, 1.2rem);
+  }
+
+  .video-watermark {
+    position: absolute;
+    max-width: min(70%, 34rem);
+    animation: video-watermark-roam 42s ease-in-out infinite;
+    will-change: top, right;
   }
 }
 

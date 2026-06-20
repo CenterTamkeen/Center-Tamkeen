@@ -6,6 +6,7 @@ type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
 type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
+type LessonProgressRow = Database["public"]["Tables"]["lesson_progress"]["Row"];
 type StudentGrade = Database["public"]["Enums"]["student_grade"];
 type StudentSection = Database["public"]["Enums"]["student_section"];
 
@@ -24,6 +25,10 @@ export type TeacherSummary = Pick<
     full_name: string;
     avatar_url: string | null;
   } | null;
+  stats?: {
+    publishedCourses: number;
+    studentCount: number;
+  };
 };
 
 export type TeacherPublicStats = {
@@ -225,6 +230,69 @@ function uniqueTeachers(teachers: TeacherSummary[]) {
   });
 }
 
+async function attachTeacherSummaryStats(teachers: TeacherSummary[]) {
+  if (teachers.length === 0) {
+    return teachers;
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return teachers.map((teacher) => ({
+      ...teacher,
+      stats: {
+        publishedCourses: 0,
+        studentCount: 0,
+      },
+    }));
+  }
+
+  const teacherIds = teachers.map((teacher) => teacher.id);
+  const { data, error } = await admin
+    .from("courses")
+    .select("id, teacher_id, enrollments(student_id)")
+    .in("teacher_id", teacherIds)
+    .eq("is_published", true);
+
+  if (error) {
+    logStorefrontError("teacher-summary-stats", error.message);
+    return teachers;
+  }
+
+  const statsByTeacher = new Map<
+    string,
+    { publishedCourses: number; studentIds: Set<string> }
+  >();
+
+  for (const course of data ?? []) {
+    const stats = statsByTeacher.get(course.teacher_id) ?? {
+      publishedCourses: 0,
+      studentIds: new Set<string>(),
+    };
+
+    stats.publishedCourses += 1;
+
+    for (const enrollment of course.enrollments ?? []) {
+      if (enrollment.student_id) {
+        stats.studentIds.add(enrollment.student_id);
+      }
+    }
+
+    statsByTeacher.set(course.teacher_id, stats);
+  }
+
+  return teachers.map((teacher) => {
+    const stats = statsByTeacher.get(teacher.id);
+
+    return {
+      ...teacher,
+      stats: {
+        publishedCourses: stats?.publishedCourses ?? 0,
+        studentCount: stats?.studentIds.size ?? 0,
+      },
+    };
+  });
+}
 export async function getFeaturedTeachers(limit = 6) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -394,11 +462,13 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
 
   const totalCount = count ?? 0;
 
-  const teachers = uniqueTeachers(
-    (data ?? []).map((teacher) => ({
-      ...teacher,
-      cover_url: null,
-    })) as TeacherSummary[],
+  const teachers = await attachTeacherSummaryStats(
+    uniqueTeachers(
+      (data ?? []).map((teacher) => ({
+        ...teacher,
+        cover_url: null,
+      })) as TeacherSummary[],
+    ),
   );
 
   return {
@@ -635,6 +705,71 @@ export async function getCurrentStudentEnrollmentCourseIds(
   return (data ?? []).map((enrollment) => enrollment.course_id);
 }
 
+export async function getCurrentStudentCourseProgress(courseId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      studentId: null,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return {
+      studentId: null,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  const { data: student, error: studentError } = await admin
+    .from("students")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (studentError) {
+    logStorefrontError("current-student-progress", studentError.message);
+    return {
+      studentId: null,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  if (!student) {
+    return {
+      studentId: null,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  const { data, error } = await admin
+    .from("lesson_progress")
+    .select("*")
+    .eq("student_id", student.id)
+    .eq("course_id", courseId);
+
+  if (error) {
+    if (!isMissingTable(error, "lesson_progress")) {
+      logStorefrontError("lesson-progress", error.message);
+    }
+
+    return {
+      studentId: student.id,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  return {
+    studentId: student.id,
+    progress: (data ?? []) as LessonProgressRow[],
+  };
+}
 export async function getCoursesByTeacher(teacherId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

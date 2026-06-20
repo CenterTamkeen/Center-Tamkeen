@@ -16,6 +16,7 @@ import {
   formatDuration,
   formatPrice,
   getCourseById,
+  getCurrentStudentCourseProgress,
   getCurrentStudentEnrollmentCourseIds,
 } from "@/lib/storefront/data";
 import { buildCourseHref } from "@/lib/storefront/links";
@@ -61,13 +62,36 @@ export async function CourseDetailsPage({
   }
 
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
+  const viewerName = session?.profile.full_name ?? null;
+  const viewerEmail = session?.user.email ?? null;
   const isStudent = session?.profile.role === "student";
   const isEnrolled = (
     await getCurrentStudentEnrollmentCourseIds([course.id])
   ).includes(course.id);
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
+  const lessonCount = course.lessons.length;
+  const courseProgress = isEnrolled
+    ? await getCurrentStudentCourseProgress(course.id)
+    : { studentId: null, progress: [] };
+  const progressByLessonId = new Map(
+    courseProgress.progress.map((item) => [item.lesson_id, item]),
+  );
+  const completedLessonCount = course.lessons.filter(
+    (lesson) => progressByLessonId.get(lesson.id)?.status === "completed",
+  ).length;
+  const startedLessonCount = course.lessons.filter((lesson) =>
+    progressByLessonId.has(lesson.id),
+  ).length;
+  const progressPercent =
+    lessonCount > 0
+      ? Math.round((completedLessonCount / lessonCount) * 100)
+      : 0;
   const playableLesson = isEnrolled
-    ? course.lessons.find((lesson) => lesson.bunny_video_id)
+    ? (course.lessons.find(
+        (lesson) =>
+          lesson.bunny_video_id &&
+          progressByLessonId.get(lesson.id)?.status !== "completed",
+      ) ?? course.lessons.find((lesson) => lesson.bunny_video_id))
     : undefined;
   const playableVideoStatus = playableLesson?.bunny_video_id
     ? await getBunnyStreamVideoStatus(playableLesson.bunny_video_id)
@@ -78,7 +102,6 @@ export async function CourseDetailsPage({
       ? await getBunnyStreamVideoStatus(previewLesson.bunny_video_id)
       : playableVideoStatus;
   const shouldShowPreviewPlayer = !isEnrolled;
-  const lessonCount = course.lessons.length;
   const previewCount = course.lessons.filter(
     (lesson) => lesson.is_free_preview,
   ).length;
@@ -246,6 +269,34 @@ export async function CourseDetailsPage({
           className="container-page grid min-w-0 gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_340px]"
         >
           <div className="min-w-0 space-y-10">
+            {isEnrolled ? (
+              <ScrollReveal as="section">
+                <div className="glass-panel-strong rounded-2xl p-5 sm:p-6">
+                  <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                      <p className="eyebrow">تقدم الكورس</p>
+                      <h2 className="heading-gradient mt-1 text-2xl font-black">
+                        وصلت لـ {progressPercent.toLocaleString("ar-EG")}%
+                      </h2>
+                      <p className="text-foreground/60 mt-2 text-sm leading-6">
+                        {completedLessonCount.toLocaleString("ar-EG")} من{" "}
+                        {lessonCount.toLocaleString("ar-EG")} حصة مكتملة، و
+                        {startedLessonCount.toLocaleString("ar-EG")} حصة بدأت.
+                      </p>
+                    </div>
+                    <span className="chip">
+                      {progressPercent >= 100 ? "أنهيت الكورس" : "لسه مكملين"}
+                    </span>
+                  </div>
+                  <div className="bg-foreground/10 mt-5 h-3 overflow-hidden rounded-full">
+                    <div
+                      className="from-primary-500 to-accent-500 h-full rounded-full bg-gradient-to-l transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              </ScrollReveal>
+            ) : null}
             {playableLesson ? (
               <ScrollReveal as="section">
                 <div className="glass-panel-strong overflow-hidden rounded-2xl p-4 sm:p-5">
@@ -262,9 +313,17 @@ export async function CourseDetailsPage({
                   </div>
                   <BunnyVideoPlayer
                     lessonId={playableLesson.id}
+                    courseId={course.id}
                     title={playableLesson.title}
                     posterUrl={playableLesson.thumbnail_url}
+                    lessonDurationSeconds={playableLesson.duration}
+                    watermarkName={viewerName}
+                    watermarkEmail={viewerEmail}
                     initialStatus={playableVideoStatus}
+                    initialProgressStatus={
+                      progressByLessonId.get(playableLesson.id)?.status ??
+                      "not_started"
+                    }
                   />
                 </div>
               </ScrollReveal>
@@ -334,6 +393,14 @@ export async function CourseDetailsPage({
                           </p>
                         </div>
                       </div>
+                      <LessonProgressBadge
+                        isEnrolled={isEnrolled}
+                        isStarted={progressByLessonId.has(lesson.id)}
+                        isCompleted={
+                          progressByLessonId.get(lesson.id)?.status ===
+                          "completed"
+                        }
+                      />
                       {lesson.is_free_preview ? (
                         <span
                           className="badge-pulse text-primary-700 rounded-lg px-2.5 py-1 text-xs font-black"
@@ -344,11 +411,11 @@ export async function CourseDetailsPage({
                         >
                           Preview
                         </span>
-                      ) : (
+                      ) : !isEnrolled ? (
                         <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
                           مقفلة للطلاب غير المشتركين
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   ))
                 ) : (
@@ -458,6 +525,9 @@ export async function CourseDetailsPage({
                         lessonId={previewLesson.id}
                         title={previewLesson.title}
                         posterUrl={previewLesson.thumbnail_url}
+                        lessonDurationSeconds={previewLesson.duration}
+                        watermarkName={viewerName}
+                        watermarkEmail={viewerEmail}
                         initialStatus={previewVideoStatus}
                       />
                     ) : null}
@@ -488,6 +558,12 @@ export async function CourseDetailsPage({
                         : "غير محددة"
                     }
                   />
+                  {isEnrolled ? (
+                    <SidebarStat
+                      label="التقدم"
+                      value={`${progressPercent.toLocaleString("ar-EG")}%`}
+                    />
+                  ) : null}
                   <SidebarStat
                     label="المراجعات"
                     value={`${course.reviews.length.toLocaleString("ar-EG")} تقييم`}
@@ -545,6 +621,41 @@ function InfoTile({
   );
 }
 
+function LessonProgressBadge({
+  isEnrolled,
+  isStarted,
+  isCompleted,
+}: {
+  isEnrolled: boolean;
+  isStarted: boolean;
+  isCompleted: boolean;
+}) {
+  if (!isEnrolled) {
+    return null;
+  }
+
+  if (isCompleted) {
+    return (
+      <span className="bg-primary-50 text-primary-700 rounded-lg px-2.5 py-1 text-xs font-black">
+        مكتملة
+      </span>
+    );
+  }
+
+  if (isStarted) {
+    return (
+      <span className="bg-accent-50 text-accent-700 rounded-lg px-2.5 py-1 text-xs font-black">
+        بدأت
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
+      لم تبدأ
+    </span>
+  );
+}
 function SidebarStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border bg-white/45 px-3 py-2.5">

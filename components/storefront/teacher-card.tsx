@@ -10,6 +10,8 @@ type TeacherCardProps = {
 export function TeacherCard({ teacher }: TeacherCardProps) {
   const name = teacher.profile?.full_name ?? "مدرس تمكين";
   const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
+  const studentCount = teacher.stats?.studentCount ?? 0;
+  const courseCount = teacher.stats?.publishedCourses ?? 0;
 
   return (
     <Link
@@ -59,7 +61,20 @@ export function TeacherCard({ teacher }: TeacherCardProps) {
       <p className="text-foreground/60 line-clamp-3 text-sm leading-7">
         {teacher.bio ?? "نبذة المدرس هتظهر هنا قريبًا مع كورساته المتاحة."}
       </p>
-
+      <div className="grid grid-cols-2 gap-2">
+        <div className="border-border/70 bg-surface-muted/55 rounded-xl border px-3 py-2">
+          <p className="text-foreground/50 text-xs font-bold">الطلاب</p>
+          <p className="text-primary-700 mt-1 text-base font-black">
+            {studentCount.toLocaleString("ar-EG")}
+          </p>
+        </div>
+        <div className="border-border/70 bg-surface-muted/55 rounded-xl border px-3 py-2">
+          <p className="text-foreground/50 text-xs font-bold">الكورسات</p>
+          <p className="text-accent-700 mt-1 text-base font-black">
+            {courseCount.toLocaleString("ar-EG")}
+          </p>
+        </div>
+      </div>
       {/* Arrow indicator */}
       <div className="text-primary-600 flex items-center gap-1 text-xs font-bold opacity-0 transition-all duration-300 group-hover:translate-x-[-4px] group-hover:opacity-100">
         <span>عرض الكورسات</span>

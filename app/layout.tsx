@@ -7,8 +7,7 @@ const themeInitScript = `
 (() => {
   try {
     const storedTheme = localStorage.getItem("tamkeen-theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const theme = storedTheme || (prefersDark ? "dark" : "light");
+    const theme = storedTheme || "light";
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.style.colorScheme = theme;
   } catch {
