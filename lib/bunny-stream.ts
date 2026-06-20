@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 
 const EMBED_BASE_URL = "https://player.mediadelivery.net/embed";
 const API_BASE_URL = "https://video.bunnycdn.com";
-const DEFAULT_EXPIRES_IN_SECONDS = 60 * 60 * 6;
+const DEFAULT_EXPIRES_IN_SECONDS = 60 * 10;
 
 const statusLabels: Record<number, string> = {
   0: "الفيديو في قائمة المعالجة.",
@@ -37,8 +37,9 @@ export function buildBunnyStreamEmbedUrl(
 ) {
   const libraryId = getBunnyStreamLibraryId();
   const trimmedVideoId = videoId?.trim();
+  const tokenKey = process.env.BUNNY_STREAM_TOKEN_SECURITY_KEY?.trim();
 
-  if (!libraryId || !trimmedVideoId) {
+  if (!libraryId || !trimmedVideoId || !tokenKey) {
     return null;
   }
 
@@ -55,17 +56,13 @@ export function buildBunnyStreamEmbedUrl(
     booleanParam(options.rememberPosition ?? true),
   );
 
-  const tokenKey = process.env.BUNNY_STREAM_TOKEN_SECURITY_KEY?.trim();
+  const expires = Math.floor(Date.now() / 1000) + DEFAULT_EXPIRES_IN_SECONDS;
+  const token = createHash("sha256")
+    .update(`${tokenKey}${trimmedVideoId}${expires}`)
+    .digest("hex");
 
-  if (tokenKey) {
-    const expires = Math.floor(Date.now() / 1000) + DEFAULT_EXPIRES_IN_SECONDS;
-    const token = createHash("sha256")
-      .update(`${tokenKey}${trimmedVideoId}${expires}`)
-      .digest("hex");
-
-    url.searchParams.set("token", token);
-    url.searchParams.set("expires", String(expires));
-  }
+  url.searchParams.set("token", token);
+  url.searchParams.set("expires", String(expires));
 
   return url.toString();
 }

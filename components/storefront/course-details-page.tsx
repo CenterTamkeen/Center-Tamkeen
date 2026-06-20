@@ -11,10 +11,7 @@ import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form
 import { PurchaseScrollButton } from "@/components/storefront/purchase-scroll-button";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
-import {
-  buildBunnyStreamEmbedUrl,
-  getBunnyStreamVideoStatus,
-} from "@/lib/bunny-stream";
+import { getBunnyStreamVideoStatus } from "@/lib/bunny-stream";
 import {
   formatDuration,
   formatPrice,
@@ -264,10 +261,7 @@ export async function CourseDetailsPage({
                     </span>
                   </div>
                   <BunnyVideoPlayer
-                    embedUrl={buildBunnyStreamEmbedUrl(
-                      playableLesson.bunny_video_id,
-                    )}
-                    videoId={playableLesson.bunny_video_id}
+                    lessonId={playableLesson.id}
                     title={playableLesson.title}
                     posterUrl={playableLesson.thumbnail_url}
                     initialStatus={playableVideoStatus}
@@ -461,10 +455,7 @@ export async function CourseDetailsPage({
                     </div>
                     {previewLesson.bunny_video_id ? (
                       <BunnyVideoPlayer
-                        embedUrl={buildBunnyStreamEmbedUrl(
-                          previewLesson.bunny_video_id,
-                        )}
-                        videoId={previewLesson.bunny_video_id}
+                        lessonId={previewLesson.id}
                         title={previewLesson.title}
                         posterUrl={previewLesson.thumbnail_url}
                         initialStatus={previewVideoStatus}

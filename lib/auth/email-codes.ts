@@ -43,23 +43,6 @@ function getExpiryDate() {
   return new Date(Date.now() + codeTtlMinutes * 60 * 1000);
 }
 
-async function getExistingUserByEmail(
-  admin: ReturnType<typeof createAdminClient>,
-  email: string,
-) {
-  const { data, error } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-
-  if (error) {
-    console.error("Failed to check existing signup email.", error);
-    return null;
-  }
-
-  return data.users.find((user) => user.email?.trim().toLowerCase() === email);
-}
-
 function getSendEmailFailureMessage(error: unknown) {
   const message =
     typeof error === "object" && error && "message" in error
@@ -82,21 +65,15 @@ function getSendEmailFailureMessage(error: unknown) {
 export async function sendStudentSignupVerificationCode(
   email: string,
   siteUrl?: string,
-) {
+): Promise<{
+  ok: boolean;
+  message: string;
+  status: number;
+  fieldErrors?: Record<string, string[]>;
+}> {
   const admin = createAdminClient();
   const normalizedEmail = normalizeEmail(email);
   const now = Date.now();
-
-  const existingUser = await getExistingUserByEmail(admin, normalizedEmail);
-
-  if (existingUser) {
-    return {
-      ok: false,
-      message: "الإيميل مسجل قبل كده.",
-      fieldErrors: { email: ["الإيميل مسجل قبل كده."] },
-      status: 409,
-    };
-  }
 
   const { data: currentCode } = await admin
     .from("email_verification_codes")

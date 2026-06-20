@@ -14,8 +14,7 @@ type BunnyVideoStatus = {
 };
 
 type BunnyVideoPlayerProps = {
-  embedUrl: string | null;
-  videoId: string | null | undefined;
+  lessonId: string;
   title: string;
   posterUrl?: string | null;
   initialStatus?: BunnyVideoStatus;
@@ -30,19 +29,18 @@ const defaultStatus: BunnyVideoStatus = {
 };
 
 export function BunnyVideoPlayer({
-  embedUrl,
-  videoId,
+  lessonId,
   title,
   posterUrl,
   initialStatus,
 }: BunnyVideoPlayerProps) {
   const [hasStarted, setHasStarted] = useState(!posterUrl);
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState("");
   const [status, setStatus] = useState<BunnyVideoStatus>(
     initialStatus ?? defaultStatus,
   );
-  const shouldPoll = Boolean(
-    videoId && !status.isPlayable && !status.hasFailed,
-  );
+  const shouldPoll = Boolean(!status.isPlayable && !status.hasFailed);
   const progressText = useMemo(() => {
     if (typeof status.encodeProgress !== "number") {
       return null;
@@ -52,7 +50,40 @@ export function BunnyVideoPlayer({
   }, [status.encodeProgress]);
 
   useEffect(() => {
-    if (!shouldPoll || !videoId) {
+    const controller = new AbortController();
+
+    async function loadPlaybackUrl() {
+      try {
+        const response = await fetch(
+          `/api/bunny/playback?lessonId=${encodeURIComponent(lessonId)}`,
+          {
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          setPlaybackError("الفيديو غير متاح حاليًا.");
+          return;
+        }
+
+        const data = (await response.json()) as { embedUrl?: string };
+        setEmbedUrl(data.embedUrl ?? null);
+      } catch {
+        if (!controller.signal.aborted) {
+          setPlaybackError("تعذر تجهيز تشغيل الفيديو.");
+        }
+      }
+    }
+
+    loadPlaybackUrl();
+
+    return () => {
+      controller.abort();
+    };
+  }, [lessonId]);
+
+  useEffect(() => {
+    if (!shouldPoll) {
       return;
     }
 
@@ -60,7 +91,7 @@ export function BunnyVideoPlayer({
     const interval = window.setInterval(async () => {
       try {
         const response = await fetch(
-          `/api/bunny/video-status?videoId=${encodeURIComponent(videoId)}`,
+          `/api/bunny/video-status?lessonId=${encodeURIComponent(lessonId)}`,
           {
             signal: controller.signal,
           },
@@ -81,12 +112,12 @@ export function BunnyVideoPlayer({
       controller.abort();
       window.clearInterval(interval);
     };
-  }, [shouldPoll, videoId]);
+  }, [shouldPoll, lessonId]);
 
-  if (!embedUrl || !videoId) {
+  if (!embedUrl) {
     return (
       <div className="bg-foreground/5 text-foreground/55 flex aspect-video items-center justify-center rounded-xl px-4 text-center text-sm font-bold">
-        الفيديو غير متاح حاليًا.
+        {playbackError || "جاري تجهيز تشغيل الفيديو."}
       </div>
     );
   }
