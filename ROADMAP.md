@@ -12,10 +12,10 @@
 | 2 | المصادقة والصلاحيات (Auth & Roles) | تسجيل الدخول ونظام الأدوار | Phase 1 |
 | 3 | واجهة الطلاب (Student Storefront) | الصفحات العامة والتصفح | Phase 1, 2 |
 | 4 | لوحة تحكم المدرس (Teacher Dashboard) | إدارة المحتوى والكورسات | Phase 2, 3 |
-| 5 | السلة والدفع عبر فوري (Cart & Fawry Payment) | دورة حياة الطلب | Phase 3, 4 |
+| 5 | طلب الاشتراك والدفع لاحقًا (Course Requests & Future Payment) | دورة حياة الطلب الحالية وتجهيز الدفع | Phase 3, 4 |
 | 6 | لوحة تحكم الإدارة (Admin Dashboard) | متابعة الطلبات والتقارير | Phase 5 |
-| 7 | حماية الفيديوهات (VdoCipher Integration) | DRM ومشغل محمي | Phase 4, 5 |
-| 8 | تكامل فوري (Fawry Integration) | الدفع التلقائي الكامل | Phase 5, 6 |
+| 7 | حماية الفيديوهات (Bunny Stream Integration) | رفع وتشغيل فيديو مؤمن | Phase 4, 5 |
+| 8 | تكامل بوابة دفع مستقبلية | الدفع التلقائي الكامل | Phase 5, 6 |
 | 9 | الاختبار والإطلاق (Testing & Deployment) | النشر على Vercel | الكل |
 
 ---
@@ -47,9 +47,9 @@
 
 - [x] جدول `profiles` (مرتبط بـ `auth.users`): `id`, `full_name` (رباعي), `role` (`student` | `teacher` | `admin`), `avatar_url`, `phone`.
 - [x] جدول `students` (بيانات الطالب الإضافية، مرتبط بـ `profiles`): `id`, `profile_id`, `student_phone`, `father_phone`, `school_name`, `gender` (`male` | `female`), `grade` (`first_secondary` | `second_secondary` | `third_secondary`), `section` (`general` | `scientific` | `literary` | `science` | `mathematics`), `photo_url`.
-- [x] جدول `teachers`: `id`, `profile_id`, `slug` (unique), `bio`, `subject`, `avatar_url`, `is_active`.
-- [x] جدول `courses`: `id`, `teacher_id`, `title`, `description`, `price`, `thumbnail_url`, `is_published`, `created_at`.
-- [x] جدول `lessons`: `id`, `course_id`, `title`, `order_index`, `vdocipher_video_id`, `duration`, `is_free_preview`.
+- [x] جدول `teachers`: `id`, `profile_id`, `slug` (unique), `bio`, `subject`, `avatar_url`, `cover_url`, `is_active`.
+- [x] جدول `courses`: `id`, `teacher_id`, `subject`, `title`, `description`, `price`, `target_grade`, `target_section`, `thumbnail_url`, `is_published`, `created_at`.
+- [x] جدول `lessons`: `id`, `course_id`, `title`, `order_index`, `vdocipher_video_id` legacy، `bunny_video_id`, `video_provider`, `thumbnail_url`, `duration`, `is_free_preview`.
 - [x] جدول `orders`: `id`, `student_id`, `total_amount`, `status` (`pending` | `completed` | `rejected`), `fawry_ref_no`, `rejection_reason`, `created_at`.
 - [x] جدول `order_items`: `id`, `order_id`, `course_id`, `price_at_purchase`.
 - [x] جدول `enrollments`: `id`, `student_id`, `course_id`, `order_id`, `enrolled_at`.
@@ -71,12 +71,14 @@
 - [x] Policy: الطالب يقدر يقرأ طلباته (`orders`) الخاصة به فقط.
 - [x] Policy: الأدمن عنده صلاحيات كاملة (عبر service role أو policy خاصة).
 - [x] Policy: حماية الـ `enrollments` بحيث متتعملش إلا من خلال السيرفر بعد اكتمال الطلب.
+- [x] Policy: حماية الحصص بحيث تظهر الـ Preview أو حصص الكورس المشترك فيه فقط للطالب.
 
 ### 1.4 الـ Triggers والمنطق الخلفي
 
 - [x] Trigger/Function: عند تحوّل `orders.status` إلى `completed` → إنشاء صفوف في `enrollments` لكل `order_item` + إضافة صف في `teacher_earnings`.
 - [x] Function لتوليد `slug` تلقائي وفريد للمدرس.
 - [x] إعداد Supabase Storage buckets (`avatars`, `thumbnails`) مع policies مناسبة.
+- [x] إضافة جداول/منطق داعم للإشعارات، حظر الطلاب، استهداف الكوبونات، وإعلانات الصفحة الرئيسية.
 
 ---
 
@@ -115,6 +117,7 @@
 - [x] إظهار رسائل خطأ واضحة بالعربي تحت كل حقل.
 - [x] عند نجاح التسجيل: إنشاء مستخدم في Supabase Auth + صف في `profiles` (role = `student`) + صف في `students` بالبيانات.
 - [x] رفع صورة الطالب وحفظ الـ `photo_url`.
+- [x] إرسال كود تحقق للبريد أثناء التسجيل عبر SMTP، والتحقق النهائي من تكرار الإيميل عند إنشاء مستخدم Supabase.
 
 ---
 
@@ -150,8 +153,9 @@
 
 - [x] عرض تفاصيل الكورس والسعر وقائمة الحصص.
 - [x] عرض حصة Preview مجانية لو متاحة.
-- [x] زرار "أضف للسلة".
+- [x] زر طلب الكورس من صفحة التفاصيل.
 - [x] عرض التقييمات الخاصة بالكورس.
+- [x] منع تشغيل الحصص الكاملة لغير المشتركين، مع عرض حصة Preview إن وجدت.
 
 ---
 
@@ -174,9 +178,10 @@
 ### 4.3 إدارة الحصص (Lessons)
 
 - [x] إضافة حصة لكورس (العنوان، الفيديو).
-- [x] رفع الفيديو لـ VdoCipher وربط الـ `vdocipher_video_id` (يُستكمل في Phase 7).
+- [x] رفع الفيديو إلى Bunny Stream من لوحة المدرس عبر TUS، وحفظ `bunny_video_id` داخليًا.
 - [x] إعادة ترتيب الحصص (Drag & drop / order_index).
 - [x] تحديد حصة كـ Preview مجانية.
+- [x] تعديل/حذف/نقل/حذف جماعي للحصص، مع حذف فيديوهات Bunny غير المستخدمة.
 
 ### 4.4 الكوبونات والإحصائيات
 
@@ -186,9 +191,9 @@
 
 ---
 
-## Phase 5 — السلة والدفع عبر فوري (Cart & Fawry Payment)
+## Phase 5 — طلب الاشتراك والدفع لاحقًا (Course Requests & Future Payment)
 
-**الهدف:** دورة حياة الطلب من السلة لحد إنشاء طلب `pending` وتوليد رقم فوري المرجعي.
+**الهدف:** دورة حياة الطلب الحالية من صفحة الكورس إلى قبول الأدمن، مع إبقاء schema جاهزًا لبوابة دفع لاحقًا.
 
 ### 5.1 السلة (`/cart`)
 
@@ -197,19 +202,20 @@
 - [ ] عرض الإجمالي وتطبيق كوبون الخصم.
 - [ ] التحقق من صلاحية الكوبون (تاريخ، حد الاستخدام).
 
-### 5.2 صفحة الدفع (`/checkout`)
+### 5.2 طلب كورس واحد من صفحة التفاصيل
 
-- [ ] عرض ملخص الطلب والإجمالي النهائي.
-- [ ] Server Action لإنشاء `order` بحالة `pending` + `order_items`.
-- [ ] استدعاء Fawry API لإنشاء الفاتورة وتوليد الرقم المرجعي (`fawry_ref_no`) وتخزينه.
-- [ ] عرض الرقم المرجعي / Fawry Widget للطالب لإتمام السداد.
-- [ ] صفحة تأكيد "طلبك في انتظار السداد عبر فوري" مع تعليمات الدفع.
+- [x] عرض سعر الكورس والإجمالي بعد الكوبون داخل صفحة التفاصيل.
+- [x] Server Action لإنشاء `order` بحالة `pending` + `order_items`.
+- [x] تطبيق كوبون مرتبط بالكورس والمدرس مع دعم استهداف طلاب محددين.
+- [ ] منع إنشاء طلب `pending` مكرر لنفس الطالب والكورس.
+- [ ] صفحة/رسالة متابعة أوضح بعد إنشاء الطلب.
+- [ ] استدعاء بوابة دفع مستقبلية لإنشاء فاتورة وتوليد رقم مرجعي (`fawry_ref_no` أو ما يعادله).
 
 ### 5.3 بوابة الطالب (My Courses)
 
-- [ ] صفحة "كورساتي" تعرض الكورسات المشترك بها (من `enrollments`).
-- [ ] صفحة "طلباتي" تعرض حالة كل طلب (`pending` / `completed` / `rejected`) والرقم المرجعي لفوري + سبب الرفض إن وُجد.
-- [ ] منع الوصول لمحتوى الكورس قبل ما الطلب يبقى `completed`.
+- [x] صفحة "كورساتي" تعرض الكورسات المشترك بها (من `enrollments`).
+- [ ] صفحة "طلباتي" تعرض حالة كل طلب (`pending` / `completed` / `rejected`) والرقم المرجعي إن وُجد + سبب الرفض إن وُجد.
+- [x] منع تشغيل محتوى الكورس الكامل قبل ما الطلب يبقى `completed` وينشئ `enrollment`.
 
 ---
 
@@ -231,10 +237,11 @@
 ### 6.3 متابعة الطلبات (`/dashboard/admin/orders`)
 
 - [x] جدول بكل الطلبات مع فلترة بالحالة (`pending` / `completed` / `rejected`).
-- [x] عرض تفاصيل الطلب: بيانات الطالب، الرقم المرجعي لفوري، الكورسات، تاريخ السداد.
-- [ ] الطلبات تُفعَّل تلقائياً عبر فوري webhook (بدون قبول يدوي).
-- [x] إجراء استثنائي: إلغاء/استرجاع طلب (refund) مع كتابة `rejection_reason` في الحالات الخاصة.
-- [ ] (اختياري) إشعار للطالب عند تغيير حالة الطلب.
+- [x] عرض تفاصيل الطلب: بيانات الطالب، الكورسات، تاريخ الطلب، والرقم المرجعي إن وجد.
+- [x] قبول الطلب يدويًا وتحويله إلى `completed` لتفعيل الكورس.
+- [x] رفض الطلب مع كتابة `rejection_reason`.
+- [ ] الطلبات تُفعَّل تلقائياً عبر Webhook دفع مستقبلًا (بدون قبول يدوي).
+- [x] إشعار للطالب عند اكتمال الطلب عبر trigger الإشعارات.
 
 ### 6.4 التقارير المالية
 
@@ -245,32 +252,36 @@
 
 ---
 
-## Phase 7 — حماية الفيديوهات (VdoCipher Integration)
+## Phase 7 — حماية الفيديوهات (Bunny Stream Integration)
 
-**الهدف:** تأمين الفيديوهات بالـ DRM ومشغّل محمي.
+**الهدف:** رفع الفيديوهات من لوحة المدرس وتشغيلها للطلاب بصلاحيات واضحة وروابط Bunny مؤقتة.
 
-- [ ] إنشاء حساب VdoCipher وأخذ الـ API Secret.
-- [ ] Server Action/Route لرفع الفيديوهات لـ VdoCipher من لوحة المدرس.
-- [ ] حفظ الـ `vdocipher_video_id` في جدول `lessons`.
-- [ ] Endpoint خلفي لإنشاء OTP + playbackInfo (مع التحقق إن الطالب مشترك في الكورس).
-- [ ] دمج مشغّل VdoCipher في صفحة الكورس داخل بوابة الطالب.
-- [ ] تفعيل العلامة المائية المتحركة (Dynamic Watermark) باسم/إيميل الطالب.
-- [ ] التأكد إن الفيديو ميتشغّلش إلا لو في `enrollment` صالح.
+- [x] إعداد متغيرات Bunny Stream (`BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY`, `BUNNY_STREAM_TOKEN_SECURITY_KEY`).
+- [x] Route لتجهيز TUS upload credentials للمدرس بعد التأكد أنه مالك الكورس.
+- [x] رفع الفيديو من لوحة المدرس مباشرة إلى Bunny Stream بدون إدخال ID يدوي.
+- [x] حفظ `bunny_video_id` في جدول `lessons`.
+- [x] Endpoint خلفي `/api/bunny/playback` لإصدار signed embed URL بعد التحقق من `lessonId`.
+- [x] Endpoint `/api/bunny/video-status` محمي: `lessonId` للعرض المصرح، و`videoId` للمدرس/الأدمن أثناء الرفع.
+- [x] دمج مشغّل Bunny في صفحة الكورس للـ Preview أو للطالب المشترك.
+- [x] التأكد إن الفيديو الكامل ميتشغّلش إلا لو في `enrollment` صالح.
+- [ ] اختبار إعدادات Bunny في production بعد تفعيل Embed View Token Authentication.
+- [ ] دراسة watermark أو DRM أقوى لو اتطلب مستوى حماية أعلى من Bunny signed embeds.
 
 ---
 
-## Phase 8 — تكامل فوري (Fawry Payment Integration)
+## Phase 8 — تكامل بوابة دفع مستقبلية
 
-**الهدف:** تفعيل الدفع التلقائي الكامل عبر بوابة فوري.
+**الهدف:** تفعيل الدفع التلقائي الكامل بعد اختيار بوابة الدفع النهائية.
 
-- [ ] إنشاء حساب/Merchant على فوري وأخذ المفاتيح (`merchant_code`, `security_key`).
-- [ ] إعداد متغيرات البيئة الخاصة بفوري في `.env.local` و Vercel.
-- [ ] ربط Fawry API لإنشاء الفاتورة وتوليد الرقم المرجعي (مستخدَم في Phase 5.2).
+- [ ] اختيار بوابة الدفع النهائية وآلية الدفع المطلوبة.
+- [ ] إنشاء حساب/Merchant وأخذ المفاتيح.
+- [ ] إعداد متغيرات البيئة الخاصة بالبوابة في `.env.local` و Vercel.
+- [ ] ربط API لإنشاء الفاتورة وتوليد الرقم المرجعي.
 - [ ] فصل منطق التفعيل (Decoupled): التفعيل يعتمد بس على تحوّل الحالة لـ `completed` (تم في Phase 1).
-- [ ] إنشاء مسار الـ webhook `app/api/v1/payments/fawry-webhook/route.ts`.
-- [ ] التحقق من توقيع فوري (signature verification) قبل قبول أي تحديث.
+- [ ] إنشاء مسار Webhook مناسب للبوابة المختارة.
+- [ ] التحقق من توقيع الـ Webhook قبل قبول أي تحديث.
 - [ ] منطق الـ webhook لتحديث `orders.status = completed` عند تأكيد السداد (يشغّل الـ Trigger اللي يفتح الكورس).
-- [ ] اختبار بيئة الـ Sandbox الخاصة بفوري end-to-end قبل الإنتاج.
+- [ ] اختبار بيئة Sandbox end-to-end قبل الإنتاج.
 
 ---
 
