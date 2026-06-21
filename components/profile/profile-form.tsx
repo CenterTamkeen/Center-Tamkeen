@@ -94,10 +94,26 @@ export function ProfileForm({
   const [previewCoverUrl, setPreviewCoverUrl] = useState<string | null>(null);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const studentPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const isStudent = profile.role === "student";
+  const isTeacher = profile.role === "teacher";
+  const stateValueOrFallback = (
+    key: keyof NonNullable<typeof state.values>,
+    fallback: string | null | undefined,
+  ) => {
+    const value = state.values?.[key];
+
+    return value && value.trim().length > 0 ? value : (fallback ?? "");
+  };
   const formValues = {
-    fullName: state.values?.fullName ?? profile.full_name,
-    phone: state.values?.phone ?? profile.phone ?? "",
-    teacherSubject: state.values?.teacherSubject ?? teacher?.subject ?? "",
+    fullName: isTeacher
+      ? stateValueOrFallback("fullName", profile.full_name)
+      : (state.values?.fullName ?? profile.full_name),
+    phone: isTeacher
+      ? stateValueOrFallback("phone", profile.phone)
+      : (state.values?.phone ?? profile.phone ?? ""),
+    teacherSubject: isTeacher
+      ? stateValueOrFallback("teacherSubject", teacher?.subject)
+      : (state.values?.teacherSubject ?? teacher?.subject ?? ""),
     teacherBio: state.values?.teacherBio ?? teacher?.bio ?? "",
     studentPhone: state.values?.studentPhone ?? student?.student_phone ?? "",
     fatherPhone: state.values?.fatherPhone ?? student?.father_phone ?? "",
@@ -142,8 +158,6 @@ export function ProfileForm({
     name: "section",
   });
   const photoField = register("photo");
-  const isStudent = profile.role === "student";
-  const isTeacher = profile.role === "teacher";
   const avatar =
     teacher?.avatar_url ?? student?.photo_url ?? profile.avatar_url;
   const photoPreview = previewPhotoUrl ?? avatar;

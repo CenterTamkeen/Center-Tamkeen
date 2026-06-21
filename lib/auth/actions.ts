@@ -162,6 +162,14 @@ function isStudentPhoneConflict(error?: { code?: string; message?: string }) {
   );
 }
 
+function isMissingTeacherCoverColumn(error?: { message?: string }) {
+  return (
+    error?.message?.includes("cover_url") ||
+    error?.message?.includes("schema cache") ||
+    error?.message?.includes("Could not find")
+  );
+}
+
 async function uploadAvatar(userId: string, file: File) {
   const validationMessage = getStudentPhotoValidationMessage(file);
 
@@ -814,14 +822,50 @@ export async function updateProfileAction(
       );
     }
   } else if (profile.role === "teacher") {
-    const { data: currentTeacher } = await admin
+    const currentTeacherQuery = await admin
       .from("teachers")
       .select("id, cover_url")
       .eq("profile_id", user.id)
-      .maybeSingle();
+      .order("created_at", { ascending: true })
+      .limit(1);
+    let currentTeacher = currentTeacherQuery.data?.[0] ?? null;
+    let currentTeacherError = currentTeacherQuery.error;
+    let missingTeacherCoverColumn = false;
 
-    if (!currentTeacher) {
+    if (
+      currentTeacherError &&
+      isMissingTeacherCoverColumn(currentTeacherError)
+    ) {
+      missingTeacherCoverColumn = true;
+      const fallbackTeacherQuery = await admin
+        .from("teachers")
+        .select("id")
+        .eq("profile_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      currentTeacher = fallbackTeacherQuery.data?.[0]
+        ? { ...fallbackTeacherQuery.data[0], cover_url: null }
+        : null;
+      currentTeacherError = fallbackTeacherQuery.error;
+    }
+
+    if (currentTeacherError || !currentTeacher) {
+      console.error(
+        "Failed to load teacher profile before update.",
+        currentTeacherError,
+      );
       return failure("لا يوجد ملف مدرس مرتبط بحسابك.", undefined, values);
+    }
+
+    if (cover && missingTeacherCoverColumn) {
+      return failure(
+        "تحديث قاعدة البيانات الخاص بخلفية المدرس لسه متطبقش. طبق migration الخاص بالبانر وجرب تاني.",
+        {
+          cover: ["عمود خلفية المدرس غير موجود في قاعدة البيانات."],
+        },
+        values,
+      );
     }
 
     if (cover && currentTeacher?.id) {
@@ -847,7 +891,7 @@ export async function updateProfileAction(
         ...(photoUrl ? { avatar_url: photoUrl } : {}),
         ...(coverUrl ? { cover_url: coverUrl } : {}),
       })
-      .eq("profile_id", user.id)
+      .eq("id", currentTeacher.id)
       .select("slug")
       .maybeSingle();
 

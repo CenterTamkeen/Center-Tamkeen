@@ -7,11 +7,20 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { signOutAction } from "@/lib/auth/actions";
 import { requireUser } from "@/lib/auth/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "الملف الشخصي",
 };
+
+function isMissingTeacherCoverColumn(error: { message?: string }) {
+  return (
+    error.message?.includes("cover_url") ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
 
 export default async function ProfilePage() {
   const { profile, user } = await requireUser("/profile");
@@ -26,14 +35,43 @@ export default async function ProfilePage() {
           .eq("profile_id", profile.id)
           .maybeSingle()
       : { data: null };
-  const { data: teacher } =
-    profile.role === "teacher"
-      ? await supabase
-          .from("teachers")
-          .select("subject, bio, avatar_url, cover_url, slug")
-          .eq("profile_id", profile.id)
-          .maybeSingle()
-      : { data: null };
+  let teacher: {
+    subject: string;
+    bio: string | null;
+    avatar_url: string | null;
+    cover_url: string | null;
+    slug: string;
+  } | null = null;
+
+  if (profile.role === "teacher") {
+    const admin = createAdminClient();
+    const teacherResult = await admin
+      .from("teachers")
+      .select("subject, bio, avatar_url, cover_url, slug")
+      .eq("profile_id", profile.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (
+      teacherResult.error &&
+      isMissingTeacherCoverColumn(teacherResult.error)
+    ) {
+      const fallbackResult = await admin
+        .from("teachers")
+        .select("subject, bio, avatar_url, slug")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      teacher = fallbackResult.data
+        ? { ...fallbackResult.data, cover_url: null }
+        : null;
+    } else {
+      teacher = teacherResult.data;
+    }
+  }
 
   return (
     <>
