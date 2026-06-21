@@ -15,11 +15,15 @@ function normalizeEmail(email: string) {
 }
 
 function getCodeSecret() {
-  return (
-    process.env.EMAIL_CODE_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.BREVO_SMTP_KEY
-  );
+  const secret = process.env.EMAIL_CODE_SECRET;
+
+  if (!secret) {
+    throw new Error(
+      "EMAIL_CODE_SECRET is not configured. Set a dedicated secret for email verification codes.",
+    );
+  }
+
+  return secret;
 }
 
 function hashEmailCode(email: string, purpose: EmailCodePurpose, code: string) {

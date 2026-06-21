@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const [{ data: lesson }, { data: enrollment }] = await Promise.all([
     admin
       .from("lessons")
-      .select("id, course_id")
+      .select("id, course_id, duration")
       .eq("id", lessonId)
       .eq("course_id", courseId)
       .maybeSingle(),
@@ -82,6 +82,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
+  // Server-side guard: demote "completed" to "in_progress" when watchedSeconds
+  // is suspiciously low relative to the lesson duration.
+  let validatedStatus = status;
+
+  if (status === "completed" && lesson.duration && lesson.duration > 0) {
+    const minimumWatchRatio = 0.5;
+    const minimumWatchedSeconds = Math.floor(
+      lesson.duration * minimumWatchRatio,
+    );
+
+    if (watchedSeconds < minimumWatchedSeconds) {
+      validatedStatus = "in_progress";
+    }
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await admin
     .from("lesson_progress")
@@ -90,10 +105,10 @@ export async function POST(request: Request) {
         student_id: student.id,
         course_id: courseId,
         lesson_id: lessonId,
-        status,
+        status: validatedStatus,
         watched_seconds: watchedSeconds,
         last_watched_at: now,
-        completed_at: status === "completed" ? now : null,
+        completed_at: validatedStatus === "completed" ? now : null,
       },
       { onConflict: "student_id,lesson_id" },
     )

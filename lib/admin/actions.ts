@@ -715,11 +715,7 @@ export async function deleteTeacherAction(
 
   if (teacherError || !teacher) {
     console.error("Failed to load teacher before deletion.", teacherError);
-    return failure(
-      teacherError?.message
-        ? `تعذر تحميل بيانات المدرس: ${teacherError.message}`
-        : "تعذر تحميل بيانات المدرس قبل الحذف.",
-    );
+    return failure("تعذر تحميل بيانات المدرس قبل الحذف.");
   }
 
   const { data: courses, error: coursesError } = await admin

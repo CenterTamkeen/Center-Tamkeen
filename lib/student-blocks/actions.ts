@@ -63,17 +63,15 @@ export async function blockStudentAction(formData: FormData) {
   }
 
   if (profile.role === "admin") {
-    await admin
-      .from("student_blocks")
-      .delete()
-      .eq("student_id", studentId)
-      .is("teacher_id", null);
-    await admin.from("student_blocks").insert({
-      student_id: studentId,
-      teacher_id: null,
-      blocked_by: profile.id,
-      reason,
-    });
+    await admin.from("student_blocks").upsert(
+      {
+        student_id: studentId,
+        teacher_id: null,
+        blocked_by: profile.id,
+        reason,
+      },
+      { onConflict: "student_id,teacher_id" },
+    );
     revalidatePath("/dashboard/admin/students");
     return;
   }
@@ -85,17 +83,15 @@ export async function blockStudentAction(formData: FormData) {
       return;
     }
 
-    await admin
-      .from("student_blocks")
-      .delete()
-      .eq("student_id", studentId)
-      .eq("teacher_id", teacherId);
-    await admin.from("student_blocks").insert({
-      student_id: studentId,
-      teacher_id: teacherId,
-      blocked_by: profile.id,
-      reason,
-    });
+    await admin.from("student_blocks").upsert(
+      {
+        student_id: studentId,
+        teacher_id: teacherId,
+        blocked_by: profile.id,
+        reason,
+      },
+      { onConflict: "student_id,teacher_id" },
+    );
     revalidatePath("/dashboard/teacher/students");
   }
 }

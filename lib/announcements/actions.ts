@@ -191,6 +191,12 @@ export async function createAnnouncementAction(
 }
 
 export async function toggleAnnouncementActiveAction(formData: FormData) {
+  const owner = await getAnnouncementOwner();
+
+  if (owner.error || !owner.profileId || !owner.ownerRole) {
+    return;
+  }
+
   const announcementId = getString(formData, "announcementId");
   const nextActive = getCheckbox(formData, "nextActive");
   const supabase = await createClient();
@@ -199,11 +205,17 @@ export async function toggleAnnouncementActiveAction(formData: FormData) {
     return;
   }
 
-  await supabase
+  let query = supabase
     .from("hero_announcements")
     .update({ is_active: nextActive })
     .eq("id", announcementId);
 
+  // Non-admin users can only toggle their own announcements.
+  if (owner.ownerRole !== "admin") {
+    query = query.eq("created_by", owner.profileId);
+  }
+
+  await query;
   revalidateAnnouncementPaths();
 }
 
@@ -268,7 +280,7 @@ export async function updateAnnouncementAction(
     }
   }
 
-  const { error } = await supabase
+  let updateQuery = supabase
     .from("hero_announcements")
     .update({
       title: parsed.data.title,
@@ -278,6 +290,13 @@ export async function updateAnnouncementAction(
       ...(imageUrl ? { image_url: imageUrl } : {}),
     })
     .eq("id", parsed.data.announcementId);
+
+  // Non-admin users can only update their own announcements.
+  if (owner.ownerRole !== "admin") {
+    updateQuery = updateQuery.eq("created_by", owner.profileId);
+  }
+
+  const { error } = await updateQuery;
 
   if (error) {
     await deleteImageByUrl(imageUrl);
@@ -293,6 +312,12 @@ export async function updateAnnouncementAction(
 }
 
 export async function deleteAnnouncementAction(formData: FormData) {
+  const owner = await getAnnouncementOwner();
+
+  if (owner.error || !owner.profileId || !owner.ownerRole) {
+    return;
+  }
+
   const announcementId = getString(formData, "announcementId");
   const supabase = await createClient();
 
@@ -300,19 +325,35 @@ export async function deleteAnnouncementAction(formData: FormData) {
     return;
   }
 
-  const { data: announcement } = await supabase
+  let selectQuery = supabase
     .from("hero_announcements")
     .select("image_url")
-    .eq("id", announcementId)
-    .maybeSingle();
+    .eq("id", announcementId);
 
-  const { error } = await supabase
+  // Non-admin users can only delete their own announcements.
+  if (owner.ownerRole !== "admin") {
+    selectQuery = selectQuery.eq("created_by", owner.profileId);
+  }
+
+  const { data: announcement } = await selectQuery.maybeSingle();
+
+  if (!announcement) {
+    return;
+  }
+
+  let deleteQuery = supabase
     .from("hero_announcements")
     .delete()
     .eq("id", announcementId);
 
+  if (owner.ownerRole !== "admin") {
+    deleteQuery = deleteQuery.eq("created_by", owner.profileId);
+  }
+
+  const { error } = await deleteQuery;
+
   if (!error) {
-    await deleteImageByUrl(announcement?.image_url);
+    await deleteImageByUrl(announcement.image_url);
   }
 
   revalidateAnnouncementPaths();
