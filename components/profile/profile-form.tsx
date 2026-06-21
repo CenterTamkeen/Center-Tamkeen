@@ -91,6 +91,7 @@ export function ProfileForm({
   const [photoName, setPhotoName] = useState("");
   const [coverName, setCoverName] = useState("");
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [previewCoverUrl, setPreviewCoverUrl] = useState<string | null>(null);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const studentPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const formValues = {
@@ -146,6 +147,7 @@ export function ProfileForm({
   const avatar =
     teacher?.avatar_url ?? student?.photo_url ?? profile.avatar_url;
   const photoPreview = previewPhotoUrl ?? avatar;
+  const coverPreview = previewCoverUrl ?? teacher?.cover_url;
   const canPreviewPhoto = Boolean(photoPreview);
   const availableSections = useMemo(() => {
     if (!selectedGrade) {
@@ -177,8 +179,11 @@ export function ProfileForm({
       if (previewPhotoUrl) {
         URL.revokeObjectURL(previewPhotoUrl);
       }
+      if (previewCoverUrl) {
+        URL.revokeObjectURL(previewCoverUrl);
+      }
     };
-  }, [previewPhotoUrl]);
+  }, [previewCoverUrl, previewPhotoUrl]);
 
   useEffect(() => {
     if (passwordState.status === "success") {
@@ -200,6 +205,18 @@ export function ProfileForm({
       return file ? URL.createObjectURL(file) : null;
     });
   };
+
+  const updateCoverPreview = (file?: File) => {
+    setCoverName(file?.name ?? "");
+    setPreviewCoverUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+
+      return file ? URL.createObjectURL(file) : null;
+    });
+  };
+
   return (
     <>
       <form
@@ -330,16 +347,17 @@ export function ProfileForm({
                 accept="image/png,image/jpeg,image/webp"
                 className="sr-only"
                 onChange={(event) =>
-                  setCoverName(event.currentTarget.files?.[0]?.name ?? "")
+                  updateCoverPreview(event.currentTarget.files?.[0])
                 }
               />
-              {teacher?.cover_url ? (
+              {coverPreview ? (
                 <Image
-                  src={teacher.cover_url}
+                  src={coverPreview}
                   alt="خلفية المدرس"
                   fill
                   sizes="(max-width: 768px) 100vw, 900px"
                   className="object-cover"
+                  unoptimized={Boolean(previewCoverUrl)}
                   priority
                 />
               ) : null}
@@ -397,6 +415,7 @@ export function ProfileForm({
                 مقاس بانر صفحة المدرس المقترح: 1600 × 600 بكسل بنسبة 8:3. اترك
                 التفاصيل المهمة في منتصف التصميم. JPG/PNG/WebP بحد أقصى 2MB.
               </p>
+              <ErrorText message={state.fieldErrors?.cover?.[0]} />
               <p className="text-foreground/55 mt-3 text-xs leading-5 font-semibold">
                 مقاس صورة المدرس المقترح: 800 × 800 بكسل بنسبة 1:1. JPG/PNG/WebP
                 بحد أقصى 2MB.

@@ -3,6 +3,12 @@ import type { Database } from "@/types/database";
 
 export type NotificationItem =
   Database["public"]["Tables"]["notifications"]["Row"];
+export type NotificationCourseOption = {
+  id: string;
+  title: string;
+  teacherName?: string | null;
+  enrollmentCount: number;
+};
 
 function logNotificationError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
@@ -42,4 +48,46 @@ export async function getProfileNotifications(profileId: string, limit = 6) {
   }
 
   return (data ?? []) as NotificationItem[];
+}
+
+export async function getAdminNotificationCourses() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select(
+      "id, title, teacher:teachers(profile:profiles(full_name)), enrollments(id)",
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logNotificationError("admin-course-options", error.message);
+    return [] as NotificationCourseOption[];
+  }
+
+  return (data ?? []).map((course) => ({
+    id: course.id,
+    title: course.title,
+    teacherName: course.teacher?.profile?.full_name ?? null,
+    enrollmentCount: course.enrollments?.length ?? 0,
+  }));
+}
+
+export async function getTeacherNotificationCourses(teacherId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("id, title, enrollments(id)")
+    .eq("teacher_id", teacherId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logNotificationError("teacher-course-options", error.message);
+    return [] as NotificationCourseOption[];
+  }
+
+  return (data ?? []).map((course) => ({
+    id: course.id,
+    title: course.title,
+    enrollmentCount: course.enrollments?.length ?? 0,
+  }));
 }

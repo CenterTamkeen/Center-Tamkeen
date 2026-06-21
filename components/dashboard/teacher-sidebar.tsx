@@ -42,6 +42,16 @@ const links = [
     ),
   },
   {
+    href: "/dashboard/teacher/notifications",
+    label: "الإشعارات",
+    icon: (
+      <>
+        <path d="M10.27 21a2 2 0 0 0 3.46 0" />
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      </>
+    ),
+  },
+  {
     href: "/dashboard/teacher/students",
     label: "الطلاب",
     icon: (

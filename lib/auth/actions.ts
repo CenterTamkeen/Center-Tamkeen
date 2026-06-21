@@ -738,9 +738,13 @@ export async function updateProfileAction(
   } else if (profile.role === "teacher") {
     const { data: currentTeacher } = await admin
       .from("teachers")
-      .select("id")
+      .select("id, cover_url")
       .eq("profile_id", user.id)
       .maybeSingle();
+
+    if (!currentTeacher) {
+      return failure("لا يوجد ملف مدرس مرتبط بحسابك.", undefined, values);
+    }
 
     if (cover && currentTeacher?.id) {
       try {
@@ -780,6 +784,10 @@ export async function updateProfileAction(
         undefined,
         values,
       );
+    }
+
+    if (coverUrl && currentTeacher.cover_url) {
+      await deleteImageByUrl(currentTeacher.cover_url);
     }
 
     if (teacher?.slug) {
