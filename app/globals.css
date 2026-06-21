@@ -191,30 +191,70 @@ body {
   position: relative;
 }
 
-/* Animated gradient mesh background */
+/* Animated gradient mesh background — light mode */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   background:
     radial-gradient(
-      ellipse 80% 60% at 10% 5%,
+      ellipse 70% 55% at 85% 8%,
+      rgb(22 138 117 / 0.11),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 12% 6%,
+      rgb(245 197 24 / 0.1),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 5% 50%,
       rgb(22 138 117 / 0.07),
-      transparent
+      transparent 70%
     ),
     radial-gradient(
-      ellipse 60% 50% at 85% 5%,
-      rgb(245 197 24 / 0.09),
-      transparent
+      ellipse 50% 40% at 92% 55%,
+      rgb(245 197 24 / 0.07),
+      transparent 70%
     ),
     radial-gradient(
-      ellipse 50% 40% at 50% 95%,
-      rgb(22 138 117 / 0.04),
+      ellipse 65% 45% at 50% 95%,
+      rgb(22 138 117 / 0.09),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 100% 80% at 50% 50%,
+      rgb(143 210 194 / 0.045),
       transparent
     );
   animation: bg-shift 20s ease-in-out infinite alternate;
   pointer-events: none;
+}
+
+/* Subtle dot-grid texture — light mode only */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    circle 1px at center,
+    rgb(22 138 117 / 0.055) 0.5px,
+    transparent 0.5px
+  );
+  background-size: 28px 28px;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    black 30%,
+    transparent 80%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    black 30%,
+    transparent 80%
+  );
 }
 
 ::selection {
@@ -1105,6 +1145,11 @@ body::before {
       rgb(75 200 173 / 0.08),
       transparent
     );
+}
+
+/* Hide dot-grid in dark mode */
+.dark body::after {
+  display: none;
 }
 
 .dark .heading-gradient {

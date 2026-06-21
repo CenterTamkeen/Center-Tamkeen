@@ -77,7 +77,7 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="bg-background">
+      <main>
         <section
           className="border-border/60 relative overflow-hidden border-b"
           style={{ background: "var(--hero-wash-background)" }}
@@ -142,7 +142,7 @@ export default async function Home() {
           )}
         </section>
 
-        <section className="bg-[#f6f8fa] py-20">
+        <section className="bg-white/40 py-20 backdrop-blur-sm">
           <div className="container-page">
             <SectionTitle eyebrow="الكورسات" title="أحدث الكورسات المنشورة" />
             {courses.length > 0 ? (
@@ -185,7 +185,7 @@ export default async function Home() {
               ["24/7", "وصول للمحتوى"],
             ].map(([value, label]) => (
               <ScrollReveal key={label}>
-                <div className="group hover:bg-primary-50 relative overflow-hidden rounded-2xl bg-[#f6f8fa] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
+                <div className="group hover:bg-primary-50 relative overflow-hidden rounded-2xl bg-white/50 p-6 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
                   <div className="bg-primary-500 absolute inset-x-6 top-0 h-1 origin-center scale-x-0 rounded-b-full transition-transform duration-300 group-hover:scale-x-100" />
                   <p className="text-primary-900 text-3xl font-black">
                     {value}
@@ -232,7 +232,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="bg-[#f6f8fa] py-20">
+        <section className="bg-white/40 py-20 backdrop-blur-sm">
           <div className="container-page">
             <ScrollReveal>
               <div className="mb-10 text-center">
@@ -245,7 +245,7 @@ export default async function Home() {
             <div className="grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
               {features.map((feature, index) => (
                 <ScrollReveal key={feature.title} delay={index * 0.06}>
-                  <article className="group flex h-full flex-col rounded-2xl bg-white p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
+                  <article className="group flex h-full flex-col rounded-2xl bg-white/80 p-6 shadow-[var(--shadow-card)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]">
                     <div className="bg-primary-50 text-primary-700 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl text-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
                       {feature.icon}
                     </div>
@@ -368,8 +368,8 @@ function ReviewsMarquee({ reviews }: { reviews: ReviewSummary[] }) {
     <div className="relative overflow-hidden py-5" dir="ltr">
       {shouldAnimate ? (
         <>
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
+          <div className="from-background pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l to-transparent" />
+          <div className="from-background pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r to-transparent" />
         </>
       ) : null}
       <div
@@ -414,8 +414,8 @@ function TeachersMarquee({ teachers }: { teachers: TeacherSummary[] }) {
     <div className="relative overflow-hidden py-5" dir="ltr">
       {shouldAnimate ? (
         <>
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
+          <div className="from-background pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l to-transparent" />
+          <div className="from-background pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r to-transparent" />
         </>
       ) : null}
       <div
