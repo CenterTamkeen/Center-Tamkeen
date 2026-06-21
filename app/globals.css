@@ -392,25 +392,29 @@ body::before {
 }
 
 @keyframes video-watermark-roam {
-  0% {
-    top: 10%;
-    right: 6%;
+  0%,
+  23% {
+    top: 6%;
+    right: 4%;
   }
-  25% {
-    top: 10%;
-    right: 58%;
+  25%,
+  48% {
+    top: 6%;
+    right: 60%;
   }
-  50% {
-    top: 72%;
-    right: 58%;
+  50%,
+  73% {
+    top: 75%;
+    right: 60%;
   }
-  75% {
-    top: 72%;
-    right: 6%;
+  75%,
+  98% {
+    top: 75%;
+    right: 4%;
   }
   100% {
-    top: 10%;
-    right: 6%;
+    top: 6%;
+    right: 4%;
   }
 }
 @keyframes tamkeen-marquee {
@@ -1006,29 +1010,52 @@ body::before {
   .tamkeen-loop {
     animation: tamkeen-loop 18s linear infinite;
   }
+}
 
-  .video-player-shell:fullscreen {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    background: #000;
-  }
+/* ── Video player (outside @layer for full specificity) ── */
 
-  .video-player-shell:fullscreen iframe {
-    width: 100%;
-    height: 100%;
-  }
+.video-player-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  background: #000;
+}
 
-  .video-player-shell:fullscreen .video-watermark {
-    font-size: clamp(0.85rem, 1.4vw, 1.2rem);
-  }
+.video-player-shell:fullscreen iframe {
+  width: 100%;
+  height: 100%;
+}
 
-  .video-watermark {
-    position: absolute;
-    max-width: min(70%, 34rem);
-    animation: video-watermark-roam 42s ease-in-out infinite;
-    will-change: top, right;
-  }
+.video-player-shell:fullscreen .video-watermark {
+  font-size: clamp(0.85rem, 1.4vw, 1.2rem);
+}
+
+.video-player-shell:fullscreen .video-fullscreen-btn {
+  bottom: 8px;
+  right: 12px;
+  height: 40px;
+  width: 40px;
+}
+
+.video-player-shell:fullscreen .video-fullscreen-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.video-fullscreen-btn {
+  background: transparent;
+  cursor: pointer;
+}
+
+.video-fullscreen-btn:hover {
+  background: rgb(255 255 255 / 0.15);
+}
+
+.video-watermark {
+  position: absolute;
+  max-width: min(70%, 34rem);
+  animation: video-watermark-roam 28s ease-in-out infinite;
+  will-change: top, right;
 }
 
 /* ── Marquee animations (outside @layer for full specificity) ── */

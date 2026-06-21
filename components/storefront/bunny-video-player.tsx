@@ -341,16 +341,16 @@ export function BunnyVideoPlayer({
         <button
           type="button"
           onClick={() => void toggleExpanded()}
-          className="absolute right-4 bottom-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur transition hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="video-fullscreen-btn absolute right-[6px] bottom-[2px] z-20 flex h-[48px] w-[48px] items-center justify-center text-white/90 transition-all hover:text-white focus:outline-none"
           aria-label={isExpanded ? "تصغير الفيديو" : "تكبير الفيديو"}
         >
           <svg
-            width="18"
-            height="18"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.4"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
@@ -373,8 +373,8 @@ export function BunnyVideoPlayer({
           </svg>
         </button>
         {watermarkText ? (
-          <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden text-white/48 select-none">
-            <div className="video-watermark rounded-full border border-white/10 bg-black/24 px-3 py-1.5 text-right text-xs leading-5 font-black shadow-lg backdrop-blur-[2px] sm:text-sm">
+          <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden text-white/25 select-none">
+            <div className="video-watermark rounded-full border border-white/3 bg-black/5 px-3 py-1.5 text-right text-xs leading-5 font-black sm:text-sm">
               {watermarkText}
             </div>
           </div>

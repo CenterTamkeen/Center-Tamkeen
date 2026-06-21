@@ -120,15 +120,6 @@ export async function SiteFooter() {
                   {link.label}
                 </Link>
               ))}
-              {!dashboardHref ? (
-                <Link
-                  href="/forgot-password"
-                  className="group text-foreground/60 hover:text-primary-700 flex items-center gap-2 text-sm transition-all duration-300 hover:translate-x-[-4px]"
-                >
-                  <span className="bg-accent-400 inline-block h-1 w-0 rounded-full transition-all duration-300 group-hover:w-3" />
-                  نسيت كلمة المرور
-                </Link>
-              ) : null}
             </nav>
           </div>
         </div>
