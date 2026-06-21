@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { signOutAction } from "@/lib/auth/actions";
+import { markNotificationsAsRead } from "@/lib/notifications/actions";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import type { AppRole } from "@/lib/auth/roles";
 import type { NotificationItem } from "@/lib/notifications/data";
@@ -46,11 +47,14 @@ export function SiteHeaderClient({
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [markedRead, setMarkedRead] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const isLoggedIn = Boolean(userRole && dashboardHref);
   const userInitial = userName?.trim().charAt(0) || "U";
-  const unreadCount = notifications.filter((item) => !item.read_at).length;
+  const serverUnread = notifications.filter((item) => !item.read_at).length;
+  const unreadCount = markedRead ? 0 : serverUnread;
 
   useEffect(() => {
     if (!accountMenuOpen && !notificationsOpen) {
@@ -153,7 +157,18 @@ export function SiteHeaderClient({
             <div className="relative" ref={notificationsRef}>
               <button
                 type="button"
-                onClick={() => setNotificationsOpen((open) => !open)}
+                onClick={() => {
+                  setNotificationsOpen((prev) => {
+                    const willOpen = !prev;
+                    if (willOpen && serverUnread > 0 && !markedRead) {
+                      setMarkedRead(true);
+                      startTransition(() => {
+                        markNotificationsAsRead();
+                      });
+                    }
+                    return willOpen;
+                  });
+                }}
                 aria-expanded={notificationsOpen}
                 aria-label="فتح الإشعارات"
                 className="border-border/70 bg-surface/80 hover:bg-primary-50/70 dark:hover:bg-surface-muted/90 relative flex h-11 w-11 items-center justify-center rounded-full shadow-[0_10px_30px_rgb(13_37_31/0.08)] backdrop-blur transition-all duration-300"
@@ -188,10 +203,20 @@ export function SiteHeaderClient({
                         آخر تحديثات الحساب والكورسات
                       </p>
                     </div>
-                    {unreadCount > 0 ? (
-                      <span className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-1 text-xs font-black">
-                        {unreadCount.toLocaleString("ar-EG")} جديد
-                      </span>
+                    {serverUnread > 0 && !markedRead ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => {
+                          setMarkedRead(true);
+                          startTransition(() => {
+                            markNotificationsAsRead();
+                          });
+                        }}
+                        className="bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-full px-2.5 py-1 text-xs font-black transition-colors disabled:opacity-50"
+                      >
+                        تعليم الكل كمقروء
+                      </button>
                     ) : null}
                   </div>
 
@@ -209,7 +234,7 @@ export function SiteHeaderClient({
                                   {item.body}
                                 </p>
                               </div>
-                              {!item.read_at ? (
+                              {!item.read_at && !markedRead ? (
                                 <span className="bg-primary-500 mt-1 h-2.5 w-2.5 shrink-0 rounded-full" />
                               ) : null}
                             </div>

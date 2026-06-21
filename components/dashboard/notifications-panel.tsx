@@ -1,5 +1,9 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { useState, useTransition } from "react";
+
+import { markNotificationsAsRead } from "@/lib/notifications/actions";
 import type { NotificationItem } from "@/lib/notifications/data";
 
 type NotificationsPanelProps = {
@@ -16,6 +20,18 @@ function formatNotificationDate(value: string) {
 }
 
 export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
+  const [markedRead, setMarkedRead] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const serverUnread = notifications.filter((item) => !item.read_at).length;
+  const unreadCount = markedRead ? 0 : serverUnread;
+
+  function handleMarkAllRead() {
+    setMarkedRead(true);
+    startTransition(() => {
+      markNotificationsAsRead();
+    });
+  }
+
   return (
     <section className="glass-panel-strong rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -23,10 +39,15 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
           <p className="eyebrow">الإشعارات</p>
           <h2 className="text-xl font-black">آخر التنبيهات</h2>
         </div>
-        {notifications.some((item) => !item.read_at) ? (
-          <span className="bg-primary-50 text-primary-700 rounded-full px-3 py-1 text-xs font-black">
-            جديد
-          </span>
+        {unreadCount > 0 ? (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleMarkAllRead}
+            className="bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-full px-3 py-1 text-xs font-black transition-colors disabled:opacity-50"
+          >
+            تعليم الكل كمقروء
+          </button>
         ) : null}
       </div>
 
@@ -42,7 +63,7 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
                       {item.body}
                     </p>
                   </div>
-                  {!item.read_at ? (
+                  {!item.read_at && !markedRead ? (
                     <span className="bg-primary-500 mt-1 h-2.5 w-2.5 shrink-0 rounded-full" />
                   ) : null}
                 </div>
