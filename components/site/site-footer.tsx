@@ -129,9 +129,34 @@ export async function SiteFooter() {
           className="border-t py-5"
           style={{ borderColor: "var(--footer-border)" }}
         >
-          <div className="container-page text-foreground/45 flex items-center justify-between text-xs">
+          <div className="container-page text-foreground/45 flex flex-col items-center justify-between gap-4 text-xs md:flex-row">
             <p>© {new Date().getFullYear()} تمكين. جميع الحقوق محفوظة.</p>
-            <p className="text-gradient-animated font-bold">تمكين التعليمية</p>
+            <div className="flex items-center gap-1.5">
+              <span>تم تطوير المنصة من خلال</span>
+              <a
+                href="https://www.linkedin.com/in/yasa-jaber/"
+                target="_blank"
+                rel="noreferrer"
+                className="group text-foreground/80 relative inline-flex items-center px-1 py-1 text-sm font-black transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <span className="bg-primary-500 absolute inset-x-0 bottom-0 h-[2px] origin-right scale-x-0 rounded-full transition-transform duration-300 ease-out group-hover:scale-x-100"></span>
+                <span className="group-hover:text-primary-600 transition-colors duration-300">
+                  yasa jaber
+                </span>
+              </a>
+              <span className="text-sm font-medium">و</span>
+              <a
+                href="https://www.linkedin.com/in/3bnaser/"
+                target="_blank"
+                rel="noreferrer"
+                className="group text-foreground/80 relative inline-flex items-center px-1 py-1 text-sm font-black transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <span className="bg-primary-500 absolute inset-x-0 bottom-0 h-[2px] origin-right scale-x-0 rounded-full transition-transform duration-300 ease-out group-hover:scale-x-100"></span>
+                <span className="group-hover:text-primary-600 transition-colors duration-300">
+                  3bnaser
+                </span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
