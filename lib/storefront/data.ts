@@ -134,6 +134,11 @@ type TeacherPageOptions = TeacherFilters & {
   pageSize?: number;
 };
 
+export type StorefrontStats = {
+  totalTeachers: number;
+  totalCourses: number;
+};
+
 function logStorefrontError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[storefront:${label}]`, error);
@@ -328,6 +333,34 @@ export async function getFeaturedTeachers(limit = 6) {
       cover_url: null,
     })) as TeacherSummary[],
   ).slice(0, limit);
+}
+
+export async function getStorefrontStats(): Promise<StorefrontStats> {
+  const supabase = await createClient();
+  const [teachers, courses] = await Promise.all([
+    supabase
+      .from("teachers")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true),
+    supabase
+      .from("courses")
+      .select("id, teacher:teachers!inner(id)", { count: "exact", head: true })
+      .eq("is_published", true)
+      .eq("teacher.is_active", true),
+  ]);
+
+  if (teachers.error) {
+    logStorefrontError("teachers-count", teachers.error.message);
+  }
+
+  if (courses.error) {
+    logStorefrontError("courses-count", courses.error.message);
+  }
+
+  return {
+    totalTeachers: teachers.count ?? 0,
+    totalCourses: courses.count ?? 0,
+  };
 }
 
 export async function getTeacherBySlug(slug: string) {

@@ -16,6 +16,7 @@ import {
   getFeaturedTeachers,
   getLatestCourses,
   getLatestReviews,
+  getStorefrontStats,
   type ReviewSummary,
   type TeacherSummary,
 } from "@/lib/storefront/data";
@@ -59,13 +60,14 @@ const steps = [
 ];
 
 export default async function Home() {
-  const [teachers, courses, reviews, session, announcements] =
+  const [teachers, courses, reviews, session, announcements, stats] =
     await Promise.all([
       getFeaturedTeachers(6),
       getLatestCourses(6),
       getLatestReviews(12),
       getCurrentUserProfile(),
       getPublicHeroAnnouncements(),
+      getStorefrontStats(),
     ]);
   const dashboardHref = session ? getRoleHomePath(session.profile.role) : null;
   const enrolledCourseIds = new Set(
@@ -107,7 +109,7 @@ export default async function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl bg-[#eefbf5] p-5">
                   <p className="text-primary-700 text-3xl font-black">
-                    <AnimatedCounter target={teachers.length} />+
+                    <AnimatedCounter target={stats.totalTeachers} />+
                   </p>
                   <p className="text-foreground/55 mt-1 text-sm font-bold">
                     مدرس متاح
@@ -115,7 +117,7 @@ export default async function Home() {
                 </div>
                 <div className="rounded-2xl bg-[#fff8df] p-5">
                   <p className="text-accent-700 text-3xl font-black">
-                    <AnimatedCounter target={courses.length} />+
+                    <AnimatedCounter target={stats.totalCourses} />+
                   </p>
                   <p className="text-foreground/55 mt-1 text-sm font-bold">
                     كورس منشور
