@@ -140,6 +140,13 @@ function logStorefrontError(label: string, error: unknown) {
   }
 }
 
+function isRangeNotSatisfiable(error: { message?: string; code?: string }) {
+  return (
+    error.code === "PGRST103" ||
+    error.message?.toLowerCase().includes("requested range not satisfiable")
+  );
+}
+
 function getAdminClient() {
   try {
     return createAdminClient();
@@ -458,6 +465,10 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
   const { data, error, count } = await query;
 
   if (error) {
+    if (page > 1 && isRangeNotSatisfiable(error)) {
+      return getTeachersPage({ ...options, page: 1 });
+    }
+
     logStorefrontError("teachers-page", error.message);
     return {
       teachers: [] as TeacherSummary[],
@@ -629,6 +640,10 @@ export async function getCoursesPage(options: CoursePageOptions = {}) {
   const { data, error, count } = await query;
 
   if (error) {
+    if (page > 1 && isRangeNotSatisfiable(error)) {
+      return getCoursesPage({ ...options, page: 1 });
+    }
+
     logStorefrontError("courses-page", error.message);
     return {
       courses: [] as CourseSummary[],

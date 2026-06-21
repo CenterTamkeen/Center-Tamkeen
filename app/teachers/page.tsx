@@ -119,6 +119,7 @@ export default async function TeachersPage({
           )}
 
           <Pagination
+            basePath="/teachers"
             page={teachersPage.page}
             totalPages={totalPages}
             searchParams={{

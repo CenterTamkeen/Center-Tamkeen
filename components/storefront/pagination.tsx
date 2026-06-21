@@ -1,12 +1,14 @@
 import Link from "next/link";
 
 type PaginationProps = {
+  basePath?: string;
   page: number;
   totalPages: number;
   searchParams: Record<string, string | undefined>;
 };
 
 function getHref(
+  basePath: string,
   page: number,
   searchParams: Record<string, string | undefined>,
 ) {
@@ -19,10 +21,11 @@ function getHref(
   });
 
   params.set("page", String(page));
-  return `/courses?${params.toString()}`;
+  return `${basePath}?${params.toString()}`;
 }
 
 export function Pagination({
+  basePath = "/courses",
   page,
   totalPages,
   searchParams,
@@ -35,7 +38,7 @@ export function Pagination({
     <nav className="flex flex-wrap items-center justify-center gap-3 pt-4">
       {page > 1 ? (
         <Link
-          href={getHref(page - 1, searchParams)}
+          href={getHref(basePath, page - 1, searchParams)}
           className="btn-secondary gap-2 px-5 py-2.5"
         >
           <svg
@@ -66,7 +69,7 @@ export function Pagination({
 
       {page < totalPages ? (
         <Link
-          href={getHref(page + 1, searchParams)}
+          href={getHref(basePath, page + 1, searchParams)}
           className="btn-secondary gap-2 px-5 py-2.5"
         >
           التالي
