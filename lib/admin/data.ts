@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
@@ -85,16 +86,31 @@ export type AdminOrder = Pick<
 
 export type AdminStudent = Pick<
   StudentRow,
-  "id" | "student_phone" | "father_phone" | "school_name" | "grade" | "section"
+  | "id"
+  | "profile_id"
+  | "student_phone"
+  | "father_phone"
+  | "school_name"
+  | "gender"
+  | "grade"
+  | "section"
+  | "photo_url"
+  | "created_at"
+  | "updated_at"
 > & {
   profile: {
     full_name: string;
     phone: string | null;
+    avatar_url: string | null;
+    email?: string | null;
   } | null;
   enrollments: {
     id: string;
+    enrolled_at: string;
     course: {
       title: string;
+      subject: string | null;
+      price: number;
       teacher: {
         profile: {
           full_name: string;
@@ -166,6 +182,53 @@ function isMissingTable(
     error.message?.includes("schema cache") ||
     error.message?.includes("Could not find")
   );
+}
+
+async function getAuthEmailByProfileId(profileIds: string[]) {
+  const neededProfileIds = new Set(profileIds);
+  const emailByProfileId = new Map<string, string | null>();
+
+  if (
+    neededProfileIds.size === 0 ||
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    return emailByProfileId;
+  }
+
+  try {
+    const admin = createAdminClient();
+    let page = 1;
+
+    while (neededProfileIds.size > 0) {
+      const { data, error } = await admin.auth.admin.listUsers({
+        page,
+        perPage: 1000,
+      });
+
+      if (error) {
+        logAdminError("student-auth-email", error.message);
+        break;
+      }
+
+      for (const user of data.users) {
+        if (neededProfileIds.has(user.id)) {
+          emailByProfileId.set(user.id, user.email ?? null);
+          neededProfileIds.delete(user.id);
+        }
+      }
+
+      if (data.users.length < 1000) {
+        break;
+      }
+
+      page += 1;
+    }
+  } catch (authError) {
+    logAdminError("student-auth-email", authError);
+  }
+
+  return emailByProfileId;
 }
 
 export async function getAdminTeachers() {
@@ -248,7 +311,7 @@ export async function getAdminStudents() {
   const { data, error } = await supabase
     .from("students")
     .select(
-      "id, student_phone, father_phone, school_name, grade, section, profile:profiles(full_name, phone), enrollments(id, course:courses(title, teacher:teachers(profile:profiles(full_name))))",
+      "id, profile_id, student_phone, father_phone, school_name, gender, grade, section, photo_url, created_at, updated_at, profile:profiles(full_name, phone, avatar_url), enrollments(id, enrolled_at, course:courses(title, subject, price, teacher:teachers(profile:profiles(full_name))))",
     )
     .order("created_at", { ascending: false });
 
@@ -258,6 +321,18 @@ export async function getAdminStudents() {
   }
 
   const students = (data ?? []) as Omit<AdminStudent, "student_blocks">[];
+  const profileIds = students.map((student) => student.profile_id);
+  const emailByProfileId = await getAuthEmailByProfileId(profileIds);
+
+  const studentsWithEmails = students.map((student) => ({
+    ...student,
+    profile: student.profile
+      ? {
+          ...student.profile,
+          email: emailByProfileId.get(student.profile_id) ?? null,
+        }
+      : student.profile,
+  }));
   const studentIds = students.map((student) => student.id);
 
   if (studentIds.length === 0) {
@@ -272,7 +347,7 @@ export async function getAdminStudents() {
 
   if (blocksError) {
     if (isMissingTable(blocksError, "student_blocks")) {
-      return students.map((student) => ({
+      return studentsWithEmails.map((student) => ({
         ...student,
         student_blocks: [],
       }));
@@ -294,7 +369,7 @@ export async function getAdminStudents() {
     blocksByStudent.set(block.student_id, current);
   }
 
-  return students.map((student) => ({
+  return studentsWithEmails.map((student) => ({
     ...student,
     student_blocks: blocksByStudent.get(student.id) ?? [],
   }));
