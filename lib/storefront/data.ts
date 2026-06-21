@@ -134,6 +134,8 @@ type TeacherPageOptions = TeacherFilters & {
   pageSize?: number;
 };
 
+const TEACHER_PRIORITY_NAMES = ["سيد مخلوف", "محمد كريم"];
+
 export type StorefrontStats = {
   totalTeachers: number;
   totalCourses: number;
@@ -249,6 +251,28 @@ function uniqueTeachers(teachers: TeacherSummary[]) {
   });
 }
 
+function normalizeArabicName(name: string) {
+  return name
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTeacherPriority(teacher: TeacherSummary) {
+  const name = normalizeArabicName(teacher.profile?.full_name ?? "");
+  const index = TEACHER_PRIORITY_NAMES.findIndex(
+    (priorityName) => normalizeArabicName(priorityName) === name,
+  );
+
+  return index === -1 ? TEACHER_PRIORITY_NAMES.length : index;
+}
+
+function prioritizeTeachers(teachers: TeacherSummary[]) {
+  return [...teachers].sort(
+    (a, b) => getTeacherPriority(a) - getTeacherPriority(b),
+  );
+}
+
 async function attachTeacherSummaryStats(teachers: TeacherSummary[]) {
   if (teachers.length === 0) {
     return teachers;
@@ -317,21 +341,23 @@ export async function getFeaturedTeachers(limit = 6) {
   const { data, error } = await supabase
     .from("teachers")
     .select(
-      "id, profile_id, slug, bio, subject, avatar_url, is_active, profile:profiles(full_name, avatar_url)",
+      "id, profile_id, slug, bio, subject, avatar_url, is_active, created_at, profile:profiles(full_name, avatar_url)",
     )
     .eq("is_active", true)
-    .limit(limit * 2);
+    .order("created_at", { ascending: false });
 
   if (error) {
     logStorefrontError("featured-teachers", error.message);
     return [];
   }
 
-  return uniqueTeachers(
-    (data ?? []).map((teacher) => ({
-      ...teacher,
-      cover_url: null,
-    })) as TeacherSummary[],
+  return prioritizeTeachers(
+    uniqueTeachers(
+      (data ?? []).map((teacher) => ({
+        ...teacher,
+        cover_url: null,
+      })) as TeacherSummary[],
+    ),
   ).slice(0, limit);
 }
 
@@ -459,8 +485,7 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
       "id, profile_id, slug, bio, subject, avatar_url, is_active, created_at, profile:profiles(full_name, avatar_url)",
       { count: "exact" },
     )
-    .eq("is_active", true)
-    .range(from, to);
+    .eq("is_active", true);
 
   if (options.query) {
     const { data: matchingProfiles, error: profilesError } = await supabase
@@ -512,20 +537,27 @@ export async function getTeachersPage(options: TeacherPageOptions = {}) {
   }
 
   const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const teachers = await attachTeacherSummaryStats(
+  if (page > totalPages) {
+    return getTeachersPage({ ...options, page: 1 });
+  }
+
+  const pagedTeachers = prioritizeTeachers(
     uniqueTeachers(
       (data ?? []).map((teacher) => ({
         ...teacher,
         cover_url: null,
       })) as TeacherSummary[],
     ),
-  );
+  ).slice(from, to + 1);
+
+  const teachers = await attachTeacherSummaryStats(pagedTeachers);
 
   return {
     teachers,
     totalCount,
-    totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    totalPages,
     page,
   };
 }
