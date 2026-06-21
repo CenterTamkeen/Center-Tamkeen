@@ -58,15 +58,25 @@ export const teacherUpdateSchema = z.object({
   isActive: z.boolean(),
 });
 
-export const orderRejectSchema = z.object({
-  orderId: z.string().uuid("الطلب غير صحيح."),
-  rejectionReason: z
+export const activationCodeGenerateSchema = z.object({
+  courseId: z.string().uuid("اختار كورس صحيح."),
+  quantity: z.coerce
+    .number({ error: "اكتب عدد الأكواد." })
+    .int("عدد الأكواد لازم يكون رقم صحيح.")
+    .min(1, "ولّد كود واحد على الأقل.")
+    .max(200, "أقصى عدد في المرة الواحدة ٢٠٠ كود."),
+  expiresAt: z
     .string()
     .trim()
-    .min(3, "اكتب سبب الإلغاء أو الاسترجاع.")
-    .max(300, "سبب الإلغاء لا يزيد عن 300 حرف."),
+    .min(1, "حدد تاريخ انتهاء الصلاحية.")
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: "تاريخ انتهاء الصلاحية غير صحيح.",
+    })
+    .refine((value) => new Date(value) > new Date(), {
+      message: "تاريخ انتهاء الصلاحية لازم يكون في المستقبل.",
+    }),
 });
 
-export const orderAcceptSchema = z.object({
-  orderId: z.string().uuid("الطلب غير صحيح."),
+export const activationCodeDeleteSchema = z.object({
+  codeId: z.string().uuid("الكود غير صحيح."),
 });

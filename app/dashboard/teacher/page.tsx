@@ -81,7 +81,7 @@ export default async function TeacherDashboardPage() {
         <StatCard
           label="الأرباح المؤكدة"
           value={formatPrice(stats.totalEarnings)}
-          hint="محسوبة من teacher_earnings بعد اكتمال الطلبات فقط"
+          hint="محسوبة بعد تفعيل اشتراكات الطلاب"
         />
       </section>
 

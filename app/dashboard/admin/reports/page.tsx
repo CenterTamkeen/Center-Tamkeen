@@ -57,12 +57,12 @@ export default async function AdminReportsPage() {
           value={formatPrice(stats.couponDiscountImpact)}
         />
         <ReportRow
-          label="الطلبات المكتملة"
-          value={stats.completedOrders.toLocaleString("ar-EG")}
+          label="الاشتراكات المفعلة"
+          value={stats.usedActivationCodes.toLocaleString("ar-EG")}
         />
         <ReportRow
-          label="الطلبات المرفوضة"
-          value={stats.rejectedOrders.toLocaleString("ar-EG")}
+          label="أكواد متاحة"
+          value={stats.availableActivationCodes.toLocaleString("ar-EG")}
         />
       </section>
 

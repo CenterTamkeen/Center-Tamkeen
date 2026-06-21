@@ -42,19 +42,19 @@ export default async function AdminDashboardPage() {
           hint={`${stats.publishedCourses.toLocaleString("ar-EG")} كورس منشور`}
         />
         <StatCard
-          label="طلبات قيد الانتظار"
-          value={stats.pendingOrders.toLocaleString("ar-EG")}
-          hint="متابعة الطلبات لحين اعتمادها من الإدارة"
+          label="أكواد متاحة"
+          value={stats.availableActivationCodes.toLocaleString("ar-EG")}
+          hint={`${stats.totalActivationCodes.toLocaleString("ar-EG")} كود متولد إجمالًا`}
         />
         <StatCard
-          label="طلبات مكتملة"
-          value={stats.completedOrders.toLocaleString("ar-EG")}
-          hint="تفتح الكورسات عبر Trigger قاعدة البيانات"
+          label="أكواد مستخدمة"
+          value={stats.usedActivationCodes.toLocaleString("ar-EG")}
+          hint={`${stats.expiredActivationCodes.toLocaleString("ar-EG")} كود منتهي وغير مستخدم`}
         />
         <StatCard
           label="إجمالي المبيعات"
           value={formatPrice(stats.totalSales)}
-          hint="من الطلبات المكتملة فقط"
+          hint="من الأكواد المستخدمة والاشتراكات المفعلة"
         />
         <StatCard
           label="أرباح السنتر"

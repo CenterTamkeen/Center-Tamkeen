@@ -863,7 +863,33 @@ export async function getCourseById(id: string) {
     return null;
   }
 
-  return data as CourseDetails | null;
+  if (!data) {
+    return null;
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return data as CourseDetails;
+  }
+
+  const { data: lessons, error: lessonsError } = await admin
+    .from("lessons")
+    .select(
+      "id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider",
+    )
+    .eq("course_id", data.id)
+    .order("order_index", { ascending: true });
+
+  if (lessonsError) {
+    logStorefrontError("course-lessons-by-id", lessonsError.message);
+    return data as CourseDetails;
+  }
+
+  return {
+    ...data,
+    lessons: (lessons ?? []) as CourseDetails["lessons"],
+  } as CourseDetails;
 }
 
 export async function getLatestReviews(limit = 6) {

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/storefront/empty-state";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import {
   getCoursesByTeacher,
+  getCurrentStudentEnrollmentCourseIds,
   getTeacherBySlug,
   getTeacherPublicStats,
 } from "@/lib/storefront/data";
@@ -50,6 +51,11 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
     getCoursesByTeacher(teacher.id),
     getTeacherPublicStats(teacher.id),
   ]);
+  const enrolledCourseIds = new Set(
+    await getCurrentStudentEnrollmentCourseIds(
+      courses.map((course) => course.id),
+    ),
+  );
   const name = teacher.profile?.full_name ?? "مدرس تمكين";
   const avatar = teacher.avatar_url ?? teacher.profile?.avatar_url;
   const cover = teacher.cover_url;
@@ -180,7 +186,10 @@ export default async function TeacherPage({ params }: TeacherPageProps) {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((course, i) => (
                 <ScrollReveal key={course.id} delay={i * 0.08}>
-                  <CourseCard course={course} />
+                  <CourseCard
+                    course={course}
+                    isEnrolled={enrolledCourseIds.has(course.id)}
+                  />
                 </ScrollReveal>
               ))}
             </div>

@@ -56,6 +56,27 @@ export function SiteHeaderClient({
   const serverUnread = notifications.filter((item) => !item.read_at).length;
   const unreadCount = markedRead ? 0 : serverUnread;
 
+  function markUnreadNotifications() {
+    if (serverUnread <= 0 || markedRead) {
+      return;
+    }
+
+    setMarkedRead(true);
+    startTransition(() => {
+      markNotificationsAsRead();
+    });
+  }
+
+  function toggleNotifications() {
+    const willOpen = !notificationsOpen;
+
+    setNotificationsOpen(willOpen);
+
+    if (willOpen) {
+      markUnreadNotifications();
+    }
+  }
+
   useEffect(() => {
     if (!accountMenuOpen && !notificationsOpen) {
       return;
@@ -157,18 +178,7 @@ export function SiteHeaderClient({
             <div className="relative" ref={notificationsRef}>
               <button
                 type="button"
-                onClick={() => {
-                  setNotificationsOpen((prev) => {
-                    const willOpen = !prev;
-                    if (willOpen && serverUnread > 0 && !markedRead) {
-                      setMarkedRead(true);
-                      startTransition(() => {
-                        markNotificationsAsRead();
-                      });
-                    }
-                    return willOpen;
-                  });
-                }}
+                onClick={toggleNotifications}
                 aria-expanded={notificationsOpen}
                 aria-label="فتح الإشعارات"
                 className="border-border/70 bg-surface/80 hover:bg-primary-50/70 dark:hover:bg-surface-muted/90 relative flex h-11 w-11 items-center justify-center rounded-full shadow-[0_10px_30px_rgb(13_37_31/0.08)] backdrop-blur transition-all duration-300"
@@ -207,12 +217,7 @@ export function SiteHeaderClient({
                       <button
                         type="button"
                         disabled={isPending}
-                        onClick={() => {
-                          setMarkedRead(true);
-                          startTransition(() => {
-                            markNotificationsAsRead();
-                          });
-                        }}
+                        onClick={markUnreadNotifications}
                         className="bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-full px-2.5 py-1 text-xs font-black transition-colors disabled:opacity-50"
                       >
                         تعليم الكل كمقروء

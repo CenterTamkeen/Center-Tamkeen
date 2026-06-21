@@ -7,8 +7,8 @@ import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  orderAcceptSchema,
-  orderRejectSchema,
+  activationCodeDeleteSchema,
+  activationCodeGenerateSchema,
   teacherCreateSchema,
   teacherUpdateSchema,
 } from "@/lib/validations/admin";
@@ -26,10 +26,14 @@ function failure(
   };
 }
 
-function success(message: string): ActionState {
+function success(
+  message: string,
+  values?: Record<string, string>,
+): ActionState {
   return {
     status: "success",
     message,
+    values,
   };
 }
 
@@ -150,6 +154,56 @@ function revalidateTeacherAdminPaths(slug?: string | null) {
   revalidatePath("/dashboard/admin/teachers");
   revalidatePath("/dashboard/admin/courses");
   revalidatePath("/dashboard/admin/reports");
+}
+
+function revalidateActivationCodePaths() {
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/activation-codes");
+  revalidatePath("/dashboard/admin/reports");
+}
+
+function generateSixDigitCode() {
+  return String(
+    crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000,
+  ).padStart(6, "0");
+}
+
+async function buildUniqueActivationCodes(
+  admin: ReturnType<typeof createAdminClient>,
+  quantity: number,
+) {
+  const codes = new Set<string>();
+  let attempts = 0;
+
+  while (codes.size < quantity && attempts < quantity * 40) {
+    attempts += 1;
+    codes.add(generateSixDigitCode());
+
+    if (codes.size >= quantity) {
+      const candidateCodes = Array.from(codes);
+      const { data, error } = await admin
+        .from("activation_codes")
+        .select("code")
+        .in("code", candidateCodes);
+
+      if (error) {
+        return { codes: [], error: "تعذر مراجعة الأكواد الموجودة." };
+      }
+
+      for (const existing of data ?? []) {
+        codes.delete(existing.code);
+      }
+    }
+  }
+
+  if (codes.size < quantity) {
+    return {
+      codes: [],
+      error: "تعذر توليد أكواد غير مكررة. جرّب عدد أقل.",
+    };
+  }
+
+  return { codes: Array.from(codes), error: null };
 }
 
 export async function createTeacherAction(
@@ -483,6 +537,120 @@ export async function deleteAdminCourseAction(formData: FormData) {
   revalidatePath("/dashboard/admin/reports");
 }
 
+export async function generateActivationCodesAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const { profile } = await requireRole(
+    "admin",
+    "/dashboard/admin/activation-codes",
+  );
+
+  const values = getFormValues(formData, ["courseId", "quantity", "expiresAt"]);
+  const parsed = activationCodeGenerateSchema.safeParse({
+    courseId: getString(formData, "courseId"),
+    quantity: getString(formData, "quantity"),
+    expiresAt: getString(formData, "expiresAt"),
+  });
+
+  if (!parsed.success) {
+    return failure(
+      "راجع بيانات توليد الأكواد.",
+      fieldErrors(parsed.error),
+      values,
+    );
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
+  }
+
+  const { data: course, error: courseError } = await admin
+    .from("courses")
+    .select("id")
+    .eq("id", parsed.data.courseId)
+    .maybeSingle();
+
+  if (courseError || !course) {
+    return failure("الكورس غير موجود.", undefined, values);
+  }
+
+  const generated = await buildUniqueActivationCodes(
+    admin,
+    parsed.data.quantity,
+  );
+
+  if (generated.error) {
+    return failure(generated.error, undefined, values);
+  }
+
+  const expiresAt = new Date(parsed.data.expiresAt).toISOString();
+  const { error } = await admin.from("activation_codes").insert(
+    generated.codes.map((code) => ({
+      course_id: parsed.data.courseId,
+      code,
+      expires_at: expiresAt,
+      created_by_profile_id: profile.id,
+    })),
+  );
+
+  if (error) {
+    console.error("Failed to generate activation codes.", error);
+    return failure(
+      "تعذر حفظ الأكواد. جرّب مرة أخرى لاحتمال وجود كود مكرر.",
+      undefined,
+      values,
+    );
+  }
+
+  revalidateActivationCodePaths();
+  return success(
+    `تم توليد ${generated.codes.length.toLocaleString("ar-EG")} كود بنجاح.`,
+    {
+      generatedCodes: generated.codes.join(","),
+      courseId: parsed.data.courseId,
+      expiresAt,
+    },
+  );
+}
+
+export async function deleteActivationCodeAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole("admin", "/dashboard/admin/activation-codes");
+
+  const values = getFormValues(formData, ["codeId"]);
+  const parsed = activationCodeDeleteSchema.safeParse({
+    codeId: getString(formData, "codeId"),
+  });
+
+  if (!parsed.success) {
+    return failure("الكود غير صحيح.", fieldErrors(parsed.error), values);
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
+  }
+
+  const { error } = await admin
+    .from("activation_codes")
+    .delete()
+    .eq("id", parsed.data.codeId)
+    .is("used_at", null);
+
+  if (error) {
+    return failure("تعذر حذف الكود. الأكواد المستخدمة لا تُحذف.");
+  }
+
+  revalidateActivationCodePaths();
+  return success("تم حذف الكود.");
+}
+
 export async function deleteReviewAction(formData: FormData) {
   await requireRole("admin", "/dashboard/admin/reviews");
 
@@ -605,87 +773,4 @@ export async function deleteTeacherAction(
 
   revalidateTeacherAdminPaths(teacher.slug);
   return success("تم حذف المدرس بنجاح.");
-}
-
-export async function rejectOrderAction(
-  _previousState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireRole("admin", "/dashboard/admin/orders");
-
-  const values = getFormValues(formData, ["orderId", "rejectionReason"]);
-  const parsed = orderRejectSchema.safeParse({
-    orderId: getString(formData, "orderId"),
-    rejectionReason: getString(formData, "rejectionReason"),
-  });
-
-  if (!parsed.success) {
-    return failure("راجع سبب الإلغاء.", fieldErrors(parsed.error), values);
-  }
-
-  const admin = getAdminClient();
-
-  if (!admin) {
-    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
-  }
-
-  const { error } = await admin
-    .from("orders")
-    .update({
-      status: "rejected",
-      rejection_reason: parsed.data.rejectionReason,
-    })
-    .eq("id", parsed.data.orderId);
-
-  if (error) {
-    return failure("تعذر تحديث حالة الطلب.", undefined, values);
-  }
-
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/admin/orders");
-  revalidatePath("/dashboard/admin/reports");
-  return success("تم تسجيل إلغاء الطلب.");
-}
-
-export async function acceptOrderAction(
-  _previousState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireRole("admin", "/dashboard/admin/orders");
-
-  const values = getFormValues(formData, ["orderId"]);
-  const parsed = orderAcceptSchema.safeParse({
-    orderId: getString(formData, "orderId"),
-  });
-
-  if (!parsed.success) {
-    return failure("الطلب غير صحيح.", fieldErrors(parsed.error), values);
-  }
-
-  const admin = getAdminClient();
-
-  if (!admin) {
-    return failure("إعدادات الأدمن غير مكتملة.", undefined, values);
-  }
-
-  const { error } = await admin
-    .from("orders")
-    .update({
-      status: "completed",
-      rejection_reason: null,
-    })
-    .eq("id", parsed.data.orderId);
-
-  if (error) {
-    return failure("تعذر قبول الطلب.", undefined, values);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/courses");
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/admin/orders");
-  revalidatePath("/dashboard/admin/reports");
-  revalidatePath("/dashboard/student");
-  revalidatePath("/dashboard/teacher");
-  return success("تم قبول الطلب وتفعيل الكورس للطالب.");
 }

@@ -34,13 +34,13 @@ const links = [
     ),
   },
   {
-    href: "/dashboard/admin/orders",
-    label: "الطلبات",
+    href: "/dashboard/admin/activation-codes",
+    label: "أكواد التفعيل",
     icon: (
       <>
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-        <path d="M3 6h18" />
-        <path d="M16 10a4 4 0 0 1-8 0" />
+        <rect x="3" y="11" width="18" height="10" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        <path d="M12 15v2" />
       </>
     ),
   },

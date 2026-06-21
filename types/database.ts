@@ -657,6 +657,74 @@ export type Database = {
           },
         ];
       };
+      activation_codes: {
+        Row: {
+          id: string;
+          course_id: string;
+          code: string;
+          expires_at: string;
+          used_at: string | null;
+          used_by_student_id: string | null;
+          order_id: string | null;
+          created_by_profile_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          code: string;
+          expires_at: string;
+          used_at?: string | null;
+          used_by_student_id?: string | null;
+          order_id?: string | null;
+          created_by_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          course_id?: string;
+          code?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          used_by_student_id?: string | null;
+          order_id?: string | null;
+          created_by_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activation_codes_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activation_codes_used_by_student_id_fkey";
+            columns: ["used_by_student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activation_codes_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activation_codes_created_by_profile_id_fkey";
+            columns: ["created_by_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reviews: {
         Row: {
           id: string;
@@ -918,6 +986,19 @@ export type Database = {
           course_uuid: string;
         };
         Returns: boolean;
+      };
+      redeem_course_activation_code: {
+        Args: {
+          course_uuid: string;
+          submitted_code: string;
+          student_uuid: string;
+        };
+        Returns: {
+          status: string;
+          message: string;
+          enrollment_id: string | null;
+          order_id: string | null;
+        }[];
       };
       set_order_completed_at: {
         Args: Record<PropertyKey, never>;

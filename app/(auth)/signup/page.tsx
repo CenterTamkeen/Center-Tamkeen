@@ -11,7 +11,7 @@ export default function SignUpPage() {
   return (
     <AuthShell
       title="تسجيل طالب جديد"
-      description="املأ بيانات الطالب الأساسية مرة واحدة، وبعدها تقدر تدخل على بوابة الطالب وتتابع الكورسات والطلبات."
+      description="املأ بيانات الطالب الأساسية مرة واحدة، وبعدها تقدر تدخل على بوابة الطالب وتتابع الكورسات المفعلة."
       wide
     >
       <StudentSignUpForm />

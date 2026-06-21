@@ -12,6 +12,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile, getRoleHomePath } from "@/lib/auth/roles";
 import {
+  getCurrentStudentEnrollmentCourseIds,
   getFeaturedTeachers,
   getLatestCourses,
   getLatestReviews,
@@ -40,7 +41,7 @@ const features = [
   },
   {
     title: "حساب طالب",
-    text: "بوابة للطالب لمتابعة الاشتراكات والطلبات.",
+    text: "بوابة للطالب لمتابعة الاشتراكات والكورسات المفعلة.",
     icon: "▣",
   },
   {
@@ -53,7 +54,7 @@ const features = [
 const steps = [
   ["01", "سجّل حسابك", "أنشئ حساب طالب وادخل على المنصة."],
   ["02", "اختار كورسك", "تصفح المواد والمدرسين واختار المناسب."],
-  ["03", "ابدأ التعلم", "تابع الحصص والمحتوى من مكان واحد."],
+  ["03", "فعّل بالكود", "ادخل كود التفعيل وابدأ متابعة الحصص من مكان واحد."],
 ];
 
 export default async function Home() {
@@ -66,6 +67,11 @@ export default async function Home() {
       getPublicHeroAnnouncements(),
     ]);
   const dashboardHref = session ? getRoleHomePath(session.profile.role) : null;
+  const enrolledCourseIds = new Set(
+    await getCurrentStudentEnrollmentCourseIds(
+      courses.map((course) => course.id),
+    ),
+  );
 
   return (
     <>
@@ -142,7 +148,10 @@ export default async function Home() {
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {courses.map((course, i) => (
                   <ScrollReveal key={course.id} delay={i * 0.06}>
-                    <CourseCard course={course} />
+                    <CourseCard
+                      course={course}
+                      isEnrolled={enrolledCourseIds.has(course.id)}
+                    />
                   </ScrollReveal>
                 ))}
               </div>

@@ -7,6 +7,8 @@ type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
+type ActivationCodeRow =
+  Database["public"]["Tables"]["activation_codes"]["Row"];
 
 export type AdminTeacher = Pick<
   TeacherRow,
@@ -127,6 +129,27 @@ export type AdminReview = Pick<
   } | null;
 };
 
+export type AdminActivationCode = Pick<
+  ActivationCodeRow,
+  "id" | "course_id" | "code" | "expires_at" | "used_at" | "created_at"
+> & {
+  course: {
+    title: string;
+    price: number;
+    teacher: {
+      profile: {
+        full_name: string;
+      } | null;
+    } | null;
+  } | null;
+  used_by_student: {
+    student_phone: string;
+    profile: {
+      full_name: string;
+    } | null;
+  } | null;
+};
+
 function logAdminError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.error(`[admin:${label}]`, error);
@@ -202,6 +225,24 @@ export async function getAdminOrders(status?: OrderStatus | "all") {
   return (data ?? []) as AdminOrder[];
 }
 
+export async function getAdminActivationCodes() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("activation_codes")
+    .select(
+      "id, course_id, code, expires_at, used_at, created_at, course:courses(title, price, teacher:teachers(profile:profiles(full_name))), used_by_student:students(student_phone, profile:profiles(full_name))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  if (error) {
+    logAdminError("activation-codes", error.message);
+    return [];
+  }
+
+  return (data ?? []) as AdminActivationCode[];
+}
+
 export async function getAdminStudents() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -261,15 +302,17 @@ export async function getAdminStudents() {
 
 export async function getAdminStats() {
   const supabase = await createClient();
-  const [teachers, courses, orders, earnings, coupons] = await Promise.all([
-    getAdminTeachers(),
-    getAdminCourses(),
-    getAdminOrders("all"),
-    supabase.from("teacher_earnings").select("amount, teacher_id"),
-    supabase
-      .from("coupons")
-      .select("used_count, discount_value, discount_type"),
-  ]);
+  const [teachers, courses, orders, earnings, coupons, activationCodes] =
+    await Promise.all([
+      getAdminTeachers(),
+      getAdminCourses(),
+      getAdminOrders("all"),
+      supabase.from("teacher_earnings").select("amount, teacher_id"),
+      supabase
+        .from("coupons")
+        .select("used_count, discount_value, discount_type"),
+      supabase.from("activation_codes").select("used_at, expires_at"),
+    ]);
 
   if (earnings.error) {
     logAdminError("earnings", earnings.error.message);
@@ -277,6 +320,10 @@ export async function getAdminStats() {
 
   if (coupons.error) {
     logAdminError("coupons", coupons.error.message);
+  }
+
+  if (activationCodes.error) {
+    logAdminError("activation-codes-stats", activationCodes.error.message);
   }
 
   const completedOrders = orders.filter(
@@ -297,6 +344,17 @@ export async function getAdminStats() {
   const couponDiscountImpact = (coupons.data ?? []).reduce((sum, coupon) => {
     return sum + coupon.used_count * coupon.discount_value;
   }, 0);
+  const now = Date.now();
+  const activationCodeRows = activationCodes.data ?? [];
+  const usedActivationCodes = activationCodeRows.filter(
+    (code) => code.used_at,
+  ).length;
+  const availableActivationCodes = activationCodeRows.filter(
+    (code) => !code.used_at && new Date(code.expires_at).getTime() > now,
+  ).length;
+  const expiredActivationCodes = activationCodeRows.filter(
+    (code) => !code.used_at && new Date(code.expires_at).getTime() <= now,
+  ).length;
 
   return {
     totalTeachers: teachers.length,
@@ -312,6 +370,10 @@ export async function getAdminStats() {
     centerEarnings: Math.max(0, totalSales - teacherEarnings),
     usedCoupons,
     couponDiscountImpact,
+    totalActivationCodes: activationCodeRows.length,
+    usedActivationCodes,
+    availableActivationCodes,
+    expiredActivationCodes,
   };
 }
 
