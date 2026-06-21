@@ -17,8 +17,35 @@ export default function ContactPage() {
       intro="لو عندك مشكلة في الاشتراك، حسابك، أو محتاج تعرف تفاصيل أكتر عن تمكين، ابعتلنا وهنرد عليك في أقرب وقت."
     >
       <StaticSection title="قنوات التواصل">
-        <p>الهاتف: يتم إضافته من إدارة المنصة.</p>
-        <p>البريد الإلكتروني: support@center-tamkeen.com</p>
+        <p>
+          الهاتف:{" "}
+          <a
+            href="tel:01111901562"
+            className="text-primary-700 font-black hover:underline"
+          >
+            01111901562
+          </a>
+        </p>
+        <p>
+          البريد الإلكتروني:{" "}
+          <a
+            href="mailto:centertamkeen64@gmail.com"
+            className="text-primary-700 font-black hover:underline"
+          >
+            centertamkeen64@gmail.com
+          </a>
+        </p>
+        <p>
+          فيسبوك:{" "}
+          <a
+            href="https://www.facebook.com/share/1b84HsBzqi/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-700 font-black hover:underline"
+          >
+            صفحة تمكين على فيسبوك
+          </a>
+        </p>
         <p>مواعيد الدعم: يوميا من 10 صباحا حتى 10 مساء.</p>
       </StaticSection>
       <StaticSection title="قبل ما تراسلنا">

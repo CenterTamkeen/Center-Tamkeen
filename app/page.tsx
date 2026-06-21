@@ -166,7 +166,11 @@ export default async function Home() {
         </section>
 
         <section id="reviews" className="container-page py-20">
-          <SectionTitle eyebrow="التقييمات" title="آراء الطلاب" />
+          <SectionTitle
+            eyebrow="التقييمات"
+            title="آراء الطلاب"
+            showLink={false}
+          />
           {reviews.length > 0 ? (
             <ReviewsMarquee reviews={reviews} />
           ) : (
@@ -316,13 +320,13 @@ export default async function Home() {
                     <>
                       <Link
                         href={dashboardHref}
-                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1"
+                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-500 ease-out hover:-translate-y-1"
                       >
                         الدخول للوحة
                       </Link>
                       <Link
                         href="/profile"
-                        className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white/15"
+                        className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-500 ease-out hover:-translate-y-1 hover:bg-white/15"
                       >
                         الملف الشخصي
                       </Link>
@@ -331,13 +335,13 @@ export default async function Home() {
                     <>
                       <Link
                         href="/signup"
-                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1"
+                        className="bg-accent-500 text-accent-foreground hover:bg-accent-400 inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-black shadow-[var(--shadow-card)] transition-all duration-500 ease-out hover:-translate-y-1"
                       >
                         إنشاء حساب طالب
                       </Link>
                       <Link
                         href="/login"
-                        className="inline-flex items-center justify-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-black text-white/90 transition-all duration-300 hover:-translate-y-1 hover:bg-white/10"
+                        className="inline-flex items-center justify-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-black text-white/90 transition-all duration-500 ease-out hover:-translate-y-1 hover:bg-white/10"
                       >
                         تسجيل الدخول
                       </Link>
@@ -345,7 +349,7 @@ export default async function Home() {
                   )}
                   <Link
                     href="/courses"
-                    className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white/15"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-black text-white backdrop-blur transition-all duration-500 ease-out hover:-translate-y-1 hover:bg-white/15"
                   >
                     تصفح الكورسات
                   </Link>
@@ -482,10 +486,12 @@ function SectionTitle({
   eyebrow,
   title,
   href = "/courses",
+  showLink = true,
 }: {
   eyebrow: string;
   title: string;
   href?: string;
+  showLink?: boolean;
 }) {
   return (
     <ScrollReveal>
@@ -494,9 +500,11 @@ function SectionTitle({
           <p className="eyebrow">{eyebrow}</p>
           <h2 className="text-primary-950 mt-2 text-3xl font-black">{title}</h2>
         </div>
-        <Link href={href} className="btn-secondary px-4 py-2 text-xs">
-          تصفح الكل
-        </Link>
+        {showLink && (
+          <Link href={href} className="btn-secondary px-4 py-2 text-xs">
+            تصفح الكل
+          </Link>
+        )}
       </div>
     </ScrollReveal>
   );
