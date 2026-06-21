@@ -151,6 +151,17 @@ function getCreateUserFailureMessage(errorMessage?: string) {
   };
 }
 
+function isStudentPhoneConflict(error?: { code?: string; message?: string }) {
+  const message = error?.message?.toLowerCase() ?? "";
+
+  return (
+    error?.code === "23505" &&
+    (message.includes("students_student_phone") ||
+      message.includes("student_phone") ||
+      message.includes("duplicate key"))
+  );
+}
+
 async function uploadAvatar(userId: string, file: File) {
   const validationMessage = getStudentPhotoValidationMessage(file);
 
@@ -480,6 +491,28 @@ export async function studentSignUpAction(
     );
   }
 
+  const { data: existingStudent, error: existingStudentError } = await admin
+    .from("students")
+    .select("id")
+    .eq("student_phone", parsed.data.studentPhone)
+    .maybeSingle();
+
+  if (existingStudentError) {
+    console.error(
+      "Failed to check duplicate student phone.",
+      existingStudentError,
+    );
+    return failure("تعذر مراجعة رقم الطالب. جرّب مرة أخرى.", undefined, values);
+  }
+
+  if (existingStudent) {
+    return failure(
+      "رقم الطالب مسجل قبل كده.",
+      { studentPhone: ["رقم الطالب مسجل قبل كده."] },
+      values,
+    );
+  }
+
   const { data: authData, error: createUserError } =
     await admin.auth.admin.createUser({
       email: parsed.data.email,
@@ -560,6 +593,15 @@ export async function studentSignUpAction(
     console.error("Failed to save signup student record.", studentError);
     await deleteImageByUrl(photoUrl);
     await deletePartialUser(admin, authData.user.id);
+
+    if (isStudentPhoneConflict(studentError)) {
+      return failure(
+        "رقم الطالب مسجل قبل كده.",
+        { studentPhone: ["رقم الطالب مسجل قبل كده."] },
+        values,
+      );
+    }
+
     return failure("تعذر حفظ بيانات الطالب الإضافية.", undefined, values);
   }
 
@@ -714,6 +756,33 @@ export async function updateProfileAction(
       );
     }
 
+    const { data: existingStudent, error: existingStudentError } = await admin
+      .from("students")
+      .select("id")
+      .eq("student_phone", parsed.data.studentPhone)
+      .neq("profile_id", user.id)
+      .maybeSingle();
+
+    if (existingStudentError) {
+      console.error(
+        "Failed to check duplicate profile student phone.",
+        existingStudentError,
+      );
+      return failure(
+        "تعذر مراجعة رقم الطالب. جرّب مرة أخرى.",
+        undefined,
+        values,
+      );
+    }
+
+    if (existingStudent) {
+      return failure(
+        "رقم الطالب مسجل قبل كده.",
+        { studentPhone: ["رقم الطالب مسجل قبل كده."] },
+        values,
+      );
+    }
+
     const { error: studentError } = await admin
       .from("students")
       .update({
@@ -729,6 +798,15 @@ export async function updateProfileAction(
 
     if (studentError) {
       await deleteImageByUrl(photoUrl);
+
+      if (isStudentPhoneConflict(studentError)) {
+        return failure(
+          "رقم الطالب مسجل قبل كده.",
+          { studentPhone: ["رقم الطالب مسجل قبل كده."] },
+          values,
+        );
+      }
+
       return failure(
         "تم تحديث الملف الأساسي، لكن بيانات الطالب لم تُحفظ.",
         undefined,
