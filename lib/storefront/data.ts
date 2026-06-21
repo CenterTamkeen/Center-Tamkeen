@@ -76,10 +76,15 @@ export type CourseDetails = CourseSummary & {
     | "thumbnail_url"
     | "video_provider"
   >[];
-  reviews: (Pick<ReviewRow, "id" | "rating" | "comment" | "created_at"> & {
+  reviews: (Pick<
+    ReviewRow,
+    "id" | "student_id" | "rating" | "comment" | "created_at"
+  > & {
     student: {
+      photo_url: string | null;
       profile: {
         full_name: string;
+        avatar_url: string | null;
       } | null;
     } | null;
   })[];
@@ -93,8 +98,10 @@ export type ReviewSummary = Pick<
     title: string;
   } | null;
   student: {
+    photo_url: string | null;
     profile: {
       full_name: string;
+      avatar_url: string | null;
     } | null;
   } | null;
 };
@@ -840,7 +847,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, rating, comment, created_at, student:students(profile:profiles(full_name)))",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider), reviews(id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)))",
     )
     .eq("id", id)
     .eq("is_published", true)
@@ -886,19 +893,38 @@ export async function getCourseById(id: string) {
     return data as CourseDetails;
   }
 
+  const { data: reviews, error: reviewsError } = await admin
+    .from("reviews")
+    .select(
+      "id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url))",
+    )
+    .eq("course_id", data.id)
+    .order("created_at", { ascending: false });
+
+  if (reviewsError) {
+    logStorefrontError("course-reviews-by-id", reviewsError.message);
+    return {
+      ...data,
+      lessons: (lessons ?? []) as CourseDetails["lessons"],
+    } as CourseDetails;
+  }
+
   return {
     ...data,
     lessons: (lessons ?? []) as CourseDetails["lessons"],
+    reviews: (reviews ?? []) as CourseDetails["reviews"],
   } as CourseDetails;
 }
 
 export async function getLatestReviews(limit = 6) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = getAdminClient();
+  const client = admin ?? (await createClient());
+  const { data, error } = await client
     .from("reviews")
     .select(
-      "id, rating, comment, created_at, course:courses(title), student:students(profile:profiles(full_name))",
+      "id, rating, comment, created_at, course:courses!inner(title, is_published), student:students(photo_url, profile:profiles(full_name, avatar_url))",
     )
+    .eq("course.is_published", true)
     .order("created_at", { ascending: false })
     .limit(limit);
 

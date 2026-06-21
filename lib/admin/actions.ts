@@ -661,9 +661,21 @@ export async function deleteReviewAction(formData: FormData) {
     return;
   }
 
+  const { data: review } = await admin
+    .from("reviews")
+    .select("course_id")
+    .eq("id", reviewId)
+    .maybeSingle();
+
   await admin.from("reviews").delete().eq("id", reviewId);
 
+  revalidatePath("/");
+  revalidatePath("/courses");
   revalidatePath("/dashboard/admin/reviews");
+
+  if (review?.course_id) {
+    revalidatePath(`/courses/${review.course_id}`);
+  }
 }
 
 export async function deleteTeacherAction(

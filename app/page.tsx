@@ -16,6 +16,7 @@ import {
   getFeaturedTeachers,
   getLatestCourses,
   getLatestReviews,
+  type ReviewSummary,
   type TeacherSummary,
 } from "@/lib/storefront/data";
 
@@ -62,7 +63,7 @@ export default async function Home() {
     await Promise.all([
       getFeaturedTeachers(6),
       getLatestCourses(6),
-      getLatestReviews(3),
+      getLatestReviews(12),
       getCurrentUserProfile(),
       getPublicHeroAnnouncements(),
     ]);
@@ -167,13 +168,7 @@ export default async function Home() {
         <section id="reviews" className="container-page py-20">
           <SectionTitle eyebrow="التقييمات" title="آراء الطلاب" />
           {reviews.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-3">
-              {reviews.map((review, i) => (
-                <ScrollReveal key={review.id} delay={i * 0.08}>
-                  <ReviewCard review={review} />
-                </ScrollReveal>
-              ))}
-            </div>
+            <ReviewsMarquee reviews={reviews} />
           ) : (
             <EmptyState
               title="لسه مفيش تقييمات"
@@ -362,6 +357,52 @@ export default async function Home() {
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+function ReviewsMarquee({ reviews }: { reviews: ReviewSummary[] }) {
+  const shouldAnimate = reviews.length > 1;
+  const reviewGroups = shouldAnimate ? [reviews, reviews] : [reviews];
+
+  return (
+    <div className="relative overflow-hidden py-5" dir="ltr">
+      {shouldAnimate ? (
+        <>
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white to-transparent" />
+        </>
+      ) : null}
+      <div
+        className={
+          shouldAnimate
+            ? "tamkeen-teachers-marquee-track hover:[animation-play-state:paused]"
+            : "flex flex-wrap justify-center gap-6"
+        }
+      >
+        {reviewGroups.map((group, groupIndex) => (
+          <div
+            key={groupIndex}
+            aria-hidden={groupIndex > 0}
+            className={
+              shouldAnimate
+                ? "tamkeen-teachers-marquee-group"
+                : "flex flex-wrap justify-center gap-6"
+            }
+          >
+            {group.map((review) => (
+              <div
+                key={`${groupIndex}-${review.id}`}
+                tabIndex={groupIndex > 0 ? -1 : undefined}
+                dir="rtl"
+                className="w-[min(82vw,23rem)] shrink-0"
+              >
+                <ReviewCard review={review} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { BunnyVideoPlayer } from "@/components/storefront/bunny-video-player";
 import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form";
+import { CourseReviewForm } from "@/components/storefront/course-review-form";
 import { PurchaseScrollButton } from "@/components/storefront/purchase-scroll-button";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
@@ -73,6 +74,11 @@ export async function CourseDetailsPage({
   const courseProgress = isEnrolled
     ? await getCurrentStudentCourseProgress(course.id)
     : { studentId: null, progress: [] };
+  const currentStudentReview = courseProgress.studentId
+    ? course.reviews.find(
+        (review) => review.student_id === courseProgress.studentId,
+      )
+    : null;
   const progressByLessonId = new Map(
     courseProgress.progress.map((item) => [item.lesson_id, item]),
   );
@@ -445,6 +451,17 @@ export async function CourseDetailsPage({
                   </span>
                 ) : null}
               </div>
+              {isEnrolled ? (
+                <div className="mb-5">
+                  <CourseReviewForm
+                    courseId={course.id}
+                    courseHref={courseHref}
+                    reviewId={currentStudentReview?.id}
+                    initialRating={currentStudentReview?.rating}
+                    initialComment={currentStudentReview?.comment}
+                  />
+                </div>
+              ) : null}
               {course.reviews.length > 0 ? (
                 <div className="grid gap-4">
                   {course.reviews.map((review) => (
@@ -453,9 +470,20 @@ export async function CourseDetailsPage({
                       className="card-modern quote-deco group p-5"
                     >
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <h3 className="group-hover:text-primary-700 font-bold transition-colors duration-300">
-                          {review.student?.profile?.full_name ?? "طالب تمكين"}
-                        </h3>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <StudentAvatar
+                            name={
+                              review.student?.profile?.full_name ?? "طالب تمكين"
+                            }
+                            src={
+                              review.student?.photo_url ??
+                              review.student?.profile?.avatar_url
+                            }
+                          />
+                          <h3 className="group-hover:text-primary-700 truncate font-bold transition-colors duration-300">
+                            {review.student?.profile?.full_name ?? "طالب تمكين"}
+                          </h3>
+                        </div>
                         <span
                           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-black"
                           style={{
@@ -576,6 +604,26 @@ export async function CourseDetailsPage({
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+function StudentAvatar({ name, src }: { name: string; src?: string | null }) {
+  return (
+    <div className="border-primary-100 bg-primary-50 text-primary-700 relative h-10 w-10 shrink-0 overflow-hidden rounded-full border text-sm font-black">
+      {src ? (
+        <Image
+          src={src}
+          alt={name}
+          fill
+          sizes="40px"
+          className="object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center">
+          {name.trim().charAt(0) || "ط"}
+        </span>
+      )}
+    </div>
   );
 }
 

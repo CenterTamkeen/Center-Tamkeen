@@ -8,6 +8,22 @@ export type TeacherCourse = Database["public"]["Tables"]["courses"]["Row"] & {
   enrollments: { id: string; student_id: string }[];
 };
 export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"];
+export type TeacherReview = Pick<
+  Database["public"]["Tables"]["reviews"]["Row"],
+  "id" | "rating" | "comment" | "created_at"
+> & {
+  student: {
+    photo_url: string | null;
+    profile: {
+      full_name: string;
+      avatar_url: string | null;
+    } | null;
+  } | null;
+  course: {
+    id: string;
+    title: string;
+  } | null;
+};
 export type TeacherCoupon = Database["public"]["Tables"]["coupons"]["Row"] & {
   course: {
     id: string;
@@ -201,6 +217,29 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
     course,
     lessons: (data ?? []) as TeacherLesson[],
   };
+}
+
+export async function getTeacherReviews(teacherId: string) {
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return [] as TeacherReview[];
+  }
+
+  const { data, error } = await admin
+    .from("reviews")
+    .select(
+      "id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)), course:courses!inner(id, title, teacher_id)",
+    )
+    .eq("course.teacher_id", teacherId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logTeacherError("reviews", error.message);
+    return [];
+  }
+
+  return (data ?? []) as TeacherReview[];
 }
 
 export async function getTeacherCoupons(teacherId: string) {

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { ReviewSummary } from "@/lib/storefront/data";
 
 type ReviewCardProps = {
@@ -6,20 +8,39 @@ type ReviewCardProps = {
 
 export function ReviewCard({ review }: ReviewCardProps) {
   const studentName = review.student?.profile?.full_name ?? "طالب تمكين";
+  const avatarUrl =
+    review.student?.photo_url ?? review.student?.profile?.avatar_url;
 
   return (
     <article className="card-modern quote-deco group p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="group-hover:text-primary-700 font-bold transition-colors duration-300">
-            {studentName}
-          </h3>
-          <p className="text-foreground/50 mt-0.5 text-sm">
-            {review.course?.title ?? "كورس تمكين"}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="border-primary-100 bg-primary-50 text-primary-700 relative h-10 w-10 shrink-0 overflow-hidden rounded-full border text-sm font-black">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={studentName}
+                fill
+                sizes="40px"
+                className="object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                {studentName.trim().charAt(0) || "ط"}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h3 className="group-hover:text-primary-700 truncate font-bold transition-colors duration-300">
+              {studentName}
+            </h3>
+            <p className="text-foreground/50 mt-0.5 truncate text-sm">
+              {review.course?.title ?? "كورس تمكين"}
+            </p>
+          </div>
         </div>
         <div
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-black"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-black"
           style={{
             background:
               "linear-gradient(135deg, rgb(254 248 224 / 0.9), rgb(253 238 179 / 0.6))",

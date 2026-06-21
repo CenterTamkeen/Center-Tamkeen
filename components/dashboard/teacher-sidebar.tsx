@@ -32,6 +32,15 @@ const links = [
     ),
   },
   {
+    href: "/dashboard/teacher/reviews",
+    label: "التقييمات",
+    icon: (
+      <>
+        <path d="M12 17.8 5.8 21l1.2-6.9L2 9.3l6.9-1L12 2l3.1 6.3 6.9 1-5 4.8 1.2 6.9Z" />
+      </>
+    ),
+  },
+  {
     href: "/dashboard/teacher/announcements",
     label: "الإعلانات",
     icon: (

@@ -7,6 +7,7 @@ import type { ActionState } from "@/lib/auth/action-state";
 import { deleteBunnyStreamVideo } from "@/lib/bunny-stream";
 import { uploadImage } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentTeacher } from "@/lib/teacher/data";
 import {
@@ -47,6 +48,16 @@ function success(message: string): ActionState {
 function revalidateLessonPaths(courseId: string) {
   revalidatePath(`/dashboard/teacher/courses/${courseId}/lessons`);
   revalidatePath(`/courses/${courseId}`);
+}
+
+function revalidateReviewPaths(courseId?: string) {
+  revalidatePath("/");
+  revalidatePath("/courses");
+  revalidatePath("/dashboard/teacher/reviews");
+
+  if (courseId) {
+    revalidatePath(`/courses/${courseId}`);
+  }
 }
 
 function getString(formData: FormData, key: string) {
@@ -295,6 +306,38 @@ export async function createCourseAction(
   revalidatePath("/dashboard/teacher");
   revalidatePath("/dashboard/teacher/courses");
   redirect("/dashboard/teacher/courses");
+}
+
+export async function deleteTeacherReviewAction(formData: FormData) {
+  let teacherId = "";
+
+  try {
+    const { teacher } = await requireTeacher();
+    teacherId = teacher.id;
+  } catch {
+    return;
+  }
+
+  const reviewId = getString(formData, "reviewId");
+  const admin = createAdminClient();
+
+  if (!reviewId) {
+    return;
+  }
+
+  const { data: review } = await admin
+    .from("reviews")
+    .select("id, course_id, course:courses!inner(teacher_id)")
+    .eq("id", reviewId)
+    .eq("course.teacher_id", teacherId)
+    .maybeSingle();
+
+  if (!review) {
+    return;
+  }
+
+  await admin.from("reviews").delete().eq("id", review.id);
+  revalidateReviewPaths(review.course_id);
 }
 
 export async function updateCourseAction(
