@@ -686,6 +686,8 @@ export async function updateProfileAction(
 
   const photo = getOptionalUpload(formData, "photo");
   const cover = getOptionalUpload(formData, "cover");
+  const shouldRemoveCover =
+    profile.role === "teacher" && formData.get("removeCover") === "1" && !cover;
   let photoUrl: string | null = null;
   let coverUrl: string | null = null;
 
@@ -858,7 +860,7 @@ export async function updateProfileAction(
       return failure("لا يوجد ملف مدرس مرتبط بحسابك.", undefined, values);
     }
 
-    if (cover && missingTeacherCoverColumn) {
+    if ((cover || shouldRemoveCover) && missingTeacherCoverColumn) {
       return failure(
         "تحديث قاعدة البيانات الخاص بخلفية المدرس لسه متطبقش. طبق migration الخاص بالبانر وجرب تاني.",
         {
@@ -889,7 +891,11 @@ export async function updateProfileAction(
           : {}),
         bio: parsed.data.teacherBio || null,
         ...(photoUrl ? { avatar_url: photoUrl } : {}),
-        ...(coverUrl ? { cover_url: coverUrl } : {}),
+        ...(coverUrl
+          ? { cover_url: coverUrl }
+          : shouldRemoveCover
+            ? { cover_url: null }
+            : {}),
       })
       .eq("id", currentTeacher.id)
       .select("slug")
@@ -908,7 +914,7 @@ export async function updateProfileAction(
       );
     }
 
-    if (coverUrl && currentTeacher.cover_url) {
+    if ((coverUrl || shouldRemoveCover) && currentTeacher.cover_url) {
       await deleteImageByUrl(currentTeacher.cover_url);
     }
 

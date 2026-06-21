@@ -92,8 +92,10 @@ export function ProfileForm({
   const [coverName, setCoverName] = useState("");
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [previewCoverUrl, setPreviewCoverUrl] = useState<string | null>(null);
+  const [isCoverRemoved, setIsCoverRemoved] = useState(false);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const studentPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const teacherCoverInputRef = useRef<HTMLInputElement | null>(null);
   const isStudent = profile.role === "student";
   const isTeacher = profile.role === "teacher";
   const stateValueOrFallback = (
@@ -161,7 +163,9 @@ export function ProfileForm({
   const avatar =
     teacher?.avatar_url ?? student?.photo_url ?? profile.avatar_url;
   const photoPreview = previewPhotoUrl ?? avatar;
-  const coverPreview = previewCoverUrl ?? teacher?.cover_url;
+  const coverPreview = isCoverRemoved
+    ? null
+    : (previewCoverUrl ?? teacher?.cover_url);
   const canPreviewPhoto = Boolean(photoPreview);
   const availableSections = useMemo(() => {
     if (!selectedGrade) {
@@ -222,12 +226,28 @@ export function ProfileForm({
 
   const updateCoverPreview = (file?: File) => {
     setCoverName(file?.name ?? "");
+    setIsCoverRemoved(false);
     setPreviewCoverUrl((currentUrl) => {
       if (currentUrl) {
         URL.revokeObjectURL(currentUrl);
       }
 
       return file ? URL.createObjectURL(file) : null;
+    });
+  };
+
+  const removeCoverPreview = () => {
+    setCoverName("");
+    setIsCoverRemoved(true);
+    if (teacherCoverInputRef.current) {
+      teacherCoverInputRef.current.value = "";
+    }
+    setPreviewCoverUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+
+      return null;
     });
   };
 
@@ -356,6 +376,12 @@ export function ProfileForm({
           <section className="overflow-hidden rounded-2xl border bg-white/70">
             <label className="group relative block h-48 cursor-pointer bg-[linear-gradient(135deg,var(--primary-700),var(--primary-400),var(--accent-300))] sm:h-64">
               <input
+                type="hidden"
+                name="removeCover"
+                value={isCoverRemoved ? "1" : "0"}
+              />
+              <input
+                ref={teacherCoverInputRef}
                 name="cover"
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -379,6 +405,37 @@ export function ProfileForm({
               <span className="text-primary-700 absolute top-5 left-5 rounded-xl bg-white/90 px-4 py-2 text-xs font-black opacity-0 shadow-[var(--shadow-card)] transition-opacity duration-300 group-hover:opacity-100">
                 تغيير الخلفية
               </span>
+              {coverPreview ? (
+                <button
+                  type="button"
+                  aria-label="حذف الخلفية"
+                  title="حذف الخلفية"
+                  className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full bg-red-600/90 text-white opacity-0 shadow-[var(--shadow-card)] transition-all duration-300 hover:bg-red-700 focus-visible:opacity-100 focus-visible:ring-4 focus-visible:ring-red-200 focus-visible:outline-none group-hover:opacity-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    removeCoverPreview();
+                  }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v5" />
+                    <path d="M14 11v5" />
+                  </svg>
+                </button>
+              ) : null}
               {coverName ? (
                 <span className="absolute bottom-5 left-5 rounded-xl bg-black/65 px-4 py-2 text-xs font-black text-white">
                   تم اختيار خلفية جديدة
@@ -415,7 +472,7 @@ export function ProfileForm({
                     تغيير
                   </span>
                 </label>
-                <div className="pb-2">
+                <div className="translate-y-3 pb-1 sm:translate-y-4">
                   <p className="eyebrow">{teacher?.subject ?? "مدرس تمكين"}</p>
                   <h2 className="text-2xl font-black">{profile.full_name}</h2>
                 </div>
