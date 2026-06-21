@@ -111,16 +111,13 @@ export function ActivationCodeManager({
           <p className="eyebrow">توليد الأكواد</p>
           <h3 className="text-lg font-black">أكواد تفعيل كورس</h3>
         </div>
-        <form
-          action={formAction}
-          className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_130px_220px_auto]"
-        >
-          <label className="space-y-2">
+        <form action={formAction} className="flex flex-wrap items-start gap-3">
+          <label className="min-w-[240px] flex-[1_1_280px] space-y-2">
             <span className="text-foreground/70 text-sm font-bold">الكورس</span>
             <select
               name="courseId"
               defaultValue={state.values?.courseId ?? ""}
-              className="field bg-background/60"
+              className="field bg-background/60 min-w-0"
             >
               <option value="" disabled>
                 اختار الكورس
@@ -133,7 +130,7 @@ export function ActivationCodeManager({
             </select>
             <ErrorText message={state.fieldErrors?.courseId?.[0]} />
           </label>
-          <label className="space-y-2">
+          <label className="min-w-[110px] flex-[0_1_130px] space-y-2">
             <span className="text-foreground/70 text-sm font-bold">العدد</span>
             <input
               name="quantity"
@@ -141,11 +138,11 @@ export function ActivationCodeManager({
               min={1}
               max={200}
               defaultValue={state.values?.quantity ?? "10"}
-              className="field bg-background/60"
+              className="field bg-background/60 min-w-0"
             />
             <ErrorText message={state.fieldErrors?.quantity?.[0]} />
           </label>
-          <label className="space-y-2">
+          <label className="min-w-[220px] flex-[1_1_220px] space-y-2">
             <span className="text-foreground/70 text-sm font-bold">
               تاريخ الصلاحية
             </span>
@@ -153,14 +150,14 @@ export function ActivationCodeManager({
               name="expiresAt"
               type="datetime-local"
               defaultValue={state.values?.expiresAt ?? ""}
-              className="field bg-background/60"
+              className="field bg-background/60 min-w-0"
             />
             <ErrorText message={state.fieldErrors?.expiresAt?.[0]} />
           </label>
           <button
             type="submit"
             disabled={isPending || courses.length === 0}
-            className="btn-primary self-end px-5 py-3"
+            className="btn-primary h-[46px] min-w-[84px] self-end px-5 py-0"
           >
             {isPending ? "جاري..." : "توليد"}
           </button>
