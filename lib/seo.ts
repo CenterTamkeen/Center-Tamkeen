@@ -1,5 +1,5 @@
 export const siteUrl = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://tamkeeeen.online"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.tamkeeen.online"
 ).replace(/\/$/, "");
 
 export const siteName = "منصة تمكين";
@@ -14,9 +14,9 @@ export const seoKeywords = [
   "مبادرة تمكين",
   "منصة تمكين",
   "tamkeen",
-  "tamkeeeen",
+  "tamkeeen",
   "Tamkeen",
-  "Tamkeeeen",
+  "Tamkeeen",
   "منصة تمكين التعليمية",
   "تمكين التعليمية",
   "كورسات تمكين",

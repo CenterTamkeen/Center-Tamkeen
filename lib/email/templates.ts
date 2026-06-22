@@ -1,4 +1,4 @@
-const defaultSiteUrl = "https://tamkeeeen.online";
+const defaultSiteUrl = "https://www.tamkeeen.online";
 const defaultLogoUrl =
   "https://res.cloudinary.com/dabyu6chc/image/upload/v1781796565/tamkeen-transparent_gw04kk.png";
 
