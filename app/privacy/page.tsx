@@ -7,6 +7,11 @@ import {
 
 export const metadata: Metadata = {
   title: "سياسة الخصوصية",
+  description:
+    "سياسة خصوصية منصة تمكين وكيفية استخدام بيانات الطلاب والمدرسين لتشغيل الحسابات والكورسات وأكواد التفعيل.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

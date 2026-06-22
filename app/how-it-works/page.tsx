@@ -7,6 +7,11 @@ import {
 
 export const metadata: Metadata = {
   title: "كيف يعمل الموقع",
+  description:
+    "اعرف خطوات استخدام منصة تمكين: إنشاء حساب طالب، اختيار الكورس، تفعيل الاشتراك بالكود، ومتابعة الدروس.",
+  alternates: {
+    canonical: "/how-it-works",
+  },
 };
 
 export default function HowItWorksPage() {

@@ -11,8 +11,17 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getTeacherSubjects, getTeachersPage } from "@/lib/storefront/data";
 
 export const metadata: Metadata = {
-  title: "المدرسين",
-  description: "تصفح مدرسين منصة تمكين وفلتر حسب الاسم أو المادة.",
+  title: "مدرسين منصة تمكين",
+  description:
+    "تصفح مدرسين منصة تمكين التعليمية وابحث باسم المدرس أو المادة لمتابعة الكورسات المتاحة.",
+  alternates: {
+    canonical: "/teachers",
+  },
+  openGraph: {
+    title: "مدرسين منصة تمكين",
+    description: "مدرسين متخصصين وكورسات ثانوية عامة على منصة تمكين.",
+    url: "/teachers",
+  },
 };
 
 type TeachersPageProps = {

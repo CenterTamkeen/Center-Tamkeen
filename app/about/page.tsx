@@ -6,7 +6,12 @@ import {
 } from "@/components/site/static-page-shell";
 
 export const metadata: Metadata = {
-  title: "عن تمكين",
+  title: "عن منصة تمكين",
+  description:
+    "تعرف على منصة تمكين التعليمية ومبادرة تمكين لدعم طلاب الثانوية العامة بتجربة تعلم أونلاين منظمة وآمنة.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {

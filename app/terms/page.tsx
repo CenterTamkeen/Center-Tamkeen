@@ -7,6 +7,11 @@ import {
 
 export const metadata: Metadata = {
   title: "الشروط والأحكام",
+  description:
+    "الشروط والأحكام الخاصة باستخدام منصة تمكين، الحسابات، الكورسات، الاشتراكات، وحماية المحتوى التعليمي.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

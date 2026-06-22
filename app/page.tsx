@@ -12,6 +12,13 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile, getRoleHomePath } from "@/lib/auth/roles";
 import {
+  absoluteUrl,
+  siteDescription,
+  siteName,
+  siteTitle,
+  siteUrl,
+} from "@/lib/seo";
+import {
   getCurrentStudentEnrollmentCourseIds,
   getFeaturedTeachers,
   getLatestCourses,
@@ -75,10 +82,54 @@ export default async function Home() {
       courses.map((course) => course.id),
     ),
   );
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "EducationalOrganization",
+        "@id": `${siteUrl}/#organization`,
+        name: siteName,
+        alternateName: ["تمكين", "مبادرة تمكين", "منصة تمكين", "Tamkeen"],
+        url: siteUrl,
+        logo: absoluteUrl("/Logo/tamkeen-transparent.png"),
+        description: siteDescription,
+        areaServed: "EG",
+        sameAs: ["https://www.facebook.com/share/1b84HsBzqi/"],
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: "+201111901562",
+          contactType: "customer support",
+          areaServed: "EG",
+          availableLanguage: ["Arabic"],
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        name: siteTitle,
+        alternateName: ["تمكين", "مبادرة تمكين", "منصة تمكين"],
+        url: siteUrl,
+        description: siteDescription,
+        inLanguage: "ar-EG",
+        publisher: {
+          "@id": `${siteUrl}/#organization`,
+        },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${siteUrl}/courses?q={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
 
   return (
     <>
       <SiteHeader />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <main>
         <section
           className="border-border/60 relative overflow-hidden border-b"

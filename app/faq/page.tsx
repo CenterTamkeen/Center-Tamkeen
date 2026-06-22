@@ -7,6 +7,11 @@ import {
 
 export const metadata: Metadata = {
   title: "الأسئلة الشائعة",
+  description:
+    "إجابات سريعة عن الاشتراك في كورسات منصة تمكين، أكواد التفعيل، حساب الطالب، والدعم.",
+  alternates: {
+    canonical: "/faq",
+  },
 };
 
 const faqs = [

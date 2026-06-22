@@ -21,8 +21,17 @@ type StudentGrade = Database["public"]["Enums"]["student_grade"];
 type StudentSection = Database["public"]["Enums"]["student_section"];
 
 export const metadata: Metadata = {
-  title: "الكورسات",
-  description: "تصفح كورسات منصة تمكين التعليمية وفلتر حسب المدرس والسعر.",
+  title: "كورسات منصة تمكين",
+  description:
+    "تصفح كورسات منصة تمكين التعليمية للثانوية العامة، وابحث حسب المادة أو المدرس أو السعر لاختيار الكورس المناسب.",
+  alternates: {
+    canonical: "/courses",
+  },
+  openGraph: {
+    title: "كورسات منصة تمكين",
+    description: "كورسات أونلاين منظمة لطلاب الثانوية العامة على منصة تمكين.",
+    url: "/courses",
+  },
 };
 
 export const dynamic = "force-dynamic";

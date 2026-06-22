@@ -14,6 +14,7 @@ import {
   getTeacherBySlug,
   getTeacherPublicStats,
 } from "@/lib/storefront/data";
+import { absoluteUrl } from "@/lib/seo";
 
 type TeacherPageProps = {
   params: Promise<{
@@ -35,7 +36,28 @@ export async function generateMetadata({
 
   return {
     title: teacher.profile?.full_name ?? "مدرس تمكين",
-    description: teacher.bio ?? `كورسات ${teacher.subject} على منصة تمكين.`,
+    description:
+      teacher.bio ??
+      `كورسات ${teacher.subject} مع ${teacher.profile?.full_name ?? "مدرس تمكين"} على منصة تمكين التعليمية.`,
+    alternates: {
+      canonical: `/teachers/${teacher.slug}`,
+    },
+    openGraph: {
+      title: `${teacher.profile?.full_name ?? "مدرس تمكين"} | منصة تمكين`,
+      description:
+        teacher.bio ?? `كورسات ${teacher.subject} على منصة تمكين التعليمية.`,
+      url: `/teachers/${teacher.slug}`,
+      images: [
+        {
+          url:
+            teacher.cover_url ??
+            teacher.avatar_url ??
+            teacher.profile?.avatar_url ??
+            absoluteUrl("/Logo/tamkeen-transparent.png"),
+          alt: teacher.profile?.full_name ?? "مدرس تمكين",
+        },
+      ],
+    },
   };
 }
 

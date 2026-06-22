@@ -7,6 +7,11 @@ import {
 
 export const metadata: Metadata = {
   title: "تواصل معنا",
+  description:
+    "تواصل مع دعم منصة تمكين للاستفسار عن الاشتراكات، أكواد التفعيل، حساب الطالب، أو كورسات الثانوية العامة.",
+  alternates: {
+    canonical: "/contact",
+  },
 };
 
 export default function ContactPage() {

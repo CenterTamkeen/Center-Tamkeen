@@ -22,6 +22,7 @@ import {
 } from "@/lib/storefront/data";
 import { buildCourseHref } from "@/lib/storefront/links";
 import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
+import { absoluteUrl } from "@/lib/seo";
 
 type CourseDetailsPageProps = {
   id: string;
@@ -39,7 +40,33 @@ export async function generateCourseMetadata(id: string): Promise<Metadata> {
 
   return {
     title: course.title,
-    description: course.description ?? `تفاصيل كورس ${course.title}.`,
+    description:
+      course.description ??
+      `تفاصيل كورس ${course.title} على منصة تمكين التعليمية.`,
+    alternates: {
+      canonical: buildCourseHref(course),
+    },
+    openGraph: {
+      title: `${course.title} | منصة تمكين`,
+      description:
+        course.description ??
+        `تفاصيل كورس ${course.title} على منصة تمكين التعليمية.`,
+      url: buildCourseHref(course),
+      type: "article",
+      images: course.thumbnail_url
+        ? [
+            {
+              url: course.thumbnail_url,
+              alt: course.title,
+            },
+          ]
+        : [
+            {
+              url: absoluteUrl("/Logo/tamkeen-transparent.png"),
+              alt: "منصة تمكين",
+            },
+          ],
+    },
   };
 }
 
