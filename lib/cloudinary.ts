@@ -10,11 +10,18 @@ type CloudinaryUploadOptions = {
 
 let isConfigured = false;
 
-function getRequiredEnv(name: "CLOUDINARY_CLOUD_NAME" | "CLOUDINARY_API_KEY" | "CLOUDINARY_API_SECRET") {
+function getRequiredEnv(
+  name:
+    | "CLOUDINARY_CLOUD_NAME"
+    | "CLOUDINARY_API_KEY"
+    | "CLOUDINARY_API_SECRET",
+) {
   const value = process.env[name]?.trim();
 
   if (!value) {
-    throw new Error(`Missing required Cloudinary environment variable: ${name}`);
+    throw new Error(
+      `Missing required Cloudinary environment variable: ${name}`,
+    );
   }
 
   return value;
@@ -53,17 +60,58 @@ export async function uploadImage(
 
   return new Promise<{ secureUrl: string; publicId: string }>(
     (resolve, reject) => {
-      const stream = client.uploader.upload_stream(uploadOptions, (error, result) => {
-        if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed."));
-          return;
-        }
+      const stream = client.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error || !result) {
+            reject(error ?? new Error("Cloudinary upload failed."));
+            return;
+          }
 
-        resolve({
-          secureUrl: result.secure_url,
-          publicId: result.public_id,
-        });
-      });
+          resolve({
+            secureUrl: result.secure_url,
+            publicId: result.public_id,
+          });
+        },
+      );
+
+      stream.end(buffer);
+    },
+  );
+}
+
+export async function uploadRawFile(
+  file: File,
+  options: CloudinaryUploadOptions,
+) {
+  const client = getCloudinary();
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const uploadOptions: UploadApiOptions = {
+    folder: options.folder,
+    resource_type: "raw",
+    overwrite: options.overwrite ?? true,
+    unique_filename: options.publicId ? false : true,
+    use_filename: options.publicId ? false : true,
+    public_id: options.publicId,
+  };
+
+  return new Promise<{ secureUrl: string; publicId: string }>(
+    (resolve, reject) => {
+      const stream = client.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error || !result) {
+            reject(error ?? new Error("Cloudinary upload failed."));
+            return;
+          }
+
+          resolve({
+            secureUrl: result.secure_url,
+            publicId: result.public_id,
+          });
+        },
+      );
 
       stream.end(buffer);
     },
@@ -80,9 +128,13 @@ function getPublicIdFromUrl(url: string) {
       return null;
     }
 
-    const afterUpload = parsedUrl.pathname.slice(markerIndex + uploadMarker.length);
+    const afterUpload = parsedUrl.pathname.slice(
+      markerIndex + uploadMarker.length,
+    );
     const segments = afterUpload.split("/").filter(Boolean);
-    const versionIndex = segments.findIndex((segment) => /^v\d+$/.test(segment));
+    const versionIndex = segments.findIndex((segment) =>
+      /^v\d+$/.test(segment),
+    );
     const publicIdSegments =
       versionIndex >= 0 ? segments.slice(versionIndex + 1) : segments;
 

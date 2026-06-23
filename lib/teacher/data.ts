@@ -7,7 +7,10 @@ export type TeacherCourse = Database["public"]["Tables"]["courses"]["Row"] & {
   lessons: { id: string }[];
   enrollments: { id: string; student_id: string }[];
 };
-export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"];
+export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"] & {
+  lesson_attachments: Database["public"]["Tables"]["lesson_attachments"]["Row"][];
+  lesson_quiz_questions: Database["public"]["Tables"]["lesson_quiz_questions"]["Row"][];
+};
 export type TeacherReview = Pick<
   Database["public"]["Tables"]["reviews"]["Row"],
   "id" | "rating" | "comment" | "created_at"
@@ -222,7 +225,7 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, order_index, vdocipher_video_id, bunny_video_id, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at",
+      "id, course_id, title, order_index, vdocipher_video_id, bunny_video_id, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
     )
     .eq("course_id", courseId)
     .order("order_index", { ascending: true });

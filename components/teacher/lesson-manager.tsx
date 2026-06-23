@@ -9,6 +9,7 @@ import { initialActionState } from "@/lib/auth/action-state";
 import {
   bulkDeleteLessonsAction,
   createLessonAction,
+  deleteLessonAttachmentAction,
   deleteLessonAction,
   moveLessonAction,
   moveLessonToCourseAction,
@@ -21,6 +22,116 @@ import { ErrorText, FormFeedback } from "./form-feedback";
 
 function minutesFromSeconds(seconds: number | null) {
   return seconds ? Math.round(seconds / 60) : "";
+}
+
+function formatFileSize(bytes: number | null) {
+  if (!bytes) {
+    return "";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("ar-EG")} KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toLocaleString("ar-EG", {
+    maximumFractionDigits: 1,
+  })} MB`;
+}
+
+function getQuizOptions(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((option) => String(option)).slice(0, 4)
+    : [];
+}
+
+function LessonQuizFields({
+  initialQuestions = [],
+}: {
+  initialQuestions?: TeacherLesson["lesson_quiz_questions"];
+}) {
+  const [questionCount, setQuestionCount] = useState(initialQuestions.length);
+
+  return (
+    <div className="border-primary-200 bg-primary-50/25 space-y-3 rounded-xl border border-dashed p-4">
+      <input type="hidden" name="quizQuestionCount" value={questionCount} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black">كويز MCQ اختياري</p>
+          <p className="text-foreground/55 mt-1 text-xs font-bold">
+            سيظهر للطالب بعد إكمال الحصة.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setQuestionCount((count) => count + 1)}
+            className="btn-secondary px-3 py-2 text-xs"
+          >
+            إضافة سؤال
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuestionCount((count) => Math.max(0, count - 1))}
+            disabled={questionCount === 0}
+            className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
+          >
+            حذف آخر سؤال
+          </button>
+        </div>
+      </div>
+
+      {Array.from({ length: questionCount }, (_, index) => {
+        const question = initialQuestions[index];
+        const options = getQuizOptions(question?.options);
+
+        return (
+          <div key={index} className="space-y-3 rounded-xl bg-white/55 p-3">
+            <label className="space-y-2">
+              <span className="text-foreground/80 text-xs font-black">
+                السؤال {(index + 1).toLocaleString("ar-EG")}
+              </span>
+              <input
+                name={`quizQuestion-${index}`}
+                defaultValue={question?.question ?? ""}
+                className="field bg-background/70 py-2.5"
+                placeholder="اكتب السؤال"
+              />
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[0, 1, 2, 3].map((optionIndex) => (
+                <label key={optionIndex} className="space-y-2">
+                  <span className="text-foreground/70 text-xs font-bold">
+                    اختيار {(optionIndex + 1).toLocaleString("ar-EG")}
+                  </span>
+                  <input
+                    name={`quizOption-${index}-${optionIndex}`}
+                    defaultValue={options[optionIndex] ?? ""}
+                    className="field bg-background/70 py-2.5"
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3 text-xs font-bold">
+              {[0, 1, 2, 3].map((optionIndex) => (
+                <label key={optionIndex} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`quizCorrectOption-${index}`}
+                    value={optionIndex}
+                    defaultChecked={
+                      question?.correct_option_index === optionIndex
+                    }
+                    className="accent-primary-600 h-4 w-4"
+                  />
+                  الإجابة {optionIndex + 1}
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 type TusCredentials = {
@@ -212,6 +323,30 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
         </label>
         <label className="space-y-2">
           <span className="text-foreground/80 text-sm font-semibold">
+            عنوان المرفق (اختياري)
+          </span>
+          <input
+            name="attachmentTitle"
+            defaultValue={state.values?.attachmentTitle ?? ""}
+            className="field bg-background/60 py-2.5"
+            placeholder="مثال: ملزمة الحصة PDF"
+          />
+          <ErrorText message={state.fieldErrors?.attachmentTitle?.[0]} />
+        </label>
+        <label className="space-y-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            مرفق الحصة (اختياري)
+          </span>
+          <input
+            name="attachmentFile"
+            type="file"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,application/pdf"
+            className="field bg-background/60 py-2.5"
+          />
+          <ErrorText message={state.fieldErrors?.attachmentFile?.[0]} />
+        </label>
+        <label className="space-y-2">
+          <span className="text-foreground/80 text-sm font-semibold">
             المدة بالدقائق
           </span>
           <input
@@ -225,6 +360,7 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
           <ErrorText message={state.fieldErrors?.durationMinutes?.[0]} />
         </label>
       </div>
+      <LessonQuizFields />
       <label className="flex items-center gap-2 text-sm font-semibold">
         <input
           name="isFreePreview"
@@ -331,6 +467,19 @@ function LessonEditForm({
         className="field bg-background/60 py-2.5 text-right"
         placeholder="الدقائق"
       />
+      <input
+        name="attachmentTitle"
+        defaultValue={state.values?.attachmentTitle ?? ""}
+        className="field bg-background/60 py-2.5 text-xs lg:col-span-2"
+        placeholder="عنوان مرفق اختياري"
+      />
+      <input
+        name="attachmentFile"
+        type="file"
+        accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,application/pdf"
+        className="field bg-background/60 py-2.5 text-xs lg:col-span-2"
+        aria-label="مرفق الحصة"
+      />
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-2 text-xs font-bold">
           <input
@@ -350,6 +499,7 @@ function LessonEditForm({
         </button>
       </div>
       <div className="lg:col-span-5">
+        <ErrorText message={state.fieldErrors?.attachmentFile?.[0]} />
         {uploadError ? <ErrorText message={uploadError} /> : null}
         {uploadProgress !== null ? (
           <p className="text-primary-700 mb-2 text-sm font-bold">
@@ -357,6 +507,13 @@ function LessonEditForm({
           </p>
         ) : null}
         <FormFeedback state={state} />
+      </div>
+      <div className="lg:col-span-5">
+        <LessonQuizFields
+          initialQuestions={[...lesson.lesson_quiz_questions].sort(
+            (a, b) => a.order_index - b.order_index,
+          )}
+        />
       </div>
     </form>
   );
@@ -528,6 +685,39 @@ export function LessonManager({
                 </div>
               </div>
               <LessonEditForm lesson={lesson} courseId={courseId} />
+              {lesson.lesson_attachments.length > 0 ? (
+                <div className="grid gap-2">
+                  {lesson.lesson_attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="bg-primary-50/40 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold"
+                    >
+                      <a
+                        href={attachment.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary-700 hover:underline"
+                      >
+                        {attachment.title}
+                        {attachment.file_size
+                          ? ` - ${formatFileSize(attachment.file_size)}`
+                          : ""}
+                      </a>
+                      <form action={deleteLessonAttachmentAction}>
+                        <input type="hidden" name="courseId" value={courseId} />
+                        <input
+                          type="hidden"
+                          name="attachmentId"
+                          value={attachment.id}
+                        />
+                        <button className="btn-secondary px-2.5 py-1.5 text-xs text-red-700">
+                          حذف المرفق
+                        </button>
+                      </form>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <form
                 action={moveLessonToCourseAction}
                 className="flex flex-wrap items-center gap-2"

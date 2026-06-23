@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type BunnyVideoStatus = {
@@ -25,6 +26,7 @@ type BunnyVideoPlayerProps = {
   watermarkEmail?: string | null;
   initialStatus?: BunnyVideoStatus;
   initialProgressStatus?: LessonProgressStatus;
+  completedContent?: ReactNode;
 };
 
 const defaultStatus: BunnyVideoStatus = {
@@ -45,6 +47,7 @@ export function BunnyVideoPlayer({
   watermarkEmail,
   initialStatus,
   initialProgressStatus = "not_started",
+  completedContent,
 }: BunnyVideoPlayerProps) {
   const [hasStarted, setHasStarted] = useState(!posterUrl);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -400,6 +403,9 @@ export function BunnyVideoPlayer({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {progressStatus === "completed" && completedContent ? (
+        <div className="animate-fade-up">{completedContent}</div>
       ) : null}
     </div>
   );

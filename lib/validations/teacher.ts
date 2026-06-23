@@ -34,6 +34,43 @@ const videoSchema = z
     },
   );
 
+const attachmentSchema = z
+  .instanceof(File)
+  .optional()
+  .refine((file) => !file || file.size === 0 || file.size <= 20 * 1024 * 1024, {
+    message: "المرفق يجب ألا يتجاوز 20MB.",
+  })
+  .refine(
+    (file) =>
+      !file ||
+      file.size === 0 ||
+      [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ].includes(file.type),
+    {
+      message: "ارفع PDF أو صورة أو ملف Word/PowerPoint.",
+    },
+  );
+
+const quizQuestionSchema = z.object({
+  question: z.string().trim().min(3, "اكتب نص السؤال."),
+  options: z
+    .array(z.string().trim().min(1, "كل اختيار مطلوب."))
+    .length(4, "كل سؤال لازم يكون له 4 اختيارات."),
+  correctOptionIndex: z.coerce
+    .number()
+    .int()
+    .min(0, "اختار الإجابة الصحيحة.")
+    .max(3, "اختار الإجابة الصحيحة."),
+});
+
 export const courseSchema = z.object({
   subject: z
     .string()
@@ -56,6 +93,16 @@ export const lessonSchema = z.object({
   title: z.string().trim().min(3, "عنوان الحصة مطلوب بحد أدنى 3 حروف."),
   bunnyVideoId: z.string().trim().optional(),
   videoFile: videoSchema,
+  attachmentFile: attachmentSchema,
+  attachmentTitle: z
+    .string()
+    .trim()
+    .max(120, "اسم المرفق طويل جدًا.")
+    .optional(),
+  quizQuestions: z
+    .array(quizQuestionSchema)
+    .max(50, "عدد الأسئلة أكبر من المسموح.")
+    .optional(),
   durationMinutes: z.coerce
     .number()
     .min(0, "المدة لا يمكن أن تكون أقل من صفر.")

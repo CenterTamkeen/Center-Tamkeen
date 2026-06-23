@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
 import { deleteBunnyStreamVideo } from "@/lib/bunny-stream";
-import { uploadImage } from "@/lib/cloudinary";
+import { uploadImage, uploadRawFile } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +24,8 @@ type StudentGrade = Database["public"]["Enums"]["student_grade"];
 type StudentSection = Database["public"]["Enums"]["student_section"];
 type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
 type CouponUpdate = Database["public"]["Tables"]["coupons"]["Update"];
+type LessonQuizInsert =
+  Database["public"]["Tables"]["lesson_quiz_questions"]["Insert"];
 
 function failure(
   message: string,
@@ -81,6 +83,11 @@ function getOptionalUpload(formData: FormData, key: string) {
 
 function getFormValues(formData: FormData, keys: string[]) {
   return Object.fromEntries(keys.map((key) => [key, getString(formData, key)]));
+}
+
+function getInteger(formData: FormData, key: string) {
+  const value = Number.parseInt(getString(formData, key), 10);
+  return Number.isFinite(value) ? value : 0;
 }
 
 function getListFromCsv(formData: FormData, key: string) {
@@ -153,6 +160,70 @@ async function uploadThumbnail(teacherId: string, file?: File) {
     publicId: `course-${Date.now()}`,
   });
   return result.secureUrl;
+}
+
+async function uploadLessonAttachment(
+  teacherId: string,
+  courseId: string,
+  file?: File,
+) {
+  if (!file) {
+    return null;
+  }
+
+  const result = await uploadRawFile(file, {
+    folder: `tamkeen/teachers/${teacherId}/courses/${courseId}/attachments`,
+    publicId: `attachment-${Date.now()}`,
+  });
+
+  return result.secureUrl;
+}
+
+function getQuizQuestions(formData: FormData) {
+  const questionCount = getInteger(formData, "quizQuestionCount");
+
+  return Array.from({ length: questionCount }, (_, index) => {
+    const question = getString(formData, `quizQuestion-${index}`);
+    const options = [0, 1, 2, 3].map((optionIndex) =>
+      getString(formData, `quizOption-${index}-${optionIndex}`),
+    );
+    const correctOptionIndex = getString(
+      formData,
+      `quizCorrectOption-${index}`,
+    );
+    const hasAnyValue =
+      question.trim() ||
+      options.some((option) => option.trim()) ||
+      correctOptionIndex.trim();
+
+    if (!hasAnyValue) {
+      return null;
+    }
+
+    return {
+      question,
+      options,
+      correctOptionIndex,
+    };
+  }).filter(Boolean);
+}
+
+async function replaceLessonQuiz(
+  lessonId: string,
+  questions: LessonQuizInsert[],
+) {
+  const supabase = await createClient();
+
+  await supabase
+    .from("lesson_quiz_questions")
+    .delete()
+    .eq("lesson_id", lessonId);
+
+  if (questions.length === 0) {
+    return;
+  }
+
+  await supabase.from("lesson_quiz_questions").insert(questions);
 }
 
 async function getAllowedSubjects(fallbackSubject?: string | null) {
@@ -476,6 +547,7 @@ export async function createLessonAction(
     "courseId",
     "title",
     "durationMinutes",
+    "attachmentTitle",
   ]);
   const { teacher } = await requireTeacher();
 
@@ -488,6 +560,9 @@ export async function createLessonAction(
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     videoFile: getOptionalUpload(formData, "videoFile"),
+    attachmentFile: getOptionalUpload(formData, "attachmentFile"),
+    attachmentTitle: getOptionalString(formData, "attachmentTitle"),
+    quizQuestions: getQuizQuestions(formData),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
@@ -507,22 +582,42 @@ export async function createLessonAction(
   }
 
   const supabase = await createClient();
+  let attachmentUrl: string | null = null;
+
+  try {
+    attachmentUrl = await uploadLessonAttachment(
+      teacher.id,
+      courseId,
+      parsed.data.attachmentFile,
+    );
+  } catch {
+    return failure(
+      "تعذر رفع مرفق الحصة.",
+      { attachmentFile: ["تعذر رفع المرفق."] },
+      values,
+    );
+  }
+
   const { count } = await supabase
     .from("lessons")
     .select("id", { count: "exact", head: true })
     .eq("course_id", courseId);
-  const { error } = await supabase.from("lessons").insert({
-    course_id: courseId,
-    title: parsed.data.title,
-    order_index: count ?? 0,
-    bunny_video_id: bunnyVideoId,
-    thumbnail_url: null,
-    video_provider: "bunny",
-    duration: parsed.data.durationMinutes
-      ? Math.round(parsed.data.durationMinutes * 60)
-      : null,
-    is_free_preview: parsed.data.isFreePreview ?? false,
-  });
+  const { data: lesson, error } = await supabase
+    .from("lessons")
+    .insert({
+      course_id: courseId,
+      title: parsed.data.title,
+      order_index: count ?? 0,
+      bunny_video_id: bunnyVideoId,
+      thumbnail_url: null,
+      video_provider: "bunny",
+      duration: parsed.data.durationMinutes
+        ? Math.round(parsed.data.durationMinutes * 60)
+        : null,
+      is_free_preview: parsed.data.isFreePreview ?? false,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -534,6 +629,32 @@ export async function createLessonAction(
     }
 
     return failure("تعذر إضافة الحصة.", undefined, values);
+  }
+
+  if (lesson && attachmentUrl) {
+    await supabase.from("lesson_attachments").insert({
+      lesson_id: lesson.id,
+      title:
+        parsed.data.attachmentTitle ||
+        parsed.data.attachmentFile?.name ||
+        "مرفق الحصة",
+      file_url: attachmentUrl,
+      file_type: parsed.data.attachmentFile?.type || null,
+      file_size: parsed.data.attachmentFile?.size ?? null,
+    });
+  }
+
+  if (lesson) {
+    await replaceLessonQuiz(
+      lesson.id,
+      (parsed.data.quizQuestions ?? []).map((question, index) => ({
+        lesson_id: lesson.id,
+        question: question.question,
+        options: question.options,
+        correct_option_index: question.correctOptionIndex,
+        order_index: index,
+      })),
+    );
   }
 
   revalidateLessonPaths(courseId);
@@ -549,6 +670,7 @@ export async function updateLessonAction(
     "courseId",
     "title",
     "durationMinutes",
+    "attachmentTitle",
   ]);
   const { teacher } = await requireTeacher();
 
@@ -562,6 +684,9 @@ export async function updateLessonAction(
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     videoFile: getOptionalUpload(formData, "videoFile"),
+    attachmentFile: getOptionalUpload(formData, "attachmentFile"),
+    attachmentTitle: getOptionalString(formData, "attachmentTitle"),
+    quizQuestions: getQuizQuestions(formData),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
@@ -572,6 +697,22 @@ export async function updateLessonAction(
 
   const bunnyVideoId = parsed.data.bunnyVideoId || null;
   const supabase = await createClient();
+  let attachmentUrl: string | null = null;
+
+  try {
+    attachmentUrl = await uploadLessonAttachment(
+      teacher.id,
+      courseId,
+      parsed.data.attachmentFile,
+    );
+  } catch {
+    return failure(
+      "تعذر رفع مرفق الحصة.",
+      { attachmentFile: ["تعذر رفع المرفق."] },
+      values,
+    );
+  }
+
   const { error } = await supabase
     .from("lessons")
     .update({
@@ -591,8 +732,48 @@ export async function updateLessonAction(
     return failure("تعذر حفظ الحصة.", undefined, values);
   }
 
+  if (attachmentUrl) {
+    await supabase.from("lesson_attachments").insert({
+      lesson_id: parsed.data.lessonId,
+      title:
+        parsed.data.attachmentTitle ||
+        parsed.data.attachmentFile?.name ||
+        "مرفق الحصة",
+      file_url: attachmentUrl,
+      file_type: parsed.data.attachmentFile?.type || null,
+      file_size: parsed.data.attachmentFile?.size ?? null,
+    });
+  }
+
+  await replaceLessonQuiz(
+    parsed.data.lessonId,
+    (parsed.data.quizQuestions ?? []).map((question, index) => ({
+      lesson_id: parsed.data.lessonId,
+      question: question.question,
+      options: question.options,
+      correct_option_index: question.correctOptionIndex,
+      order_index: index,
+    })),
+  );
+
   revalidateLessonPaths(courseId);
   return success("تم حفظ الحصة.");
+}
+
+export async function deleteLessonAttachmentAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const attachmentId = getString(formData, "attachmentId");
+  const { teacher } = await requireTeacher();
+
+  if (!(await assertOwnsCourse(teacher.id, courseId))) {
+    return;
+  }
+
+  const supabase = await createClient();
+
+  await supabase.from("lesson_attachments").delete().eq("id", attachmentId);
+
+  revalidateLessonPaths(courseId);
 }
 export async function deleteLessonAction(formData: FormData) {
   const courseId = getString(formData, "courseId");

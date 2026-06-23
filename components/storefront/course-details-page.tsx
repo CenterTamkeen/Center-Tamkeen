@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { BunnyVideoPlayer } from "@/components/storefront/bunny-video-player";
 import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form";
 import { CourseReviewForm } from "@/components/storefront/course-review-form";
+import { LessonQuiz } from "@/components/storefront/lesson-quiz";
 import { PurchaseScrollButton } from "@/components/storefront/purchase-scroll-button";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
@@ -28,6 +29,24 @@ type CourseDetailsPageProps = {
   id: string;
   teacherSlug?: string;
 };
+
+type LessonWithMaterials = NonNullable<
+  Awaited<ReturnType<typeof getCourseById>>
+>["lessons"][number];
+
+function formatFileSize(bytes: number | null) {
+  if (!bytes) {
+    return "";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("ar-EG")} KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toLocaleString("ar-EG", {
+    maximumFractionDigits: 1,
+  })} MB`;
+}
 
 export async function generateCourseMetadata(id: string): Promise<Metadata> {
   const course = await getCourseById(id);
@@ -356,6 +375,9 @@ export async function CourseDetailsPage({
                     initialProgressStatus={
                       progressByLessonId.get(playableLesson.id)?.status ??
                       "not_started"
+                    }
+                    completedContent={
+                      <LessonMaterials lesson={playableLesson} />
                     }
                   />
                 </div>
@@ -731,6 +753,57 @@ function LessonProgressBadge({
     </span>
   );
 }
+
+function LessonMaterials({ lesson }: { lesson: LessonWithMaterials }) {
+  const attachments = lesson.lesson_attachments ?? [];
+  const questions = lesson.lesson_quiz_questions ?? [];
+
+  if (attachments.length === 0 && questions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="border-primary-100 bg-primary-50/30 space-y-5 rounded-2xl border p-4">
+      {attachments.length > 0 ? (
+        <section className="space-y-3">
+          <div>
+            <p className="eyebrow">مرفقات الحصة</p>
+            <h3 className="mt-1 text-lg font-black">ملفات للمراجعة والتحميل</h3>
+          </div>
+          <div className="grid gap-2">
+            {attachments.map((attachment) => (
+              <a
+                key={attachment.id}
+                href={attachment.file_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/70 px-3 py-2.5 text-sm font-bold transition hover:bg-white"
+              >
+                <span className="text-primary-700">{attachment.title}</span>
+                {attachment.file_size ? (
+                  <span className="text-foreground/45 text-xs">
+                    {formatFileSize(attachment.file_size)}
+                  </span>
+                ) : null}
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {questions.length > 0 ? (
+        <section className="space-y-3">
+          <div>
+            <p className="eyebrow">كويز الحصة</p>
+            <h3 className="mt-1 text-lg font-black">اختبر فهمك بسرعة</h3>
+          </div>
+          <LessonQuiz questions={questions} />
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 function SidebarStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border bg-white/45 px-3 py-2.5">
