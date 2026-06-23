@@ -451,7 +451,7 @@ export function SiteHeaderClient({
       <div
         className={`border-border/40 overflow-hidden border-t transition-all duration-400 md:hidden ${
           menuOpen
-            ? "max-h-96 opacity-100"
+            ? "max-h-[calc(100dvh-4.5rem)] opacity-100"
             : "max-h-0 border-t-transparent opacity-0"
         }`}
         style={{
@@ -460,7 +460,7 @@ export function SiteHeaderClient({
           WebkitBackdropFilter: "blur(24px)",
         }}
       >
-        <nav className="container-page flex flex-col gap-1 py-4">
+        <nav className="container-page flex max-h-[calc(100dvh-4.5rem)] flex-col gap-1 overflow-y-auto py-4">
           {[
             ...navLinks,
             ...(isLoggedIn
@@ -491,8 +491,11 @@ export function SiteHeaderClient({
             </Link>
           ))}
           {isLoggedIn ? (
-            <form action={signOutAction} className="px-4 pt-2">
-              <button type="submit" className="btn-primary w-full py-3">
+            <form action={signOutAction} className="px-4 pt-2 pb-1">
+              <button
+                type="submit"
+                className="flex min-h-12 w-full items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-[0_12px_26px_rgb(220_38_38/0.22)] transition-all duration-300 hover:bg-red-700 focus:ring-2 focus:ring-red-300 focus:outline-none"
+              >
                 خروج
               </button>
             </form>

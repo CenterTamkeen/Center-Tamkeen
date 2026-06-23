@@ -57,10 +57,6 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
 
   const provider = lesson.video_provider === "youtube" ? "youtube" : "bunny";
 
-  if (!lesson.is_free_preview && provider === "youtube") {
-    return null;
-  }
-
   const embedUrl =
     provider === "youtube"
       ? buildYouTubeEmbedUrl(lesson.youtube_video_id)
@@ -73,7 +69,7 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
   let playbackCount: number | null = null;
   let remainingPlaybacks: number | null = null;
 
-  if (!lesson.is_free_preview && provider === "bunny") {
+  if (!lesson.is_free_preview) {
     const playbackAccess = await recordStudentLessonPlayback({
       courseId: lesson.course_id,
       lessonId: lesson.id,
