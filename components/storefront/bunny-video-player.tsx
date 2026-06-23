@@ -56,6 +56,9 @@ export function BunnyVideoPlayer({
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [provider, setProvider] = useState<VideoProvider>(videoProvider);
   const [playbackError, setPlaybackError] = useState("");
+  const [remainingPlaybacks, setRemainingPlaybacks] = useState<number | null>(
+    null,
+  );
   const [progressStatus, setProgressStatus] = useState<LessonProgressStatus>(
     initialProgressStatus,
   );
@@ -139,7 +142,6 @@ export function BunnyVideoPlayer({
 
   function handleStart() {
     setHasStarted(true);
-    void saveProgress("in_progress");
   }
 
   function handleIframeLoad() {
@@ -177,6 +179,7 @@ export function BunnyVideoPlayer({
   useEffect(() => {
     if (
       !hasStarted ||
+      !embedUrl ||
       !courseId ||
       progressStatus === "completed" ||
       !status.isPlayable ||
@@ -202,6 +205,7 @@ export function BunnyVideoPlayer({
     return () => window.clearTimeout(timeout);
   }, [
     hasStarted,
+    embedUrl,
     courseId,
     progressStatus,
     status.isPlayable,
@@ -210,10 +214,15 @@ export function BunnyVideoPlayer({
   ]);
 
   useEffect(() => {
+    if (!hasStarted) {
+      return;
+    }
+
     const controller = new AbortController();
 
     async function loadPlaybackUrl() {
       try {
+        setPlaybackError("");
         const response = await fetch(
           `/api/bunny/playback?lessonId=${encodeURIComponent(lessonId)}`,
           {
@@ -222,15 +231,25 @@ export function BunnyVideoPlayer({
         );
 
         if (!response.ok) {
-          setPlaybackError("الفيديو غير متاح حاليًا.");
+          const data = (await response.json().catch(() => null)) as {
+            reason?: string;
+          } | null;
+
+          setPlaybackError(
+            data?.reason === "playback_limit_reached"
+              ? "وصلت للحد الأقصى لمشاهدة هذه الحصة."
+              : "الفيديو غير متاح حاليًا.",
+          );
           return;
         }
 
         const data = (await response.json()) as {
           embedUrl?: string;
           provider?: VideoProvider;
+          remainingPlaybacks?: number | null;
         };
         setEmbedUrl(data.embedUrl ?? null);
+        setRemainingPlaybacks(data.remainingPlaybacks ?? null);
 
         if (data.provider === "youtube") {
           setProvider("youtube");
@@ -254,7 +273,7 @@ export function BunnyVideoPlayer({
     return () => {
       controller.abort();
     };
-  }, [lessonId]);
+  }, [hasStarted, lessonId]);
 
   useEffect(() => {
     if (!shouldPoll) {
@@ -287,33 +306,6 @@ export function BunnyVideoPlayer({
       window.clearInterval(interval);
     };
   }, [shouldPoll, lessonId]);
-
-  if (!embedUrl) {
-    return (
-      <div className="bg-foreground/5 text-foreground/55 flex aspect-video items-center justify-center rounded-xl px-4 text-center text-sm font-bold">
-        {playbackError || "جاري تجهيز تشغيل الفيديو."}
-      </div>
-    );
-  }
-
-  if (provider === "bunny" && !status.isPlayable) {
-    return (
-      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-black px-5 text-center text-white">
-        <p className="text-lg font-black">
-          {status.hasFailed ? "تعذر تجهيز الفيديو" : "الفيديو قيد المعالجة"}
-        </p>
-        <p className="mt-3 max-w-md text-sm leading-6 text-white/70">
-          {status.label}
-          {progressText ? ` (${progressText})` : ""}
-        </p>
-        {!status.hasFailed ? (
-          <p className="mt-2 text-xs text-white/45">
-            سيتم تشغيله تلقائيًا هنا بعد انتهاء Bunny من المعالجة.
-          </p>
-        ) : null}
-      </div>
-    );
-  }
 
   if (posterUrl && !hasStarted) {
     return (
@@ -353,6 +345,33 @@ export function BunnyVideoPlayer({
           </span>
         </span>
       </button>
+    );
+  }
+
+  if (!embedUrl) {
+    return (
+      <div className="bg-foreground/5 text-foreground/55 flex aspect-video items-center justify-center rounded-xl px-4 text-center text-sm font-bold">
+        {playbackError || "جاري تجهيز تشغيل الفيديو."}
+      </div>
+    );
+  }
+
+  if (provider === "bunny" && !status.isPlayable) {
+    return (
+      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-black px-5 text-center text-white">
+        <p className="text-lg font-black">
+          {status.hasFailed ? "تعذر تجهيز الفيديو" : "الفيديو قيد المعالجة"}
+        </p>
+        <p className="mt-3 max-w-md text-sm leading-6 text-white/70">
+          {status.label}
+          {progressText ? ` (${progressText})` : ""}
+        </p>
+        {!status.hasFailed ? (
+          <p className="mt-2 text-xs text-white/45">
+            سيتم تشغيله تلقائيًا هنا بعد انتهاء Bunny من المعالجة.
+          </p>
+        ) : null}
+      </div>
     );
   }
 
@@ -417,9 +436,11 @@ export function BunnyVideoPlayer({
           <p className="text-foreground/65 text-sm font-bold">
             {progressStatus === "completed"
               ? "تم احتساب الحصة ضمن تقدمك."
-              : effectiveDurationSeconds
-                ? "سيتم احتساب الحصة تلقائيًا عند الوصول لنهاية الفيديو."
-                : "تم تسجيل بداية الحصة، وسيتم حساب اكتمالها عند توفر مدة الفيديو."}
+              : remainingPlaybacks !== null
+                ? `متبقي لك ${remainingPlaybacks.toLocaleString("ar-EG")} مرات تشغيل لهذه الحصة.`
+                : effectiveDurationSeconds
+                  ? "سيتم احتساب الحصة تلقائيًا عند الوصول لنهاية الفيديو."
+                  : "تم تسجيل بداية الحصة، وسيتم حساب اكتمالها عند توفر مدة الفيديو."}
           </p>
           {progressSaving ? (
             <p className="text-foreground/45 mt-1 text-xs font-bold">

@@ -1,6 +1,9 @@
 import { buildBunnyStreamEmbedUrl } from "@/lib/bunny-stream";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube";
+
+const STUDENT_LESSON_PLAYBACK_LIMIT = 3;
 
 export async function getAuthorizedBunnyLessonVideo(lessonId: string) {
   const supabase = await createClient();
@@ -62,6 +65,33 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
     return null;
   }
 
+  let playbackCount: number | null = null;
+  let remainingPlaybacks: number | null = null;
+
+  if (!lesson.is_free_preview && provider === "bunny") {
+    const playbackAccess = await recordStudentLessonPlayback({
+      courseId: lesson.course_id,
+      lessonId: lesson.id,
+      userId: user.id,
+    });
+
+    if (playbackAccess?.allowed === false) {
+      return {
+        deniedReason: "playback_limit_reached" as const,
+        playbackCount: playbackAccess.playbackCount,
+        playbackLimit: STUDENT_LESSON_PLAYBACK_LIMIT,
+      };
+    }
+
+    if (playbackAccess) {
+      playbackCount = playbackAccess.playbackCount;
+      remainingPlaybacks = Math.max(
+        0,
+        STUDENT_LESSON_PLAYBACK_LIMIT - playbackAccess.playbackCount,
+      );
+    }
+  }
+
   return {
     lessonId: lesson.id,
     videoId:
@@ -70,6 +100,62 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
     isFreePreview: lesson.is_free_preview,
     provider,
     embedUrl,
+    playbackCount,
+    playbackLimit: STUDENT_LESSON_PLAYBACK_LIMIT,
+    remainingPlaybacks,
+  };
+}
+
+async function recordStudentLessonPlayback({
+  courseId,
+  lessonId,
+  userId,
+}: {
+  courseId: string;
+  lessonId: string;
+  userId: string;
+}) {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profile?.role !== "student") {
+    return null;
+  }
+
+  const { data: student } = await admin
+    .from("students")
+    .select("id")
+    .eq("profile_id", userId)
+    .maybeSingle();
+
+  if (!student) {
+    return null;
+  }
+
+  const { data, error } = await admin.rpc("record_lesson_playback", {
+    student_uuid: student.id,
+    course_uuid: courseId,
+    lesson_uuid: lessonId,
+    max_playbacks: STUDENT_LESSON_PLAYBACK_LIMIT,
+  });
+
+  if (error) {
+    return null;
+  }
+
+  const result = data?.[0];
+
+  if (!result) {
+    return null;
+  }
+
+  return {
+    allowed: result.allowed,
+    playbackCount: result.playback_count,
   };
 }
 

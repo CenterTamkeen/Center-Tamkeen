@@ -326,8 +326,10 @@ export type Database = {
           lesson_id: string;
           status: "in_progress" | "completed";
           watched_seconds: number;
+          playback_count: number;
           started_at: string;
           last_watched_at: string;
+          last_playback_started_at: string | null;
           completed_at: string | null;
           created_at: string;
           updated_at: string;
@@ -339,8 +341,10 @@ export type Database = {
           lesson_id: string;
           status?: "in_progress" | "completed";
           watched_seconds?: number;
+          playback_count?: number;
           started_at?: string;
           last_watched_at?: string;
+          last_playback_started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -352,8 +356,10 @@ export type Database = {
           lesson_id?: string;
           status?: "in_progress" | "completed";
           watched_seconds?: number;
+          playback_count?: number;
           started_at?: string;
           last_watched_at?: string;
+          last_playback_started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1071,6 +1077,18 @@ export type Database = {
           course_uuid: string;
         };
         Returns: boolean;
+      };
+      record_lesson_playback: {
+        Args: {
+          student_uuid: string;
+          course_uuid: string;
+          lesson_uuid: string;
+          max_playbacks?: number;
+        };
+        Returns: {
+          allowed: boolean;
+          playback_count: number;
+        }[];
       };
       redeem_course_activation_code: {
         Args: {

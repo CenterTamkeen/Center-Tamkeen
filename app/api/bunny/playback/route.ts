@@ -16,5 +16,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  return NextResponse.json({ embedUrl: playback.embedUrl });
+  if ("deniedReason" in playback) {
+    return NextResponse.json(
+      {
+        error: "Playback limit reached.",
+        reason: playback.deniedReason,
+        playbackCount: playback.playbackCount,
+        playbackLimit: playback.playbackLimit,
+      },
+      { status: 429 },
+    );
+  }
+
+  return NextResponse.json({
+    embedUrl: playback.embedUrl,
+    provider: playback.provider,
+    playbackCount: playback.playbackCount,
+    playbackLimit: playback.playbackLimit,
+    remainingPlaybacks: playback.remainingPlaybacks,
+  });
 }
