@@ -56,6 +56,11 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
   }
 
   const provider = lesson.video_provider === "youtube" ? "youtube" : "bunny";
+
+  if (!lesson.is_free_preview && provider === "youtube") {
+    return null;
+  }
+
   const embedUrl =
     provider === "youtube"
       ? buildYouTubeEmbedUrl(lesson.youtube_video_id)
@@ -219,8 +224,8 @@ export async function getAuthorizedBunnyPlaybackUrl(lessonId: string) {
         return null;
       }
     } else if (profile.role === "student") {
-      // Students must be enrolled in the course.
-      const { data: student } = await supabase
+      const admin = createAdminClient();
+      const { data: student } = await admin
         .from("students")
         .select("id")
         .eq("profile_id", user.id)
@@ -230,14 +235,15 @@ export async function getAuthorizedBunnyPlaybackUrl(lessonId: string) {
         return null;
       }
 
-      const { data: enrollment } = await supabase
-        .from("enrollments")
-        .select("id")
-        .eq("student_id", student.id)
-        .eq("course_id", video.courseId)
-        .maybeSingle();
+      const { data: canAccess, error: accessError } = await admin.rpc(
+        "can_access_course",
+        {
+          course_uuid: video.courseId,
+          student_uuid: student.id,
+        },
+      );
 
-      if (!enrollment) {
+      if (accessError || !canAccess) {
         return null;
       }
     }
@@ -294,7 +300,8 @@ async function canWatchCourseVideo(courseId: string, userId: string) {
   }
 
   if (profile.role === "student") {
-    const { data: student } = await supabase
+    const admin = createAdminClient();
+    const { data: student } = await admin
       .from("students")
       .select("id")
       .eq("profile_id", userId)
@@ -304,14 +311,12 @@ async function canWatchCourseVideo(courseId: string, userId: string) {
       return false;
     }
 
-    const { data: enrollment } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("student_id", student.id)
-      .eq("course_id", courseId)
-      .maybeSingle();
+    const { data, error } = await admin.rpc("can_access_course", {
+      course_uuid: courseId,
+      student_uuid: student.id,
+    });
 
-    return Boolean(enrollment);
+    return !error && Boolean(data);
   }
 
   return false;

@@ -816,6 +816,48 @@ export type Database = {
           },
         ];
       };
+      activation_code_attempts: {
+        Row: {
+          id: string;
+          student_id: string;
+          course_id: string | null;
+          submitted_code: string;
+          success: boolean;
+          attempted_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          course_id?: string | null;
+          submitted_code: string;
+          success?: boolean;
+          attempted_at?: string;
+        };
+        Update: {
+          id?: string;
+          student_id?: string;
+          course_id?: string | null;
+          submitted_code?: string;
+          success?: boolean;
+          attempted_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activation_code_attempts_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activation_code_attempts_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reviews: {
         Row: {
           id: string;
@@ -1039,6 +1081,13 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      can_access_course: {
+        Args: {
+          course_uuid: string;
+          student_uuid?: string | null;
+        };
+        Returns: boolean;
+      };
       complete_order_side_effects: {
         Args: Record<PropertyKey, never>;
         Returns: unknown;
@@ -1099,6 +1148,19 @@ export type Database = {
         Returns: {
           status: string;
           message: string;
+          enrollment_id: string | null;
+          order_id: string | null;
+        }[];
+      };
+      redeem_any_course_activation_code: {
+        Args: {
+          submitted_code: string;
+          student_uuid: string;
+        };
+        Returns: {
+          status: string;
+          message: string;
+          course_id: string | null;
           enrollment_id: string | null;
           order_id: string | null;
         }[];

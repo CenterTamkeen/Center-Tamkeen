@@ -63,41 +63,67 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const [{ data: lesson }, { data: enrollment }] = await Promise.all([
-    admin
-      .from("lessons")
-      .select("id, course_id, duration")
-      .eq("id", lessonId)
-      .eq("course_id", courseId)
-      .maybeSingle(),
-    admin
-      .from("enrollments")
-      .select("id")
-      .eq("student_id", student.id)
-      .eq("course_id", courseId)
-      .maybeSingle(),
-  ]);
+  const [{ data: lesson }, { data: canAccess, error: accessError }] =
+    await Promise.all([
+      admin
+        .from("lessons")
+        .select("id, course_id, duration")
+        .eq("id", lessonId)
+        .eq("course_id", courseId)
+        .maybeSingle(),
+      admin.rpc("can_access_course", {
+        course_uuid: courseId,
+        student_uuid: student.id,
+      }),
+    ]);
 
-  if (!lesson || !enrollment) {
+  if (!lesson || accessError || !canAccess) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  // Server-side guard: demote "completed" to "in_progress" when watchedSeconds
-  // is suspiciously low relative to the lesson duration.
+  const { data: existingProgress } = await admin
+    .from("lesson_progress")
+    .select("watched_seconds, last_watched_at, status")
+    .eq("student_id", student.id)
+    .eq("lesson_id", lessonId)
+    .maybeSingle();
+
+  const now = new Date();
+  const previousWatchedSeconds = existingProgress?.watched_seconds ?? 0;
+  const previousWatchedAt = existingProgress?.last_watched_at
+    ? new Date(existingProgress.last_watched_at)
+    : now;
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((now.getTime() - previousWatchedAt.getTime()) / 1000),
+  );
+  const reportedIncrement = Math.max(
+    0,
+    watchedSeconds - previousWatchedSeconds,
+  );
+  const cappedIncrement = Math.min(
+    elapsedSeconds > 0 ? elapsedSeconds + 5 : 0,
+    reportedIncrement,
+  );
+  const nextWatchedSeconds = Math.max(
+    previousWatchedSeconds,
+    previousWatchedSeconds + cappedIncrement,
+  );
   let validatedStatus = status;
 
-  if (status === "completed" && lesson.duration && lesson.duration > 0) {
-    const minimumWatchRatio = 0.5;
-    const minimumWatchedSeconds = Math.floor(
-      lesson.duration * minimumWatchRatio,
-    );
+  if (status === "completed") {
+    const minimumWatchedSeconds = lesson.duration
+      ? Math.floor(lesson.duration * 0.85)
+      : Number.POSITIVE_INFINITY;
 
-    if (watchedSeconds < minimumWatchedSeconds) {
+    if (nextWatchedSeconds < minimumWatchedSeconds) {
       validatedStatus = "in_progress";
     }
   }
 
-  const now = new Date().toISOString();
+  const nowIso = now.toISOString();
+  const finalStatus =
+    existingProgress?.status === "completed" ? "completed" : validatedStatus;
   const { data, error } = await admin
     .from("lesson_progress")
     .upsert(
@@ -105,10 +131,10 @@ export async function POST(request: Request) {
         student_id: student.id,
         course_id: courseId,
         lesson_id: lessonId,
-        status: validatedStatus,
-        watched_seconds: watchedSeconds,
-        last_watched_at: now,
-        completed_at: validatedStatus === "completed" ? now : null,
+        status: finalStatus,
+        watched_seconds: nextWatchedSeconds,
+        last_watched_at: nowIso,
+        completed_at: finalStatus === "completed" ? nowIso : null,
       },
       { onConflict: "student_id,lesson_id" },
     )

@@ -96,7 +96,7 @@ export function BunnyVideoPlayer({
   }, [status.encodeProgress]);
 
   const saveProgress = useCallback(
-    async (nextStatus: "in_progress" | "completed") => {
+    async (nextStatus: "in_progress" | "completed", watchedSeconds = 0) => {
       if (!courseId || progressStatus === "completed") {
         return;
       }
@@ -118,6 +118,7 @@ export function BunnyVideoPlayer({
             courseId,
             lessonId,
             status: nextStatus,
+            watchedSeconds,
           }),
         });
 
@@ -199,7 +200,7 @@ export function BunnyVideoPlayer({
             ),
           );
     const timeout = window.setTimeout(() => {
-      void saveProgress("completed");
+      void saveProgress("completed", Math.round(completeAfterSeconds));
     }, completeAfterSeconds * 1000);
 
     return () => window.clearTimeout(timeout);

@@ -237,88 +237,17 @@ export async function redeemAnyCourseActivationCodeAction(
     return failure("إعدادات السيرفر غير مكتملة.", undefined, values);
   }
 
-  const [{ data: student }, { data: codeRow, error: codeError }] =
-    await Promise.all([
-      admin
-        .from("students")
-        .select("id")
-        .eq("profile_id", profile.id)
-        .maybeSingle(),
-      admin
-        .from("activation_codes")
-        .select("course_id, used_at, expires_at")
-        .eq("code", activationCode)
-        .maybeSingle(),
-    ]);
+  const { data: student } = await admin
+    .from("students")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
 
   if (!student) {
     return failure("لا يوجد ملف طالب مرتبط بالحساب.", undefined, values);
   }
 
-  if (codeError) {
-    console.error("Failed to find activation code.", codeError);
-    return failure(
-      "تعذر مراجعة كود التفعيل. حاول مرة تانية.",
-      undefined,
-      values,
-    );
-  }
-
-  if (!codeRow) {
-    return failure(
-      "الكود غير صحيح أو غير موجود.",
-      { activationCode: ["الكود غير صحيح أو غير موجود."] },
-      values,
-    );
-  }
-
-  const { data: courseData, error: courseError } = await admin
-    .from("courses")
-    .select("id, title, is_published, teacher:teachers(slug, is_active)")
-    .eq("id", codeRow.course_id)
-    .maybeSingle();
-  const course = courseData as ActivationCourseLookup | null;
-
-  if (courseError || !course) {
-    console.error("Failed to load activation course.", courseError);
-    return failure("الكورس المرتبط بالكود غير موجود.", undefined, values);
-  }
-
-  const teacher = getCourseTeacher(course);
-  const courseHref = getActivationCourseHref(course);
-  const courseValues = {
-    ...values,
-    courseId: course.id,
-    courseTitle: course.title,
-    courseHref,
-  };
-
-  if (!course.is_published || !teacher?.is_active) {
-    return failure(
-      "الكورس المرتبط بالكود غير متاح حاليًا.",
-      undefined,
-      courseValues,
-    );
-  }
-
-  if (codeRow.used_at) {
-    return failure(
-      "الكود تم استخدامه قبل كده.",
-      { activationCode: ["الكود تم استخدامه قبل كده."] },
-      courseValues,
-    );
-  }
-
-  if (new Date(codeRow.expires_at) <= new Date()) {
-    return failure(
-      "صلاحية الكود انتهت.",
-      { activationCode: ["صلاحية الكود انتهت."] },
-      courseValues,
-    );
-  }
-
-  const { data, error } = await admin.rpc("redeem_course_activation_code", {
-    course_uuid: course.id,
+  const { data, error } = await admin.rpc("redeem_any_course_activation_code", {
     submitted_code: activationCode,
     student_uuid: student.id,
   });
@@ -328,28 +257,45 @@ export async function redeemAnyCourseActivationCodeAction(
     return failure(
       "تعذر تفعيل الكود. تأكد من تطبيق آخر migration.",
       undefined,
-      courseValues,
+      values,
     );
   }
 
   const result = data?.[0];
 
-  if (!result || result.status !== "success") {
-    return failure(
-      result?.message ?? "الكود غير صالح.",
-      { activationCode: [result?.message ?? "الكود غير صالح."] },
-      {
-        ...courseValues,
-        enrollmentId: result?.enrollment_id ?? "",
-        orderId: result?.order_id ?? "",
-      },
-    );
+  if (!result || result.status !== "success" || !result.course_id) {
+    const message =
+      result?.message ?? "الكود غير صالح أو لا يمكن استخدامه الآن.";
+
+    return failure(message, { activationCode: [message] }, values);
   }
+
+  const { data: courseData, error: courseError } = await admin
+    .from("courses")
+    .select("id, title, is_published, teacher:teachers(slug, is_active)")
+    .eq("id", result.course_id)
+    .maybeSingle();
+  const course = courseData as ActivationCourseLookup | null;
+
+  if (courseError || !course) {
+    console.error("Failed to load activated course.", courseError);
+    return success("تم تفعيل الكورس بنجاح.", {
+      ...values,
+      courseId: result.course_id,
+      enrollmentId: result.enrollment_id ?? "",
+      orderId: result.order_id ?? "",
+    });
+  }
+
+  const courseHref = getActivationCourseHref(course);
 
   revalidateActivationPaths(course.id, courseHref);
 
   return success(`تم تفعيل ${course.title} بنجاح.`, {
-    ...courseValues,
+    ...values,
+    courseId: course.id,
+    courseTitle: course.title,
+    courseHref,
     enrollmentId: result.enrollment_id ?? "",
     orderId: result.order_id ?? "",
   });

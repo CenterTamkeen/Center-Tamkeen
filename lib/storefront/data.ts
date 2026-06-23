@@ -780,16 +780,33 @@ export async function getCurrentStudentEnrollmentCourseIds(
     return [];
   }
 
-  let query = admin
-    .from("enrollments")
-    .select("course_id")
-    .eq("student_id", student.id);
+  const candidateCourseIds =
+    courseIds ?? (await getStudentEnrollmentCourseIds(student.id));
+  const checks = await Promise.all(
+    candidateCourseIds.map(async (courseId) => {
+      const { data, error } = await admin.rpc("can_access_course", {
+        course_uuid: courseId,
+        student_uuid: student.id,
+      });
 
-  if (courseIds) {
-    query = query.in("course_id", courseIds);
+      return !error && data ? courseId : null;
+    }),
+  );
+
+  return checks.filter((courseId): courseId is string => Boolean(courseId));
+}
+
+async function getStudentEnrollmentCourseIds(studentId: string) {
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return [];
   }
 
-  const { data, error } = await query;
+  const { data, error } = await admin
+    .from("enrollments")
+    .select("course_id")
+    .eq("student_id", studentId);
 
   if (error) {
     logStorefrontError("current-student-enrollments", error.message);
@@ -838,6 +855,21 @@ export async function getCurrentStudentCourseProgress(courseId: string) {
   if (!student) {
     return {
       studentId: null,
+      progress: [] as LessonProgressRow[],
+    };
+  }
+
+  const { data: canAccess, error: accessError } = await admin.rpc(
+    "can_access_course",
+    {
+      course_uuid: courseId,
+      student_uuid: student.id,
+    },
+  );
+
+  if (accessError || !canAccess) {
+    return {
+      studentId: student.id,
       progress: [] as LessonProgressRow[],
     };
   }
@@ -950,57 +982,18 @@ export async function getCourseById(id: string) {
     return null;
   }
 
+  if (!data) {
+    return null;
+  }
+
   if (
-    data?.teacher_id &&
+    data.teacher_id &&
     (await isCurrentStudentBlockedFromTeacher(data.teacher_id))
   ) {
     return null;
   }
 
-  if (!data) {
-    return null;
-  }
-
-  const admin = getAdminClient();
-
-  if (!admin) {
-    return data as CourseDetails;
-  }
-
-  const { data: lessons, error: lessonsError } = await admin
-    .from("lessons")
-    .select(
-      "id, title, order_index, duration, is_free_preview, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
-    )
-    .eq("course_id", data.id)
-    .order("order_index", { ascending: true });
-
-  if (lessonsError) {
-    logStorefrontError("course-lessons-by-id", lessonsError.message);
-    return data as CourseDetails;
-  }
-
-  const { data: reviews, error: reviewsError } = await admin
-    .from("reviews")
-    .select(
-      "id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url))",
-    )
-    .eq("course_id", data.id)
-    .order("created_at", { ascending: false });
-
-  if (reviewsError) {
-    logStorefrontError("course-reviews-by-id", reviewsError.message);
-    return {
-      ...data,
-      lessons: (lessons ?? []) as CourseDetails["lessons"],
-    } as CourseDetails;
-  }
-
-  return {
-    ...data,
-    lessons: (lessons ?? []) as CourseDetails["lessons"],
-    reviews: (reviews ?? []) as CourseDetails["reviews"],
-  } as CourseDetails;
+  return data as CourseDetails;
 }
 
 export async function getLatestReviews(limit = 6) {

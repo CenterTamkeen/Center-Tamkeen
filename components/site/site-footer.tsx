@@ -188,7 +188,7 @@ export async function SiteFooter() {
             <div className="flex items-center gap-1.5">
               <span>تم تطوير المنصة من خلال</span>
               <a
-                href="https://www.linkedin.com/in/yasa-jaber/"
+                href="https://www.facebook.com/yasa.jaber"
                 target="_blank"
                 rel="noreferrer"
                 className="group text-foreground/80 relative inline-flex items-center px-1 py-1 text-sm font-black transition-all duration-300 hover:-translate-y-0.5"
@@ -200,7 +200,7 @@ export async function SiteFooter() {
               </a>
               <span className="text-sm font-medium">و</span>
               <a
-                href="https://www.linkedin.com/in/3bnaser/"
+                href="https://www.facebook.com/M3bnaserr"
                 target="_blank"
                 rel="noreferrer"
                 className="group text-foreground/80 relative inline-flex items-center px-1 py-1 text-sm font-black transition-all duration-300 hover:-translate-y-0.5"
