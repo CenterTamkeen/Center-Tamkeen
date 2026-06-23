@@ -312,6 +312,7 @@ export async function CourseDetailsPage({
               <div className="space-y-4 p-5 sm:p-6">
                 <CoursePurchaseForm
                   courseId={course.id}
+                  courseTitle={course.title}
                   courseHref={courseHref}
                   price={course.price}
                   isStudent={isStudent}

@@ -6,13 +6,15 @@ import { useActionState, useState } from "react";
 import { initialActionState } from "@/lib/auth/action-state";
 import type { AppRole } from "@/lib/auth/roles";
 import { redeemAnyCourseActivationCodeAction } from "@/lib/storefront/actions";
+import { WhatsappContactList } from "@/components/site/whatsapp-contact-list";
 
 type ActivationCodeFormProps = {
   userRole: AppRole | null;
   dashboardHref: string | null;
 };
 
-const whatsappHref = "https://wa.me/201111901562";
+const activationCodeWhatsappMessage =
+  "أهلا تمكين، محتاج كود تفعيل لكورس على المنصة.";
 
 export function ActivationCodeForm({
   userRole,
@@ -128,27 +130,9 @@ export function ActivationCodeForm({
         </div>
       </form>
 
-      <a
-        href={whatsappHref}
-        target="_blank"
-        rel="noreferrer"
-        className="text-primary-700 hover:text-primary-600 mt-5 flex items-center justify-center gap-2 text-sm font-black transition-colors"
-      >
-        <svg
-          width="17"
-          height="17"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" />
-        </svg>
-        <span>اطلب الكود على واتساب: 01111901562</span>
-      </a>
+      <div className="mt-5">
+        <WhatsappContactList message={activationCodeWhatsappMessage} />
+      </div>
     </div>
   );
 }

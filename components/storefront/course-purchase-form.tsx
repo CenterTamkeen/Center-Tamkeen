@@ -5,9 +5,11 @@ import { useActionState, useState } from "react";
 
 import { initialActionState } from "@/lib/auth/action-state";
 import { redeemCourseActivationCodeAction } from "@/lib/storefront/actions";
+import { WhatsappContactList } from "@/components/site/whatsapp-contact-list";
 
 type CoursePurchaseFormProps = {
   courseId: string;
+  courseTitle: string;
   courseHref: string;
   price: number;
   isStudent: boolean;
@@ -24,6 +26,7 @@ function formatPrice(price: number) {
 
 export function CoursePurchaseForm({
   courseId,
+  courseTitle,
   courseHref,
   price,
   isStudent,
@@ -34,6 +37,7 @@ export function CoursePurchaseForm({
     redeemCourseActivationCodeAction,
     initialActionState,
   );
+  const courseActivationWhatsappMessage = `أهلا تمكين، محتاج كود تفعيل لكورس: ${courseTitle}.`;
 
   if (!isStudent) {
     return (
@@ -75,10 +79,12 @@ export function CoursePurchaseForm({
           <span className="font-black">{formatPrice(price)}</span>
         </div>
         <p className="text-foreground/60 mt-3 text-sm leading-6">
-          بعد الدفع مع فريق تمكين على واتساب، هتاخد كود تفعيل خاص بالكورس وتدخله
-          هنا أو من زر تفعيل بالكود في الناف بار.
+          تواصل مع فريق تمكين على واتساب، وبعد تأكيد الاشتراك هتاخد كود تفعيل
+          خاص بالكورس وتدخله هنا أو من زر تفعيل بالكود في الناف بار.
         </p>
       </div>
+
+      <WhatsappContactList compact message={courseActivationWhatsappMessage} />
 
       <form action={redeemAction} className="space-y-3">
         <input type="hidden" name="courseId" value={courseId} />
