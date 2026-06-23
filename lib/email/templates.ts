@@ -182,33 +182,3 @@ export function getPasswordResetEmailHtml(
     `,
   });
 }
-
-export function getSignupCodeEmailHtml(
-  code: string,
-  ttlMinutes: number,
-  siteUrl?: string,
-) {
-  const safeCode = escapeHtml(code);
-
-  return renderEmailShell({
-    title: "كود تفعيل حساب تمكين",
-    eyebrow: "تأكيد البريد الإلكتروني",
-    preview: `كود تفعيل حساب الطالب صالح لمدة ${ttlMinutes} دقائق.`,
-    siteUrl,
-    body: `
-      <p style="margin:0 0 18px; color:#12352c; font-size:16px; line-height:1.9;">
-        استخدم الكود التالي لإكمال إنشاء حساب الطالب على منصة تمكين.
-      </p>
-      <table role="presentation" width="320" cellspacing="0" cellpadding="0" border="0" align="center" bgcolor="#e7f5f1" style="width:320px; max-width:100%; margin:22px auto; background:#e7f5f1; border:1px solid #c5e8df; border-radius:18px;">
-        <tr>
-          <td dir="ltr" align="center" style="padding:18px 16px; color:#083a32; font-size:34px; line-height:1.2; letter-spacing:8px; font-weight:900; font-family:Tahoma, Arial, sans-serif; text-align:center;">
-            ${safeCode}
-          </td>
-        </tr>
-      </table>
-      <p style="margin:0; color:#5f766f; font-size:14px; line-height:1.8;">
-        الكود صالح لمدة <strong style="color:#0d251f;">${ttlMinutes} دقائق</strong> فقط. متشاركش الكود مع أي حد.
-      </p>
-    `,
-  });
-}

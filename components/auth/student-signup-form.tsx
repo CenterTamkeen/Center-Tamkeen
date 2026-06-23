@@ -2,13 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import {
-  useActionState,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
@@ -87,7 +81,6 @@ export function StudentSignUpForm() {
     grade: state.values?.grade ?? "",
     section: state.values?.section ?? "",
     email: state.values?.email ?? "",
-    emailCode: state.values?.emailCode ?? "",
     password: state.values?.password ?? "",
     confirmPassword: state.values?.confirmPassword ?? "",
     photo: undefined,
@@ -114,8 +107,6 @@ export function StudentSignUpForm() {
   });
   const [photoName, setPhotoName] = useState("لم يتم اختيار صورة");
   const [photoError, setPhotoError] = useState<string>();
-  const [codeState, setCodeState] = useState(initialActionState);
-  const [isSendingCode, startSendingCode] = useTransition();
   const photoField = register("photo", {
     onChange(event) {
       const file = event.target.files?.[0];
@@ -410,81 +401,14 @@ export function StudentSignUpForm() {
               <span className="text-foreground/80 text-sm font-semibold">
                 الإيميل
               </span>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  {...register("email")}
-                  type="email"
-                  autoComplete="email"
-                  className={inputClassName}
-                />
-                <button
-                  type="button"
-                  disabled={isPending || isSendingCode}
-                  className="btn-secondary shrink-0 px-4 py-2.5 text-sm"
-                  onClick={(event) => {
-                    const form = event.currentTarget.form;
-
-                    if (!form) {
-                      return;
-                    }
-
-                    startSendingCode(async () => {
-                      const formData = new FormData(form);
-                      const response = await fetch("/api/auth/signup-code", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          email: formData.get("email"),
-                        }),
-                      });
-                      const result = (await response.json()) as {
-                        status: "success" | "error";
-                        message: string;
-                        fieldErrors?: Record<string, string[]>;
-                      };
-
-                      setCodeState({
-                        status: result.status,
-                        message: result.message,
-                        fieldErrors: result.fieldErrors,
-                      });
-                    });
-                  }}
-                >
-                  {isSendingCode ? "جاري الإرسال..." : "إرسال كود"}
-                </button>
-              </div>
+              <input
+                {...register("email")}
+                type="email"
+                autoComplete="email"
+                className={inputClassName}
+              />
               <ErrorText
                 message={getError("email", errors, state.fieldErrors)}
-              />
-              {codeState.message ? (
-                <p
-                  className={`animate-slide-down text-sm font-semibold ${
-                    codeState.status === "success"
-                      ? "text-primary-700"
-                      : "text-danger"
-                  }`}
-                >
-                  {codeState.message}
-                </p>
-              ) : null}
-            </label>
-
-            <label className="block space-y-2 sm:col-span-2">
-              <span className="text-foreground/80 text-sm font-semibold">
-                كود التفعيل
-              </span>
-              <input
-                {...register("emailCode")}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                className={`${inputClassName} text-center text-lg font-bold tracking-[0.35em]`}
-              />
-              <ErrorText
-                message={getError("emailCode", errors, state.fieldErrors)}
               />
             </label>
 

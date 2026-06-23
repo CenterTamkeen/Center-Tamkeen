@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
-import { verifyStudentSignupCode } from "@/lib/auth/email-codes";
 import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
 import { sendEmail } from "@/lib/email/smtp";
 import { getPasswordResetEmailHtml } from "@/lib/email/templates";
@@ -477,7 +476,6 @@ export async function studentSignUpAction(
     "grade",
     "section",
     "email",
-    "emailCode",
     "password",
     "confirmPassword",
   ]);
@@ -490,7 +488,6 @@ export async function studentSignUpAction(
     grade: getString(formData, "grade"),
     section: getString(formData, "section"),
     email: getString(formData, "email"),
-    emailCode: getString(formData, "emailCode"),
     password: getString(formData, "password"),
     confirmPassword: getString(formData, "confirmPassword"),
     photo: formData.get("photo"),
@@ -498,21 +495,6 @@ export async function studentSignUpAction(
 
   if (!parsed.success) {
     return failure("راجع بيانات التسجيل.", fieldErrors(parsed.error), values);
-  }
-
-  const codeError = await verifyStudentSignupCode(
-    parsed.data.email,
-    parsed.data.emailCode,
-  );
-
-  if (codeError) {
-    return failure(
-      codeError,
-      {
-        emailCode: [codeError],
-      },
-      values,
-    );
   }
 
   const photo = getOptionalUpload(formData, "photo");

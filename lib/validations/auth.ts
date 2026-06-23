@@ -151,11 +151,6 @@ export const forgotPasswordSchema = z.object({
   email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
 });
 
-export const emailVerificationCodeSchema = z
-  .string()
-  .trim()
-  .regex(/^\d{6}$/, "اكتب كود التفعيل المكون من 6 أرقام.");
-
 export const resetPasswordSchema = z
   .object({
     password: z
@@ -211,7 +206,6 @@ const baseStudentSignUpSchema = z
         message: "اختار المسار المناسب.",
       }),
     email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
-    emailCode: emailVerificationCodeSchema,
     password: z
       .string()
       .regex(
