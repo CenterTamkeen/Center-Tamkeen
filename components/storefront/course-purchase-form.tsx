@@ -75,8 +75,8 @@ export function CoursePurchaseForm({
           <span className="font-black">{formatPrice(price)}</span>
         </div>
         <p className="text-foreground/60 mt-3 text-sm leading-6">
-          بعد الدفع مع فريق تمكين على واتساب أو تليجرام، هتاخد كود تفعيل خاص
-          بالكورس وتدخله هنا.
+          بعد الدفع مع فريق تمكين على واتساب، هتاخد كود تفعيل خاص بالكورس وتدخله
+          هنا أو من زر تفعيل بالكود في الناف بار.
         </p>
       </div>
 

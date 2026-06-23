@@ -5,10 +5,26 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/auth/action-state";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildCourseHref } from "@/lib/storefront/links";
 import type { Database } from "@/types/database";
 
 type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
+type ActivationCourseLookup = Pick<
+  CourseRow,
+  "id" | "title" | "is_published"
+> & {
+  teacher:
+    | {
+        slug: string | null;
+        is_active: boolean;
+      }
+    | {
+        slug: string | null;
+        is_active: boolean;
+      }[]
+    | null;
+};
 
 function failure(
   message: string,
@@ -45,6 +61,44 @@ function getAdminClient() {
   } catch {
     return null;
   }
+}
+
+function normalizeActivationCode(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function getCourseTeacher(course: ActivationCourseLookup) {
+  return Array.isArray(course.teacher) ? course.teacher[0] : course.teacher;
+}
+
+function getActivationCourseHref(course: ActivationCourseLookup) {
+  const teacher = getCourseTeacher(course);
+
+  return buildCourseHref({
+    id: course.id,
+    teacher: {
+      slug: teacher?.slug ?? null,
+    },
+  });
+}
+
+function revalidateActivationPaths(courseId?: string, courseHref?: string) {
+  revalidatePath("/");
+  revalidatePath("/courses");
+
+  if (courseId) {
+    revalidatePath(`/courses/${courseId}`);
+  }
+
+  if (courseHref?.startsWith("/courses/")) {
+    revalidatePath(courseHref);
+  }
+
+  revalidatePath("/dashboard/student");
+  revalidatePath("/dashboard/teacher");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/admin/activation-codes");
+  revalidatePath("/dashboard/admin/reports");
 }
 
 async function getStudentAndCourse(profileId: string, courseId: string) {
@@ -105,9 +159,8 @@ export async function redeemCourseActivationCodeAction(
 ): Promise<ActionState> {
   const { profile } = await requireRole("student", "/dashboard/student");
   const courseId = getString(formData, "courseId");
-  const activationCode = getString(formData, "activationCode").replace(
-    /\D/g,
-    "",
+  const activationCode = normalizeActivationCode(
+    getString(formData, "activationCode"),
   );
   const context = await getStudentAndCourse(profile.id, courseId);
 
@@ -151,16 +204,152 @@ export async function redeemCourseActivationCodeAction(
     );
   }
 
-  revalidatePath("/");
-  revalidatePath("/courses");
-  revalidatePath("/dashboard/student");
-  revalidatePath("/dashboard/teacher");
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/admin/activation-codes");
-  revalidatePath("/dashboard/admin/reports");
+  revalidateActivationPaths(context.course.id);
 
   return success(result.message, {
     courseId,
+    enrollmentId: result.enrollment_id ?? "",
+    orderId: result.order_id ?? "",
+  });
+}
+
+export async function redeemAnyCourseActivationCodeAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const { profile } = await requireRole("student", "/dashboard/student");
+  const activationCode = normalizeActivationCode(
+    getString(formData, "activationCode"),
+  );
+  const values = { activationCode };
+
+  if (!/^[0-9]{6}$/.test(activationCode)) {
+    return failure(
+      "كود التفعيل لازم يكون ٦ أرقام.",
+      { activationCode: ["كود التفعيل لازم يكون ٦ أرقام."] },
+      values,
+    );
+  }
+
+  const admin = getAdminClient();
+
+  if (!admin) {
+    return failure("إعدادات السيرفر غير مكتملة.", undefined, values);
+  }
+
+  const [{ data: student }, { data: codeRow, error: codeError }] =
+    await Promise.all([
+      admin
+        .from("students")
+        .select("id")
+        .eq("profile_id", profile.id)
+        .maybeSingle(),
+      admin
+        .from("activation_codes")
+        .select("course_id, used_at, expires_at")
+        .eq("code", activationCode)
+        .maybeSingle(),
+    ]);
+
+  if (!student) {
+    return failure("لا يوجد ملف طالب مرتبط بالحساب.", undefined, values);
+  }
+
+  if (codeError) {
+    console.error("Failed to find activation code.", codeError);
+    return failure(
+      "تعذر مراجعة كود التفعيل. حاول مرة تانية.",
+      undefined,
+      values,
+    );
+  }
+
+  if (!codeRow) {
+    return failure(
+      "الكود غير صحيح أو غير موجود.",
+      { activationCode: ["الكود غير صحيح أو غير موجود."] },
+      values,
+    );
+  }
+
+  const { data: courseData, error: courseError } = await admin
+    .from("courses")
+    .select("id, title, is_published, teacher:teachers(slug, is_active)")
+    .eq("id", codeRow.course_id)
+    .maybeSingle();
+  const course = courseData as ActivationCourseLookup | null;
+
+  if (courseError || !course) {
+    console.error("Failed to load activation course.", courseError);
+    return failure("الكورس المرتبط بالكود غير موجود.", undefined, values);
+  }
+
+  const teacher = getCourseTeacher(course);
+  const courseHref = getActivationCourseHref(course);
+  const courseValues = {
+    ...values,
+    courseId: course.id,
+    courseTitle: course.title,
+    courseHref,
+  };
+
+  if (!course.is_published || !teacher?.is_active) {
+    return failure(
+      "الكورس المرتبط بالكود غير متاح حاليًا.",
+      undefined,
+      courseValues,
+    );
+  }
+
+  if (codeRow.used_at) {
+    return failure(
+      "الكود تم استخدامه قبل كده.",
+      { activationCode: ["الكود تم استخدامه قبل كده."] },
+      courseValues,
+    );
+  }
+
+  if (new Date(codeRow.expires_at) <= new Date()) {
+    return failure(
+      "صلاحية الكود انتهت.",
+      { activationCode: ["صلاحية الكود انتهت."] },
+      courseValues,
+    );
+  }
+
+  const { data, error } = await admin.rpc("redeem_course_activation_code", {
+    course_uuid: course.id,
+    submitted_code: activationCode,
+    student_uuid: student.id,
+  });
+
+  if (error) {
+    console.error("Failed to redeem activation code from navbar.", error);
+    return failure(
+      "تعذر تفعيل الكود. تأكد من تطبيق آخر migration.",
+      undefined,
+      courseValues,
+    );
+  }
+
+  const result = data?.[0];
+
+  if (!result || result.status !== "success") {
+    return failure(
+      result?.message ?? "الكود غير صالح.",
+      { activationCode: [result?.message ?? "الكود غير صالح."] },
+      {
+        ...courseValues,
+        enrollmentId: result?.enrollment_id ?? "",
+        orderId: result?.order_id ?? "",
+      },
+    );
+  }
+
+  revalidateActivationPaths(course.id, courseHref);
+
+  return success(`تم تفعيل ${course.title} بنجاح.`, {
+    ...courseValues,
     enrollmentId: result.enrollment_id ?? "",
     orderId: result.order_id ?? "",
   });

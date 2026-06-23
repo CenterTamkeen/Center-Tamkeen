@@ -33,7 +33,31 @@ const navLinks = [
   { href: "/courses", label: "الكورسات" },
   { href: "/teachers", label: "المدرسين" },
   { href: "/#reviews", label: "التقييمات" },
+  { href: "/activate-code", label: "تفعيل بالكود", icon: "activation-code" },
 ];
+
+function ActivationCodeIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M3 9a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v1.2a2 2 0 0 0 0 3.6V15a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-1.2a2 2 0 0 0 0-3.6V9Z" />
+      <path d="M9 9h.01" />
+      <path d="M12 9h.01" />
+      <path d="M15 9h.01" />
+      <path d="M9 15h6" />
+    </svg>
+  );
+}
 
 export function SiteHeaderClient({
   userRole,
@@ -164,8 +188,11 @@ export function SiteHeaderClient({
             <Link
               key={link.href}
               href={link.href}
-              className="group text-foreground/70 hover:text-primary-700 relative rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-300"
+              className="group text-foreground/70 hover:text-primary-700 relative inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-300"
             >
+              {link.icon === "activation-code" ? (
+                <ActivationCodeIcon className="text-primary-600" />
+              ) : null}
               {link.label}
               <span className="from-primary-400 to-primary-600 absolute inset-x-3 -bottom-0 h-0.5 origin-right scale-x-0 rounded-full bg-gradient-to-l transition-transform duration-300 group-hover:origin-left group-hover:scale-x-100" />
             </Link>
@@ -456,6 +483,9 @@ export function SiteHeaderClient({
               <span className="bg-primary-50/80 absolute inset-0 origin-right scale-x-0 rounded-xl opacity-0 transition-all duration-300 ease-out group-hover:scale-x-100 group-hover:opacity-100" />
               <span className="relative flex items-center gap-2">
                 <span className="bg-primary-500 h-1.5 w-1.5 scale-0 rounded-full opacity-0 transition-all duration-300 ease-out group-hover:scale-100 group-hover:opacity-100" />
+                {link.icon === "activation-code" ? (
+                  <ActivationCodeIcon className="text-primary-600" />
+                ) : null}
                 {link.label}
               </span>
             </Link>

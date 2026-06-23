@@ -23,9 +23,11 @@ export default function ContactPage() {
     >
       <StaticSection title="قنوات التواصل">
         <p>
-          الهاتف:{" "}
+          واتساب:{" "}
           <a
-            href="tel:01111901562"
+            href="https://wa.me/201111901562"
+            target="_blank"
+            rel="noreferrer"
             className="text-primary-700 font-black hover:underline"
           >
             01111901562
