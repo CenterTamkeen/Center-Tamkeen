@@ -348,7 +348,7 @@ export async function CourseDetailsPage({
                     lessonId={playableLesson.id}
                     courseId={course.id}
                     title={playableLesson.title}
-                    posterUrl={playableLesson.thumbnail_url}
+                    posterUrl={course.thumbnail_url}
                     lessonDurationSeconds={playableLesson.duration}
                     watermarkName={viewerName}
                     watermarkEmail={viewerEmail}
@@ -398,10 +398,10 @@ export async function CourseDetailsPage({
                       style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        {lesson.thumbnail_url ? (
+                        {course.thumbnail_url ? (
                           <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl">
                             <Image
-                              src={lesson.thumbnail_url}
+                              src={course.thumbnail_url}
                               alt={lesson.title}
                               fill
                               sizes="80px"
@@ -579,7 +579,7 @@ export async function CourseDetailsPage({
                       <BunnyVideoPlayer
                         lessonId={previewLesson.id}
                         title={previewLesson.title}
-                        posterUrl={previewLesson.thumbnail_url}
+                        posterUrl={course.thumbnail_url}
                         lessonDurationSeconds={previewLesson.duration}
                         watermarkName={viewerName}
                         watermarkEmail={viewerEmail}

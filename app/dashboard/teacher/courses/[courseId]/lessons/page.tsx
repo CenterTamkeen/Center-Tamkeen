@@ -52,6 +52,7 @@ export default async function CourseLessonsPage({ params }: LessonsPageProps) {
       </div>
       <LessonManager
         courseId={course.id}
+        courseThumbnailUrl={course.thumbnail_url}
         lessons={lessons}
         courses={courses.map((item) => ({ id: item.id, title: item.title }))}
       />

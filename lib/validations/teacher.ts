@@ -56,7 +56,6 @@ export const lessonSchema = z.object({
   title: z.string().trim().min(3, "عنوان الحصة مطلوب بحد أدنى 3 حروف."),
   bunnyVideoId: z.string().trim().optional(),
   videoFile: videoSchema,
-  thumbnail: imageSchema,
   durationMinutes: z.coerce
     .number()
     .min(0, "المدة لا يمكن أن تكون أقل من صفر.")

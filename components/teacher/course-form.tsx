@@ -24,14 +24,16 @@ type CourseFormProps = {
     | "target_section"
     | "thumbnail_url"
   > | null;
+  subjectOptions: string[];
 };
 
-export function CourseForm({ course }: CourseFormProps) {
+export function CourseForm({ course, subjectOptions }: CourseFormProps) {
   const action = course ? updateCourseAction : createCourseAction;
   const [state, formAction, isPending] = useActionState(
     action,
     initialActionState,
   );
+  const selectedSubject = state.values?.subject ?? course?.subject ?? "";
 
   return (
     <form action={formAction} className="space-y-5">
@@ -45,14 +47,22 @@ export function CourseForm({ course }: CourseFormProps) {
           <span className="text-foreground/80 text-sm font-semibold">
             المادة
           </span>
-          <input
+          <select
             name="subject"
-            defaultValue={state.values?.subject ?? course?.subject ?? ""}
+            defaultValue={selectedSubject}
             className="field bg-background/60 py-2.5"
-            placeholder="مثال: تاريخ وجغرافيا"
-          />
+          >
+            <option value="" disabled>
+              اختار المادة
+            </option>
+            {subjectOptions.map((subject) => (
+              <option key={subject} value={subject}>
+                {subject}
+              </option>
+            ))}
+          </select>
           <p className="text-foreground/50 text-xs leading-5 font-semibold">
-            المادة دي هتظهر فوق كارد الكورس وفي الفلاتر.
+            المادة دي بتتحدد من المواد المسجلة عندنا.
           </p>
           <ErrorText message={state.fieldErrors?.subject?.[0]} />
         </label>

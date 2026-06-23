@@ -410,7 +410,7 @@ export function ProfileForm({
                   type="button"
                   aria-label="حذف الخلفية"
                   title="حذف الخلفية"
-                  className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full bg-red-600/90 text-white opacity-0 shadow-[var(--shadow-card)] transition-all duration-300 hover:bg-red-700 focus-visible:opacity-100 focus-visible:ring-4 focus-visible:ring-red-200 focus-visible:outline-none group-hover:opacity-100"
+                  className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full bg-red-600/90 text-white opacity-0 shadow-[var(--shadow-card)] transition-all duration-300 group-hover:opacity-100 hover:bg-red-700 focus-visible:opacity-100 focus-visible:ring-4 focus-visible:ring-red-200 focus-visible:outline-none"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -788,140 +788,142 @@ export function ProfileForm({
           </div>
         ) : null}
       </form>
-      <form
-        action={passwordFormAction}
-        className="mt-6 space-y-5 border-t pt-6"
-        style={{ borderColor: "rgb(208 227 218 / 0.6)" }}
-        onSubmit={async (event) => {
-          const valid = await triggerPassword();
+      {!isTeacher ? (
+        <form
+          action={passwordFormAction}
+          className="mt-6 space-y-5 border-t pt-6"
+          style={{ borderColor: "rgb(208 227 218 / 0.6)" }}
+          onSubmit={async (event) => {
+            const valid = await triggerPassword();
 
-          if (!valid) {
-            event.preventDefault();
-          }
-        }}
-      >
-        <div>
-          <p className="eyebrow">الأمان</p>
-          <h2 className="mt-1 text-xl font-black">تغيير كلمة المرور</h2>
-        </div>
-
-        {passwordState.message ? (
-          <div
-            className={`animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
-              passwordState.status === "success"
-                ? "text-primary-700"
-                : "text-red-700"
-            }`}
-            style={{
-              background:
-                passwordState.status === "success"
-                  ? "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))"
-                  : "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {passwordState.status === "success" ? (
-                <>
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </>
-              ) : (
-                <>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </>
-              )}
-            </svg>
-            {passwordState.message}
+            if (!valid) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <div>
+            <p className="eyebrow">الأمان</p>
+            <h2 className="mt-1 text-xl font-black">تغيير كلمة المرور</h2>
           </div>
-        ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-2 sm:col-span-2">
-            <span className="text-foreground/80 text-sm font-semibold">
-              كلمة المرور الحالية
-            </span>
-            <PasswordInput<ChangePasswordValues>
-              name="currentPassword"
-              register={registerPassword}
-              autoComplete="current-password"
-              className="field bg-background/60 py-2.5"
-            />
-            <ErrorText
-              message={
-                passwordErrors.currentPassword?.message ??
-                passwordState.fieldErrors?.currentPassword?.[0]
-              }
-            />
-          </label>
+          {passwordState.message ? (
+            <div
+              className={`animate-slide-down flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+                passwordState.status === "success"
+                  ? "text-primary-700"
+                  : "text-red-700"
+              }`}
+              style={{
+                background:
+                  passwordState.status === "success"
+                    ? "linear-gradient(135deg, rgb(231 245 241 / 0.8), rgb(197 232 223 / 0.5))"
+                    : "linear-gradient(135deg, rgb(254 226 226 / 0.8), rgb(254 202 202 / 0.5))",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {passwordState.status === "success" ? (
+                  <>
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </>
+                ) : (
+                  <>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </>
+                )}
+              </svg>
+              {passwordState.message}
+            </div>
+          ) : null}
 
-          <label className="block space-y-2">
-            <span className="text-foreground/80 text-sm font-semibold">
-              كلمة المرور الجديدة
-            </span>
-            <PasswordInput<ChangePasswordValues>
-              name="newPassword"
-              register={registerPassword}
-              autoComplete="new-password"
-              className="field bg-background/60 py-2.5"
-            />
-            <PasswordStrength<ChangePasswordValues>
-              control={passwordControl}
-              name="newPassword"
-            />
-            <ErrorText
-              message={
-                passwordErrors.newPassword?.message ??
-                passwordState.fieldErrors?.newPassword?.[0]
-              }
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-2 sm:col-span-2">
+              <span className="text-foreground/80 text-sm font-semibold">
+                كلمة المرور الحالية
+              </span>
+              <PasswordInput<ChangePasswordValues>
+                name="currentPassword"
+                register={registerPassword}
+                autoComplete="current-password"
+                className="field bg-background/60 py-2.5"
+              />
+              <ErrorText
+                message={
+                  passwordErrors.currentPassword?.message ??
+                  passwordState.fieldErrors?.currentPassword?.[0]
+                }
+              />
+            </label>
 
-          <label className="block space-y-2">
-            <span className="text-foreground/80 text-sm font-semibold">
-              تأكيد كلمة المرور الجديدة
-            </span>
-            <PasswordInput<ChangePasswordValues>
-              name="confirmNewPassword"
-              register={registerPassword}
-              autoComplete="new-password"
-              className="field bg-background/60 py-2.5"
-            />
-            <ErrorText
-              message={
-                passwordErrors.confirmNewPassword?.message ??
-                passwordState.fieldErrors?.confirmNewPassword?.[0]
-              }
-            />
-          </label>
-        </div>
+            <label className="block space-y-2">
+              <span className="text-foreground/80 text-sm font-semibold">
+                كلمة المرور الجديدة
+              </span>
+              <PasswordInput<ChangePasswordValues>
+                name="newPassword"
+                register={registerPassword}
+                autoComplete="new-password"
+                className="field bg-background/60 py-2.5"
+              />
+              <PasswordStrength<ChangePasswordValues>
+                control={passwordControl}
+                name="newPassword"
+              />
+              <ErrorText
+                message={
+                  passwordErrors.newPassword?.message ??
+                  passwordState.fieldErrors?.newPassword?.[0]
+                }
+              />
+            </label>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={isPasswordPending}
-            className="btn-primary gap-2 px-6 py-2.5"
-          >
-            {isPasswordPending ? "جاري التغيير..." : "تغيير كلمة المرور"}
-          </button>
-          <Link
-            href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-            className="btn-secondary px-4 py-2.5 text-sm"
-          >
-            نسيت كلمة المرور؟
-          </Link>
-        </div>
-      </form>
+            <label className="block space-y-2">
+              <span className="text-foreground/80 text-sm font-semibold">
+                تأكيد كلمة المرور الجديدة
+              </span>
+              <PasswordInput<ChangePasswordValues>
+                name="confirmNewPassword"
+                register={registerPassword}
+                autoComplete="new-password"
+                className="field bg-background/60 py-2.5"
+              />
+              <ErrorText
+                message={
+                  passwordErrors.confirmNewPassword?.message ??
+                  passwordState.fieldErrors?.confirmNewPassword?.[0]
+                }
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={isPasswordPending}
+              className="btn-primary gap-2 px-6 py-2.5"
+            >
+              {isPasswordPending ? "جاري التغيير..." : "تغيير كلمة المرور"}
+            </button>
+            <Link
+              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+              className="btn-secondary px-4 py-2.5 text-sm"
+            >
+              نسيت كلمة المرور؟
+            </Link>
+          </div>
+        </form>
+      ) : null}
     </>
   );
 }

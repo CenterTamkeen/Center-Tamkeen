@@ -155,18 +155,23 @@ async function uploadThumbnail(teacherId: string, file?: File) {
   return result.secureUrl;
 }
 
-async function uploadLessonThumbnail(teacherId: string, file?: File) {
-  if (!file) {
-    return null;
+async function getAllowedSubjects(fallbackSubject?: string | null) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("teachers")
+    .select("subject")
+    .order("subject", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load course subject options.", error);
   }
 
-  const result = await uploadImage(file, {
-    folder: `tamkeen/teachers/${teacherId}/lessons`,
-    publicId: `lesson-${Date.now()}`,
-  });
-  return result.secureUrl;
+  return new Set(
+    [fallbackSubject, ...(data ?? []).map((teacher) => teacher.subject)]
+      .map((subject) => subject?.trim())
+      .filter((subject): subject is string => Boolean(subject)),
+  );
 }
-
 async function assertOwnsCourse(teacherId: string, courseId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -247,10 +252,12 @@ export async function createCourseAction(
     "targetSection",
   ]);
   let teacherId = "";
+  let teacherSubject = "";
 
   try {
     const { teacher } = await requireTeacher();
     teacherId = teacher.id;
+    teacherSubject = teacher.subject;
   } catch {
     return failure("لازم تكون داخل بحساب مدرس.");
   }
@@ -267,6 +274,16 @@ export async function createCourseAction(
 
   if (!parsed.success) {
     return failure("راجع بيانات الكورس.", fieldErrors(parsed.error), values);
+  }
+
+  const allowedSubjects = await getAllowedSubjects(teacherSubject);
+
+  if (!allowedSubjects.has(parsed.data.subject)) {
+    return failure(
+      "اختار مادة من المواد المتاحة.",
+      { subject: ["اختار مادة من القائمة."] },
+      values,
+    );
   }
 
   let thumbnailUrl: string | null = null;
@@ -310,7 +327,6 @@ export async function createCourseAction(
 
 export async function deleteTeacherReviewAction(formData: FormData) {
   let teacherId = "";
-
   try {
     const { teacher } = await requireTeacher();
     teacherId = teacher.id;
@@ -373,6 +389,16 @@ export async function updateCourseAction(
     return failure("راجع بيانات الكورس.", fieldErrors(parsed.error), values);
   }
 
+  const allowedSubjects = await getAllowedSubjects(teacher.subject);
+
+  if (!allowedSubjects.has(parsed.data.subject)) {
+    return failure(
+      "اختار مادة من المواد المتاحة.",
+      { subject: ["اختار مادة من القائمة."] },
+      values,
+    );
+  }
+
   let thumbnailUrl: string | null = null;
 
   try {
@@ -410,7 +436,6 @@ export async function updateCourseAction(
   revalidatePath(`/dashboard/teacher/courses/${courseId}/edit`);
   return success("تم حفظ تعديلات الكورس.");
 }
-
 export async function toggleCoursePublishAction(formData: FormData) {
   const courseId = getString(formData, "courseId");
   const nextPublished = getCheckbox(formData, "nextPublished");
@@ -463,7 +488,6 @@ export async function createLessonAction(
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     videoFile: getOptionalUpload(formData, "videoFile"),
-    thumbnail: getOptionalUpload(formData, "thumbnail"),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
@@ -482,21 +506,6 @@ export async function createLessonAction(
     );
   }
 
-  let thumbnailUrl: string | null = null;
-
-  try {
-    thumbnailUrl = await uploadLessonThumbnail(
-      teacher.id,
-      parsed.data.thumbnail,
-    );
-  } catch {
-    return failure(
-      "تعذر رفع الصورة المصغّرة للحصة.",
-      { thumbnail: ["تعذر رفع الصورة المصغّرة للحصة."] },
-      values,
-    );
-  }
-
   const supabase = await createClient();
   const { count } = await supabase
     .from("lessons")
@@ -507,7 +516,7 @@ export async function createLessonAction(
     title: parsed.data.title,
     order_index: count ?? 0,
     bunny_video_id: bunnyVideoId,
-    thumbnail_url: thumbnailUrl,
+    thumbnail_url: null,
     video_provider: "bunny",
     duration: parsed.data.durationMinutes
       ? Math.round(parsed.data.durationMinutes * 60)
@@ -530,7 +539,6 @@ export async function createLessonAction(
   revalidateLessonPaths(courseId);
   return success("تمت إضافة الحصة.");
 }
-
 export async function updateLessonAction(
   _previousState: ActionState,
   formData: FormData,
@@ -554,7 +562,6 @@ export async function updateLessonAction(
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     videoFile: getOptionalUpload(formData, "videoFile"),
-    thumbnail: getOptionalUpload(formData, "thumbnail"),
     durationMinutes: getOptionalString(formData, "durationMinutes") ?? 0,
     isFreePreview: getCheckbox(formData, "isFreePreview"),
   });
@@ -564,28 +571,13 @@ export async function updateLessonAction(
   }
 
   const bunnyVideoId = parsed.data.bunnyVideoId || null;
-  let thumbnailUrl: string | null = null;
-
-  try {
-    thumbnailUrl = await uploadLessonThumbnail(
-      teacher.id,
-      parsed.data.thumbnail,
-    );
-  } catch {
-    return failure(
-      "تعذر رفع الصورة المصغّرة للحصة.",
-      { thumbnail: ["تعذر رفع الصورة المصغّرة للحصة."] },
-      values,
-    );
-  }
-
   const supabase = await createClient();
   const { error } = await supabase
     .from("lessons")
     .update({
       title: parsed.data.title,
       bunny_video_id: bunnyVideoId,
-      ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
+      thumbnail_url: null,
       video_provider: "bunny",
       duration: parsed.data.durationMinutes
         ? Math.round(parsed.data.durationMinutes * 60)
@@ -602,7 +594,6 @@ export async function updateLessonAction(
   revalidateLessonPaths(courseId);
   return success("تم حفظ الحصة.");
 }
-
 export async function deleteLessonAction(formData: FormData) {
   const courseId = getString(formData, "courseId");
   const lessonId = getString(formData, "lessonId");
@@ -741,7 +732,7 @@ export async function duplicateLessonAction(formData: FormData) {
     order_index: count ?? 0,
     vdocipher_video_id: lesson.vdocipher_video_id,
     bunny_video_id: lesson.bunny_video_id,
-    thumbnail_url: lesson.thumbnail_url,
+    thumbnail_url: null,
     video_provider: lesson.video_provider,
     duration: lesson.duration,
     is_free_preview: lesson.is_free_preview,

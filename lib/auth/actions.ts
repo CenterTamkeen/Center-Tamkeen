@@ -362,6 +362,24 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role === "teacher") {
+    return failure("تغيير كلمة مرور المدرس غير متاح.", undefined, values);
+  }
+
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,
   });
@@ -408,6 +426,16 @@ export async function changePasswordAction(
 
   if (!user?.email) {
     redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role === "teacher") {
+    return failure("تغيير كلمة مرور المدرس غير متاح.", undefined, values);
   }
 
   const { error: passwordError } = await supabase.auth.signInWithPassword({

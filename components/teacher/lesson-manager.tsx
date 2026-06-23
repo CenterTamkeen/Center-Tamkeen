@@ -200,22 +200,6 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
         </label>
         <label className="space-y-2 sm:col-span-2">
           <span className="text-foreground/80 text-sm font-semibold">
-            الصورة المصغرة للحصة
-          </span>
-          <input
-            name="thumbnail"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="field bg-background/60 py-2.5"
-          />
-          <p className="text-foreground/50 text-xs leading-5 font-semibold">
-            المقاس المقترح للمصمم: 1280 × 720 بكسل بنسبة 16:9. JPG/PNG/WebP بحد
-            أقصى 3MB.
-          </p>
-          <ErrorText message={state.fieldErrors?.thumbnail?.[0]} />
-        </label>
-        <label className="space-y-2 sm:col-span-2">
-          <span className="text-foreground/80 text-sm font-semibold">
             فيديو الحصة
           </span>
           <input
@@ -312,7 +296,7 @@ function LessonEditForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-3 lg:grid-cols-[1fr_180px_180px_120px_auto]"
+      className="grid gap-3 lg:grid-cols-[1fr_180px_120px_auto]"
     >
       <input type="hidden" name="lessonId" value={lesson.id} />
       <input type="hidden" name="courseId" value={courseId} />
@@ -328,18 +312,6 @@ function LessonEditForm({
           className="field bg-background/60 py-2.5"
         />
         <ErrorText message={state.fieldErrors?.title?.[0]} />
-      </div>
-      <div className="space-y-1.5">
-        <input
-          name="thumbnail"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="field bg-background/60 py-2.5 text-xs"
-          aria-label="الصورة المصغرة للحصة"
-        />
-        <p className="text-foreground/50 text-[11px] leading-4 font-semibold">
-          1280 × 720 بكسل
-        </p>
       </div>
       <input
         name="videoFile"
@@ -392,10 +364,12 @@ function LessonEditForm({
 
 export function LessonManager({
   courseId,
+  courseThumbnailUrl,
   lessons,
   courses,
 }: {
   courseId: string;
+  courseThumbnailUrl: string | null;
   lessons: TeacherLesson[];
   courses: { id: string; title: string }[];
 }) {
@@ -500,10 +474,10 @@ export function LessonManager({
                     }}
                     className="accent-primary-600 h-4 w-4"
                   />
-                  {lesson.thumbnail_url ? (
+                  {courseThumbnailUrl ? (
                     <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg">
                       <Image
-                        src={lesson.thumbnail_url}
+                        src={courseThumbnailUrl}
                         alt={lesson.title}
                         fill
                         sizes="64px"

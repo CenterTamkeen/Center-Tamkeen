@@ -164,6 +164,28 @@ export async function getTeacherCourses(teacherId: string) {
   return (data ?? []) as TeacherCourse[];
 }
 
+export async function getTeacherSubjectOptions(
+  fallbackSubject?: string | null,
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("teachers")
+    .select("subject")
+    .order("subject", { ascending: true });
+
+  if (error) {
+    logTeacherError("subject-options", error.message);
+  }
+
+  return Array.from(
+    new Set(
+      [fallbackSubject, ...(data ?? []).map((teacher) => teacher.subject)]
+        .map((subject) => subject?.trim())
+        .filter((subject): subject is string => Boolean(subject)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "ar"));
+}
+
 export async function getTeacherCourseById(
   teacherId: string,
   courseId: string,
