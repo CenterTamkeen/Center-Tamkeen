@@ -35,16 +35,130 @@ function codeStatus(code: AdminActivationCode) {
   return { label: "متاح", tone: "available" as const };
 }
 
-function downloadCodes(codes: string[]) {
-  const blob = new Blob([codes.join("\n")], {
-    type: "text/plain;charset=utf-8;",
-  });
+type GeneratedCodeExportDetails = {
+  courseName: string;
+  teacherName: string;
+  expiresAt?: string;
+};
+
+function getSafeFilenamePart(value: string) {
+  return value
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+}
+
+function downloadFile(content: string, type: string, filename: string) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "tamkeen-activation-codes.txt";
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function buildTxtContent(codes: string[], details: GeneratedCodeExportDetails) {
+  return [
+    "منصة تمكين - أكواد تفعيل",
+    `اسم المدرس: ${details.teacherName}`,
+    `اسم الكورس: ${details.courseName}`,
+    details.expiresAt ? `تاريخ الصلاحية: ${formatDate(details.expiresAt)}` : "",
+    `عدد الأكواد: ${codes.length.toLocaleString("ar-EG")}`,
+    "",
+    "الأكواد:",
+    ...codes,
+    "",
+  ]
+    .filter((line, index) => line || index === 5)
+    .join("\r\n");
+}
+
+function downloadTxtCodes(
+  codes: string[],
+  details: GeneratedCodeExportDetails,
+) {
+  const filenameCourse = getSafeFilenamePart(details.courseName) || "course";
+
+  downloadFile(
+    `\uFEFF${buildTxtContent(codes, details)}`,
+    "text/plain;charset=utf-8;",
+    `tamkeen-${filenameCourse}-activation-codes.txt`,
+  );
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildExcelContent(
+  codes: string[],
+  details: GeneratedCodeExportDetails,
+) {
+  const generatedAt = new Date().toLocaleString("ar-EG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const expiresAt = details.expiresAt
+    ? formatDate(details.expiresAt)
+    : "غير محدد";
+  const rows = codes
+    .map(
+      (code, index) => `
+        <tr>
+          <td>${(index + 1).toLocaleString("ar-EG")}</td>
+          <td class="code">${escapeHtml(code)}</td>
+        </tr>`,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: Arial, Tahoma, sans-serif; direction: rtl; }
+      .title { background: #102a43; color: #ffffff; font-size: 20px; font-weight: 700; text-align: center; }
+      .meta-label { background: #d9e8f5; font-weight: 700; width: 160px; }
+      .meta-value { background: #f7fbff; font-weight: 700; }
+      .table-head { background: #f0b429; color: #111827; font-weight: 700; text-align: center; }
+      td { border: 1px solid #8aa4b8; padding: 10px; mso-number-format: "\\@"; }
+      .code { direction: ltr; text-align: center; font-size: 18px; font-weight: 700; letter-spacing: 3px; }
+    </style>
+  </head>
+  <body>
+    <table>
+      <tr><td class="title" colspan="2">منصة تمكين - أكواد تفعيل</td></tr>
+      <tr><td class="meta-label">اسم المدرس</td><td class="meta-value">${escapeHtml(details.teacherName)}</td></tr>
+      <tr><td class="meta-label">اسم الكورس</td><td class="meta-value">${escapeHtml(details.courseName)}</td></tr>
+      <tr><td class="meta-label">تاريخ الصلاحية</td><td class="meta-value">${escapeHtml(expiresAt)}</td></tr>
+      <tr><td class="meta-label">تاريخ التصدير</td><td class="meta-value">${escapeHtml(generatedAt)}</td></tr>
+      <tr><td class="meta-label">عدد الأكواد</td><td class="meta-value">${codes.length.toLocaleString("ar-EG")}</td></tr>
+      <tr><td colspan="2"></td></tr>
+      <tr><td class="table-head">م</td><td class="table-head">كود التفعيل</td></tr>
+      ${rows}
+    </table>
+  </body>
+</html>`;
+}
+
+function downloadExcelCodes(
+  codes: string[],
+  details: GeneratedCodeExportDetails,
+) {
+  const filenameCourse = getSafeFilenamePart(details.courseName) || "course";
+
+  downloadFile(
+    `\uFEFF${buildExcelContent(codes, details)}`,
+    "application/vnd.ms-excel;charset=utf-8;",
+    `tamkeen-${filenameCourse}-activation-codes.xls`,
+  );
 }
 
 function DeleteActivationCodeForm({ codeId }: { codeId: string }) {
@@ -87,6 +201,15 @@ export function ActivationCodeManager({
   const generatedCodes = (state.values?.generatedCodes ?? "")
     .split(",")
     .filter(Boolean);
+  const generatedCourse = courses.find(
+    (course) => course.id === state.values?.courseId,
+  );
+  const generatedCodeExportDetails: GeneratedCodeExportDetails = {
+    courseName: generatedCourse?.title ?? "كورس غير معروف",
+    teacherName:
+      generatedCourse?.teacher?.profile?.full_name ?? "مدرس غير معروف",
+    expiresAt: state.values?.expiresAt,
+  };
   const filteredCodes = useMemo(() => {
     const normalized = query.trim();
 
@@ -172,9 +295,20 @@ export function ActivationCodeManager({
               <button
                 type="button"
                 className="btn-secondary px-3 py-2 text-xs"
-                onClick={() => downloadCodes(generatedCodes)}
+                onClick={() =>
+                  downloadTxtCodes(generatedCodes, generatedCodeExportDetails)
+                }
               >
                 تحميل TXT
+              </button>
+              <button
+                type="button"
+                className="btn-primary px-3 py-2 text-xs"
+                onClick={() =>
+                  downloadExcelCodes(generatedCodes, generatedCodeExportDetails)
+                }
+              >
+                تحميل Excel
               </button>
             </div>
             <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
