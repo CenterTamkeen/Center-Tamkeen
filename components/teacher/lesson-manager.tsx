@@ -141,6 +141,8 @@ type TusCredentials = {
   signature: string;
 };
 
+const BUNNY_UPLOAD_CHUNK_SIZE = 50 * 1024 * 1024;
+
 function getSelectedFile(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -185,6 +187,7 @@ async function uploadVideoDirectlyToBunny({
   await new Promise<void>((resolve, reject) => {
     const upload = new tus.Upload(file, {
       endpoint: "https://video.bunnycdn.com/tusupload",
+      chunkSize: BUNNY_UPLOAD_CHUNK_SIZE,
       retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
       removeFingerprintOnSuccess: true,
       headers: {
