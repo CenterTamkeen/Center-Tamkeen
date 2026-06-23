@@ -48,6 +48,10 @@ function formatFileSize(bytes: number | null) {
   })} MB`;
 }
 
+function hasPlayableVideo(lesson: LessonWithMaterials) {
+  return Boolean(lesson.bunny_video_id || lesson.youtube_video_id);
+}
+
 export async function generateCourseMetadata(id: string): Promise<Metadata> {
   const course = await getCourseById(id);
 
@@ -141,18 +145,21 @@ export async function CourseDetailsPage({
   const playableLesson = isEnrolled
     ? (course.lessons.find(
         (lesson) =>
-          lesson.bunny_video_id &&
+          hasPlayableVideo(lesson) &&
           progressByLessonId.get(lesson.id)?.status !== "completed",
-      ) ?? course.lessons.find((lesson) => lesson.bunny_video_id))
+      ) ?? course.lessons.find(hasPlayableVideo))
     : undefined;
   const playableVideoStatus = playableLesson?.bunny_video_id
     ? await getBunnyStreamVideoStatus(playableLesson.bunny_video_id)
     : undefined;
   const previewVideoStatus =
-    previewLesson?.bunny_video_id &&
+    previewLesson?.video_provider === "bunny" &&
+    previewLesson.bunny_video_id &&
     previewLesson.bunny_video_id !== playableLesson?.bunny_video_id
       ? await getBunnyStreamVideoStatus(previewLesson.bunny_video_id)
-      : playableVideoStatus;
+      : previewLesson?.video_provider === "bunny"
+        ? playableVideoStatus
+        : undefined;
   const shouldShowPreviewPlayer = !isEnrolled;
   const previewCount = course.lessons.filter(
     (lesson) => lesson.is_free_preview,
@@ -369,6 +376,11 @@ export async function CourseDetailsPage({
                     title={playableLesson.title}
                     posterUrl={course.thumbnail_url}
                     lessonDurationSeconds={playableLesson.duration}
+                    videoProvider={
+                      playableLesson.video_provider === "youtube"
+                        ? "youtube"
+                        : "bunny"
+                    }
                     watermarkName={viewerName}
                     watermarkEmail={viewerEmail}
                     initialStatus={playableVideoStatus}
@@ -597,12 +609,17 @@ export async function CourseDetailsPage({
                         {formatDuration(previewLesson.duration)}
                       </p>
                     </div>
-                    {previewLesson.bunny_video_id ? (
+                    {hasPlayableVideo(previewLesson) ? (
                       <BunnyVideoPlayer
                         lessonId={previewLesson.id}
                         title={previewLesson.title}
                         posterUrl={course.thumbnail_url}
                         lessonDurationSeconds={previewLesson.duration}
+                        videoProvider={
+                          previewLesson.video_provider === "youtube"
+                            ? "youtube"
+                            : "bunny"
+                        }
                         watermarkName={viewerName}
                         watermarkEmail={viewerEmail}
                         initialStatus={previewVideoStatus}

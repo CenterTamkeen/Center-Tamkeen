@@ -72,6 +72,8 @@ type CourseLessonDetails = Pick<
   | "duration"
   | "is_free_preview"
   | "bunny_video_id"
+  | "youtube_video_id"
+  | "youtube_url"
   | "thumbnail_url"
   | "video_provider"
 > & {
@@ -932,7 +934,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)), reviews(id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)))",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)), reviews(id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)))",
     )
     .eq("id", id)
     .eq("is_published", true)
@@ -968,7 +970,7 @@ export async function getCourseById(id: string) {
   const { data: lessons, error: lessonsError } = await admin
     .from("lessons")
     .select(
-      "id, title, order_index, duration, is_free_preview, bunny_video_id, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
+      "id, title, order_index, duration, is_free_preview, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
     )
     .eq("course_id", data.id)
     .order("order_index", { ascending: true });

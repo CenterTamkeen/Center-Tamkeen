@@ -255,6 +255,12 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
     const form = event.currentTarget;
     const formData = new FormData(form);
     const videoFile = getSelectedFile(formData, "videoFile");
+    const youtubeUrl = String(formData.get("youtubeUrl") ?? "").trim();
+
+    if (videoFile && youtubeUrl) {
+      setUploadError("اختار رفع فيديو أو رابط YouTube فقط.");
+      return;
+    }
 
     if (videoFile) {
       try {
@@ -266,6 +272,7 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
           onProgress: setUploadProgress,
         });
         formData.set("bunnyVideoId", videoId);
+        formData.set("youtubeUrl", "");
       } catch {
         setUploadError("تعذر رفع الفيديو. تأكد من الاتصال وحاول مرة تانية.");
         setUploadProgress(null);
@@ -273,8 +280,8 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
       }
     }
 
-    if (!formData.get("bunnyVideoId")) {
-      setUploadError("اختار فيديو الحصة قبل الإضافة.");
+    if (!formData.get("bunnyVideoId") && !youtubeUrl) {
+      setUploadError("اختار فيديو الحصة أو ادخل رابط YouTube قبل الإضافة.");
       setUploadProgress(null);
       return;
     }
@@ -320,6 +327,23 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
             className="field bg-background/60 py-2.5"
           />
           <ErrorText message={state.fieldErrors?.videoFile?.[0]} />
+        </label>
+        <label className="space-y-2 sm:col-span-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            ادخل URL اليوتيوب
+          </span>
+          <input
+            name="youtubeUrl"
+            type="url"
+            dir="ltr"
+            defaultValue={state.values?.youtubeUrl ?? ""}
+            className="field bg-background/60 py-2.5 text-left"
+            placeholder="https://youtu.be/..."
+          />
+          <p className="text-foreground/50 text-xs font-bold">
+            استخدم رفع الفيديو أو رابط YouTube، مش الاتنين مع بعض.
+          </p>
+          <ErrorText message={state.fieldErrors?.youtubeUrl?.[0]} />
         </label>
         <label className="space-y-2">
           <span className="text-foreground/80 text-sm font-semibold">
@@ -404,6 +428,12 @@ function LessonEditForm({
 
     const formData = new FormData(event.currentTarget);
     const videoFile = getSelectedFile(formData, "videoFile");
+    const youtubeUrl = String(formData.get("youtubeUrl") ?? "").trim();
+
+    if (videoFile && youtubeUrl) {
+      setUploadError("اختار رفع فيديو أو رابط YouTube فقط.");
+      return;
+    }
 
     if (videoFile) {
       try {
@@ -415,6 +445,7 @@ function LessonEditForm({
           onProgress: setUploadProgress,
         });
         formData.set("bunnyVideoId", videoId);
+        formData.set("youtubeUrl", "");
       } catch {
         setUploadError("تعذر رفع الفيديو. تأكد من الاتصال وحاول مرة تانية.");
         setUploadProgress(null);
@@ -439,7 +470,9 @@ function LessonEditForm({
       <input
         type="hidden"
         name="bunnyVideoId"
-        value={lesson.bunny_video_id ?? lesson.vdocipher_video_id ?? ""}
+        value={
+          lesson.video_provider === "bunny" ? (lesson.bunny_video_id ?? "") : ""
+        }
       />
       <div className="space-y-2">
         <input
@@ -455,6 +488,15 @@ function LessonEditForm({
         accept="video/*"
         className="field bg-background/60 py-2.5 text-xs"
         aria-label="فيديو الحصة"
+      />
+      <input
+        name="youtubeUrl"
+        type="url"
+        dir="ltr"
+        defaultValue={state.values?.youtubeUrl ?? lesson.youtube_url ?? ""}
+        className="field bg-background/60 py-2.5 text-left text-xs lg:col-span-2"
+        placeholder="ادخل URL اليوتيوب"
+        aria-label="ادخل URL اليوتيوب"
       />
       <input
         name="durationMinutes"
@@ -499,6 +541,7 @@ function LessonEditForm({
         </button>
       </div>
       <div className="lg:col-span-5">
+        <ErrorText message={state.fieldErrors?.youtubeUrl?.[0]} />
         <ErrorText message={state.fieldErrors?.attachmentFile?.[0]} />
         {uploadError ? <ErrorText message={uploadError} /> : null}
         {uploadProgress !== null ? (
@@ -644,6 +687,9 @@ export function LessonManager({
                   ) : null}
                   <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
                     {(index + 1).toLocaleString("ar-EG")}
+                  </span>
+                  <span className="text-foreground/55 rounded-lg bg-white/65 px-2.5 py-1 text-xs font-black">
+                    {lesson.video_provider === "youtube" ? "YouTube" : "Bunny"}
                   </span>
                   <p className="text-sm font-black">اسحب لإعادة الترتيب</p>
                 </div>

@@ -15,6 +15,7 @@ type BunnyVideoStatus = {
 };
 
 type LessonProgressStatus = "not_started" | "in_progress" | "completed";
+type VideoProvider = "bunny" | "youtube";
 
 type BunnyVideoPlayerProps = {
   lessonId: string;
@@ -22,6 +23,7 @@ type BunnyVideoPlayerProps = {
   title: string;
   posterUrl?: string | null;
   lessonDurationSeconds?: number | null;
+  videoProvider?: VideoProvider;
   watermarkName?: string | null;
   watermarkEmail?: string | null;
   initialStatus?: BunnyVideoStatus;
@@ -43,6 +45,7 @@ export function BunnyVideoPlayer({
   title,
   posterUrl,
   lessonDurationSeconds,
+  videoProvider = "bunny",
   watermarkName,
   watermarkEmail,
   initialStatus,
@@ -51,6 +54,7 @@ export function BunnyVideoPlayer({
 }: BunnyVideoPlayerProps) {
   const [hasStarted, setHasStarted] = useState(!posterUrl);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [provider, setProvider] = useState<VideoProvider>(videoProvider);
   const [playbackError, setPlaybackError] = useState("");
   const [progressStatus, setProgressStatus] = useState<LessonProgressStatus>(
     initialProgressStatus,
@@ -61,9 +65,20 @@ export function BunnyVideoPlayer({
   const startRecordedRef = useRef(initialProgressStatus !== "not_started");
   const [isExpanded, setIsExpanded] = useState(false);
   const [status, setStatus] = useState<BunnyVideoStatus>(
-    initialStatus ?? defaultStatus,
+    initialStatus ??
+      (videoProvider === "youtube"
+        ? {
+            status: 4,
+            isPlayable: true,
+            hasFailed: false,
+            label: "الفيديو جاهز للتشغيل.",
+            encodeProgress: null,
+          }
+        : defaultStatus),
   );
-  const shouldPoll = Boolean(!status.isPlayable && !status.hasFailed);
+  const shouldPoll = Boolean(
+    provider === "bunny" && !status.isPlayable && !status.hasFailed,
+  );
   const effectiveDurationSeconds =
     lessonDurationSeconds ?? status.length ?? null;
   const watermarkText = [watermarkName, watermarkEmail]
@@ -211,8 +226,22 @@ export function BunnyVideoPlayer({
           return;
         }
 
-        const data = (await response.json()) as { embedUrl?: string };
+        const data = (await response.json()) as {
+          embedUrl?: string;
+          provider?: VideoProvider;
+        };
         setEmbedUrl(data.embedUrl ?? null);
+
+        if (data.provider === "youtube") {
+          setProvider("youtube");
+          setStatus({
+            status: 4,
+            isPlayable: true,
+            hasFailed: false,
+            label: "الفيديو جاهز للتشغيل.",
+            encodeProgress: null,
+          });
+        }
       } catch {
         if (!controller.signal.aborted) {
           setPlaybackError("تعذر تجهيز تشغيل الفيديو.");
@@ -267,7 +296,7 @@ export function BunnyVideoPlayer({
     );
   }
 
-  if (!status.isPlayable) {
+  if (provider === "bunny" && !status.isPlayable) {
     return (
       <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-black px-5 text-center text-white">
         <p className="text-lg font-black">

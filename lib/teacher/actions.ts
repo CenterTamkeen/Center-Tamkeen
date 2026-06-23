@@ -10,6 +10,7 @@ import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentTeacher } from "@/lib/teacher/data";
+import { extractYouTubeVideoId } from "@/lib/youtube";
 import {
   couponSchema,
   couponUpdateSchema,
@@ -26,6 +27,18 @@ type CouponInsert = Database["public"]["Tables"]["coupons"]["Insert"];
 type CouponUpdate = Database["public"]["Tables"]["coupons"]["Update"];
 type LessonQuizInsert =
   Database["public"]["Tables"]["lesson_quiz_questions"]["Insert"];
+type LessonVideoSource =
+  | {
+      ok: true;
+      provider: "bunny" | "youtube";
+      bunnyVideoId: string | null;
+      youtubeVideoId: string | null;
+      youtubeUrl: string | null;
+    }
+  | {
+      ok: false;
+      fieldErrors: Record<string, string[]>;
+    };
 
 function failure(
   message: string,
@@ -70,6 +83,65 @@ function getString(formData: FormData, key: string) {
 function getOptionalString(formData: FormData, key: string) {
   const value = getString(formData, key).trim();
   return value.length > 0 ? value : undefined;
+}
+
+function getLessonVideoSource({
+  bunnyVideoId,
+  youtubeUrl,
+}: {
+  bunnyVideoId?: string;
+  youtubeUrl?: string;
+}): LessonVideoSource {
+  const normalizedBunnyVideoId = bunnyVideoId?.trim() || null;
+  const normalizedYoutubeUrl = youtubeUrl?.trim() || null;
+  const youtubeVideoId = extractYouTubeVideoId(normalizedYoutubeUrl);
+
+  if (normalizedBunnyVideoId && normalizedYoutubeUrl) {
+    return {
+      ok: false,
+      fieldErrors: {
+        videoFile: ["اختار رفع فيديو أو رابط YouTube فقط."],
+        youtubeUrl: ["اختار مصدر واحد للحصة."],
+      },
+    };
+  }
+
+  if (normalizedYoutubeUrl && !youtubeVideoId) {
+    return {
+      ok: false,
+      fieldErrors: {
+        youtubeUrl: ["ادخل رابط YouTube صحيح."],
+      },
+    };
+  }
+
+  if (normalizedBunnyVideoId) {
+    return {
+      ok: true,
+      provider: "bunny",
+      bunnyVideoId: normalizedBunnyVideoId,
+      youtubeVideoId: null,
+      youtubeUrl: null,
+    };
+  }
+
+  if (youtubeVideoId && normalizedYoutubeUrl) {
+    return {
+      ok: true,
+      provider: "youtube",
+      bunnyVideoId: null,
+      youtubeVideoId,
+      youtubeUrl: normalizedYoutubeUrl,
+    };
+  }
+
+  return {
+    ok: false,
+    fieldErrors: {
+      videoFile: ["ارفع فيديو الحصة أو ادخل رابط YouTube."],
+      youtubeUrl: ["ارفع فيديو الحصة أو ادخل رابط YouTube."],
+    },
+  };
 }
 
 function getCheckbox(formData: FormData, key: string) {
@@ -548,6 +620,7 @@ export async function createLessonAction(
     "title",
     "durationMinutes",
     "attachmentTitle",
+    "youtubeUrl",
   ]);
   const { teacher } = await requireTeacher();
 
@@ -559,6 +632,7 @@ export async function createLessonAction(
     courseId,
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
+    youtubeUrl: getOptionalString(formData, "youtubeUrl"),
     videoFile: getOptionalUpload(formData, "videoFile"),
     attachmentFile: getOptionalUpload(formData, "attachmentFile"),
     attachmentTitle: getOptionalString(formData, "attachmentTitle"),
@@ -571,14 +645,13 @@ export async function createLessonAction(
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
   }
 
-  const bunnyVideoId = parsed.data.bunnyVideoId || null;
+  const videoSource = getLessonVideoSource({
+    bunnyVideoId: parsed.data.bunnyVideoId,
+    youtubeUrl: parsed.data.youtubeUrl,
+  });
 
-  if (!bunnyVideoId) {
-    return failure(
-      "ارفع فيديو الحصة قبل الإضافة.",
-      { videoFile: ["ارفع فيديو الحصة."] },
-      values,
-    );
+  if (!videoSource.ok) {
+    return failure("راجع مصدر فيديو الحصة.", videoSource.fieldErrors, values);
   }
 
   const supabase = await createClient();
@@ -608,9 +681,11 @@ export async function createLessonAction(
       course_id: courseId,
       title: parsed.data.title,
       order_index: count ?? 0,
-      bunny_video_id: bunnyVideoId,
+      bunny_video_id: videoSource.bunnyVideoId,
+      youtube_video_id: videoSource.youtubeVideoId,
+      youtube_url: videoSource.youtubeUrl,
       thumbnail_url: null,
-      video_provider: "bunny",
+      video_provider: videoSource.provider,
       duration: parsed.data.durationMinutes
         ? Math.round(parsed.data.durationMinutes * 60)
         : null,
@@ -623,7 +698,10 @@ export async function createLessonAction(
     if (error.code === "23505") {
       return failure(
         "الفيديو ده مضاف بالفعل داخل الكورس.",
-        { videoFile: ["اختار فيديو مختلف أو احذف الحصة القديمة أولًا."] },
+        {
+          videoFile: ["اختار فيديو مختلف أو احذف الحصة القديمة أولًا."],
+          youtubeUrl: ["اختار رابط مختلف أو احذف الحصة القديمة أولًا."],
+        },
         values,
       );
     }
@@ -671,6 +749,7 @@ export async function updateLessonAction(
     "title",
     "durationMinutes",
     "attachmentTitle",
+    "youtubeUrl",
   ]);
   const { teacher } = await requireTeacher();
 
@@ -683,6 +762,7 @@ export async function updateLessonAction(
     courseId,
     title: getString(formData, "title"),
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
+    youtubeUrl: getOptionalString(formData, "youtubeUrl"),
     videoFile: getOptionalUpload(formData, "videoFile"),
     attachmentFile: getOptionalUpload(formData, "attachmentFile"),
     attachmentTitle: getOptionalString(formData, "attachmentTitle"),
@@ -695,8 +775,22 @@ export async function updateLessonAction(
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
   }
 
-  const bunnyVideoId = parsed.data.bunnyVideoId || null;
+  const videoSource = getLessonVideoSource({
+    bunnyVideoId: parsed.data.bunnyVideoId,
+    youtubeUrl: parsed.data.youtubeUrl,
+  });
+
+  if (!videoSource.ok) {
+    return failure("راجع مصدر فيديو الحصة.", videoSource.fieldErrors, values);
+  }
+
   const supabase = await createClient();
+  const { data: previousLesson } = await supabase
+    .from("lessons")
+    .select("id, bunny_video_id")
+    .eq("id", parsed.data.lessonId)
+    .eq("course_id", courseId)
+    .maybeSingle();
   let attachmentUrl: string | null = null;
 
   try {
@@ -717,9 +811,11 @@ export async function updateLessonAction(
     .from("lessons")
     .update({
       title: parsed.data.title,
-      bunny_video_id: bunnyVideoId,
+      bunny_video_id: videoSource.bunnyVideoId,
+      youtube_video_id: videoSource.youtubeVideoId,
+      youtube_url: videoSource.youtubeUrl,
       thumbnail_url: null,
-      video_provider: "bunny",
+      video_provider: videoSource.provider,
       duration: parsed.data.durationMinutes
         ? Math.round(parsed.data.durationMinutes * 60)
         : null,
@@ -729,7 +825,30 @@ export async function updateLessonAction(
     .eq("course_id", courseId);
 
   if (error) {
+    if (error.code === "23505") {
+      return failure(
+        "الفيديو ده مضاف بالفعل داخل الكورس.",
+        {
+          videoFile: ["اختار فيديو مختلف أو احذف الحصة القديمة أولًا."],
+          youtubeUrl: ["اختار رابط مختلف أو احذف الحصة القديمة أولًا."],
+        },
+        values,
+      );
+    }
+
     return failure("تعذر حفظ الحصة.", undefined, values);
+  }
+
+  if (
+    previousLesson?.bunny_video_id &&
+    previousLesson.bunny_video_id !== videoSource.bunnyVideoId
+  ) {
+    const unusedVideoIds = await getUnusedBunnyVideoIds(
+      courseId,
+      [previousLesson.bunny_video_id],
+      [parsed.data.lessonId],
+    );
+    await deleteBunnyVideos(unusedVideoIds);
   }
 
   if (attachmentUrl) {
@@ -889,7 +1008,7 @@ export async function duplicateLessonAction(formData: FormData) {
   const { data: lesson } = await supabase
     .from("lessons")
     .select(
-      "title, vdocipher_video_id, bunny_video_id, thumbnail_url, video_provider, duration, is_free_preview",
+      "title, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview",
     )
     .eq("id", lessonId)
     .eq("course_id", courseId)
@@ -903,7 +1022,7 @@ export async function duplicateLessonAction(formData: FormData) {
     return;
   }
 
-  if (lesson.bunny_video_id) {
+  if (lesson.bunny_video_id || lesson.youtube_video_id) {
     return;
   }
 
@@ -913,6 +1032,8 @@ export async function duplicateLessonAction(formData: FormData) {
     order_index: count ?? 0,
     vdocipher_video_id: lesson.vdocipher_video_id,
     bunny_video_id: lesson.bunny_video_id,
+    youtube_video_id: lesson.youtube_video_id,
+    youtube_url: lesson.youtube_url,
     thumbnail_url: null,
     video_provider: lesson.video_provider,
     duration: lesson.duration,

@@ -59,6 +59,31 @@ const attachmentSchema = z
     },
   );
 
+const youtubeUrlSchema = z
+  .string()
+  .trim()
+  .optional()
+  .refine(
+    (value) => {
+      if (!value) {
+        return true;
+      }
+
+      try {
+        const url = new URL(value);
+        return (
+          ["http:", "https:"].includes(url.protocol) &&
+          /(^|\.)youtu(\.be|be\.com)$/.test(url.hostname.toLowerCase())
+        );
+      } catch {
+        return /^[A-Za-z0-9_-]{11}$/.test(value);
+      }
+    },
+    {
+      message: "ادخل رابط YouTube صحيح.",
+    },
+  );
+
 const quizQuestionSchema = z.object({
   question: z.string().trim().min(3, "اكتب نص السؤال."),
   options: z
@@ -92,6 +117,7 @@ export const lessonSchema = z.object({
   courseId: z.uuid("الكورس غير صحيح."),
   title: z.string().trim().min(3, "عنوان الحصة مطلوب بحد أدنى 3 حروف."),
   bunnyVideoId: z.string().trim().optional(),
+  youtubeUrl: youtubeUrlSchema,
   videoFile: videoSchema,
   attachmentFile: attachmentSchema,
   attachmentTitle: z

@@ -267,6 +267,8 @@ export type Database = {
           order_index: number;
           vdocipher_video_id: string | null;
           bunny_video_id: string | null;
+          youtube_video_id: string | null;
+          youtube_url: string | null;
           thumbnail_url: string | null;
           video_provider: string;
           duration: number | null;
@@ -281,6 +283,8 @@ export type Database = {
           order_index: number;
           vdocipher_video_id?: string | null;
           bunny_video_id?: string | null;
+          youtube_video_id?: string | null;
+          youtube_url?: string | null;
           thumbnail_url?: string | null;
           video_provider?: string;
           duration?: number | null;
@@ -295,6 +299,8 @@ export type Database = {
           order_index?: number;
           vdocipher_video_id?: string | null;
           bunny_video_id?: string | null;
+          youtube_video_id?: string | null;
+          youtube_url?: string | null;
           thumbnail_url?: string | null;
           video_provider?: string;
           duration?: number | null;
