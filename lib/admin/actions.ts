@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/auth/action-state";
+import { deleteCourseAndRelatedData } from "@/lib/course-cleanup";
 import { deleteImageByUrl, uploadImage } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -528,12 +529,23 @@ export async function deleteAdminCourseAction(formData: FormData) {
     return;
   }
 
-  await admin.from("courses").delete().eq("id", courseId);
+  const result = await deleteCourseAndRelatedData({
+    admin,
+    courseId,
+  });
 
+  if (!result.ok) {
+    console.error("Failed to delete admin course.", result.message);
+    return;
+  }
+
+  revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/courses");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/courses");
+  revalidatePath("/dashboard/admin/activation-codes");
+  revalidatePath("/dashboard/admin/notifications");
   revalidatePath("/dashboard/admin/reports");
 }
 

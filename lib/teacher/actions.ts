@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { ActionState } from "@/lib/auth/action-state";
 import { deleteBunnyStreamVideo } from "@/lib/bunny-stream";
+import { deleteCourseAndRelatedData } from "@/lib/course-cleanup";
 import { uploadImage, uploadRawFile } from "@/lib/cloudinary";
 import { requireRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -598,16 +599,27 @@ export async function toggleCoursePublishAction(formData: FormData) {
 export async function deleteCourseAction(formData: FormData) {
   const courseId = getString(formData, "courseId");
   const { teacher } = await requireTeacher();
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  await supabase
-    .from("courses")
-    .delete()
-    .eq("id", courseId)
-    .eq("teacher_id", teacher.id);
+  const result = await deleteCourseAndRelatedData({
+    admin,
+    courseId,
+    teacherId: teacher.id,
+  });
 
+  if (!result.ok) {
+    console.error("Failed to delete teacher course.", result.message);
+    return;
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/courses");
   revalidatePath("/dashboard/teacher");
   revalidatePath("/dashboard/teacher/courses");
+  revalidatePath("/dashboard/teacher/coupons");
+  revalidatePath("/dashboard/teacher/notifications");
+  revalidatePath("/dashboard/teacher/students");
 }
 
 export async function createLessonAction(

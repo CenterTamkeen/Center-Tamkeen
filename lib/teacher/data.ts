@@ -534,7 +534,7 @@ export async function getTeacherStats(teacherId: string) {
 }
 
 export async function getTeacherStudents(teacherId: string) {
-  const supabase = await createClient();
+  const supabase = getAdminClient() ?? (await createClient());
   const { data, error } = await supabase
     .from("students")
     .select(
@@ -593,19 +593,20 @@ export async function getTeacherStudents(teacherId: string) {
 
 export async function getTeacherDashboardDetails(teacherId: string) {
   const supabase = await createClient();
+  const dashboardClient = getAdminClient() ?? supabase;
   const [courses, coupons, earningsQuery, enrollmentsQuery] = await Promise.all(
     [
       getTeacherCourses(teacherId),
       getTeacherCoupons(teacherId),
-      supabase
+      dashboardClient
         .from("teacher_earnings")
         .select("amount, created_at")
         .eq("teacher_id", teacherId)
         .order("created_at", { ascending: true }),
-      supabase
+      dashboardClient
         .from("enrollments")
         .select(
-          "id, enrolled_at, student:students(profile:profiles(full_name)), course:courses!inner(id, title, teacher_id)",
+          "id, enrolled_at, student:students(student_phone, profile:profiles(full_name)), course:courses!inner(id, title, teacher_id)",
         )
         .eq("course.teacher_id", teacherId)
         .order("enrolled_at", { ascending: false })
@@ -648,7 +649,10 @@ export async function getTeacherDashboardDetails(teacherId: string) {
     recentEnrollments: (enrollmentsQuery.data ?? []).map((enrollment) => ({
       id: enrollment.id,
       enrolledAt: enrollment.enrolled_at,
-      studentName: enrollment.student?.profile?.full_name ?? "طالب بدون اسم",
+      studentName:
+        enrollment.student?.profile?.full_name?.trim() ||
+        enrollment.student?.student_phone ||
+        "طالب بدون اسم",
       courseTitle: enrollment.course?.title ?? "كورس غير معروف",
     })),
     topCoupons: coupons

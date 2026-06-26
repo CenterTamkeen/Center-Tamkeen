@@ -46,6 +46,18 @@ function fieldErrors(error: { flatten: () => { fieldErrors: unknown } }) {
   return error.flatten().fieldErrors as Record<string, string[]>;
 }
 
+function isMissingNotificationCourseId(error: {
+  message?: string;
+  code?: string;
+}) {
+  return (
+    error.code === "PGRST204" ||
+    error.message?.includes("course_id") ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
+
 function uniqueProfileIds(profileIds: Array<string | null | undefined>) {
   return Array.from(new Set(profileIds.filter(Boolean))) as string[];
 }
@@ -257,15 +269,33 @@ export async function createStudentNotificationAction(
   }
 
   const admin = createAdminClient();
+  const courseId =
+    parsed.data.targetMode === "course" && parsed.data.courseId
+      ? parsed.data.courseId
+      : null;
   const rows = recipientProfileIds.map((recipientProfileId) => ({
     recipient_profile_id: recipientProfileId,
     actor_profile_id: session.profile.id,
+    course_id: courseId,
     title: parsed.data.title,
     body: parsed.data.body,
     href: parsed.data.href,
     kind: "manual",
   }));
-  const { error } = await admin.from("notifications").insert(rows);
+  let { error } = await admin.from("notifications").insert(rows);
+
+  if (error && isMissingNotificationCourseId(error)) {
+    const legacyRows = rows.map((row) => ({
+      recipient_profile_id: row.recipient_profile_id,
+      actor_profile_id: row.actor_profile_id,
+      title: row.title,
+      body: row.body,
+      href: row.href,
+      kind: row.kind,
+    }));
+    const legacyInsert = await admin.from("notifications").insert(legacyRows);
+    error = legacyInsert.error;
+  }
 
   if (error) {
     if (process.env.NODE_ENV !== "production") {

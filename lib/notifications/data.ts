@@ -28,16 +28,44 @@ function isMissingNotificationsTable(error: {
   );
 }
 
+function isMissingNotificationCourseId(error: {
+  message?: string;
+  code?: string;
+}) {
+  return (
+    error.code === "PGRST204" ||
+    error.message?.includes("course_id") ||
+    error.message?.includes("schema cache") ||
+    error.message?.includes("Could not find")
+  );
+}
+
 export async function getProfileNotifications(profileId: string, limit = 6) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const fullQuery = await supabase
     .from("notifications")
     .select(
-      "id, recipient_profile_id, actor_profile_id, title, body, href, kind, read_at, created_at",
+      "id, recipient_profile_id, actor_profile_id, course_id, title, body, href, kind, read_at, created_at",
     )
     .eq("recipient_profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  let data: unknown[] | null = fullQuery.data;
+  let error = fullQuery.error;
+
+  if (error && isMissingNotificationCourseId(error)) {
+    const legacyQuery = await supabase
+      .from("notifications")
+      .select(
+        "id, recipient_profile_id, actor_profile_id, title, body, href, kind, read_at, created_at",
+      )
+      .eq("recipient_profile_id", profileId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    data = legacyQuery.data;
+    error = legacyQuery.error;
+  }
 
   if (error) {
     if (!isMissingNotificationsTable(error)) {

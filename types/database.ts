@@ -213,6 +213,7 @@ export type Database = {
           id: string;
           recipient_profile_id: string;
           actor_profile_id: string | null;
+          course_id: string | null;
           title: string;
           body: string;
           href: string | null;
@@ -224,6 +225,7 @@ export type Database = {
           id?: string;
           recipient_profile_id: string;
           actor_profile_id?: string | null;
+          course_id?: string | null;
           title: string;
           body: string;
           href?: string | null;
@@ -235,6 +237,7 @@ export type Database = {
           id?: string;
           recipient_profile_id?: string;
           actor_profile_id?: string | null;
+          course_id?: string | null;
           title?: string;
           body?: string;
           href?: string | null;
@@ -255,6 +258,13 @@ export type Database = {
             columns: ["actor_profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
             referencedColumns: ["id"];
           },
         ];
