@@ -24,7 +24,7 @@ export type AdminTeacher = Pick<
 > & {
   profile: {
     full_name: string;
-    email?: string;
+    email?: string | null;
     phone: string | null;
     avatar_url: string | null;
   } | null;
@@ -207,7 +207,7 @@ async function getAuthEmailByProfileId(profileIds: string[]) {
       });
 
       if (error) {
-        logAdminError("student-auth-email", error.message);
+        logAdminError("auth-email", error.message);
         break;
       }
 
@@ -225,7 +225,7 @@ async function getAuthEmailByProfileId(profileIds: string[]) {
       page += 1;
     }
   } catch (authError) {
-    logAdminError("student-auth-email", authError);
+    logAdminError("auth-email", authError);
   }
 
   return emailByProfileId;
@@ -245,7 +245,19 @@ export async function getAdminTeachers() {
     return [];
   }
 
-  return (data ?? []) as AdminTeacher[];
+  const teachers = (data ?? []) as AdminTeacher[];
+  const profileIds = teachers.map((teacher) => teacher.profile_id);
+  const emailByProfileId = await getAuthEmailByProfileId(profileIds);
+
+  return teachers.map((teacher) => ({
+    ...teacher,
+    profile: teacher.profile
+      ? {
+          ...teacher.profile,
+          email: emailByProfileId.get(teacher.profile_id) ?? null,
+        }
+      : teacher.profile,
+  }));
 }
 
 export async function getAdminCourses() {

@@ -24,6 +24,7 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
       const matchesQuery =
         !normalized ||
         (teacher.profile?.full_name ?? "").toLowerCase().includes(normalized) ||
+        (teacher.profile?.email ?? "").toLowerCase().includes(normalized) ||
         teacher.subject.toLowerCase().includes(normalized);
       const matchesStatus =
         status === "all" ||
@@ -40,7 +41,7 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="field bg-background/60"
-          placeholder="بحث بالاسم أو المادة"
+          placeholder="بحث بالاسم أو الإيميل أو المادة"
         />
         <select
           value={status}
@@ -81,6 +82,9 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
                       {teacher.profile?.full_name ?? "مدرس بدون اسم"}
                     </h3>
                     <p className="text-foreground/55 mt-1 text-sm">
+                      {teacher.profile?.email ?? "إيميل غير متاح"}
+                    </p>
+                    <p className="text-foreground/45 mt-1 text-xs">
                       {teacher.subject} · {teacher.slug}
                     </p>
                   </div>
@@ -183,7 +187,13 @@ export function AdminTeachersTable({ teachers }: { teachers: AdminTeacher[] }) {
                         <p className="font-black">
                           {teacher.profile?.full_name ?? "مدرس بدون اسم"}
                         </p>
-                        <p className="text-foreground/55 mt-1">
+                        <p
+                          className="text-foreground/55 mt-1 text-left break-all"
+                          dir="ltr"
+                        >
+                          {teacher.profile?.email ?? "email unavailable"}
+                        </p>
+                        <p className="text-foreground/45 mt-1 text-xs">
                           {teacher.slug}
                         </p>
                       </div>
