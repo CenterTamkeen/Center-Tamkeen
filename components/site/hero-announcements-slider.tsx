@@ -140,7 +140,7 @@ export function HeroAnnouncementsSlider({
                   {activeSlot.title}
                 </h2>
                 <p className="text-foreground/55 mx-auto mt-3 max-w-sm text-sm leading-7 font-semibold">
-                  سيتم عرض الإعلان هنا بعد إضافته من لوحة التحكم.
+                  .
                 </p>
               </div>
             </div>
