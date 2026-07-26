@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // exceljs relies on dynamic requires, so it must stay outside the bundle.
+  serverExternalPackages: ["exceljs"],
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
