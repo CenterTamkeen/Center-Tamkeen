@@ -139,9 +139,7 @@ export function HeroAnnouncementsSlider({
                 <h2 className="text-primary-950 text-3xl leading-tight font-black">
                   {activeSlot.title}
                 </h2>
-                <p className="text-foreground/55 mx-auto mt-3 max-w-sm text-sm leading-7 font-semibold">
-                  .
-                </p>
+                <p className="text-foreground/55 mx-auto mt-3 max-w-sm text-sm leading-7 font-semibold"></p>
               </div>
             </div>
           </div>
