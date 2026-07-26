@@ -194,8 +194,8 @@ export async function CourseDetailsPage({
               "radial-gradient(circle at 82% 18%, rgb(75 200 173 / 0.16), transparent 28rem), radial-gradient(circle at 8% 8%, rgb(245 197 24 / 0.12), transparent 24rem), var(--panel-wash-background)",
           }}
         >
-          <div className="container-page relative grid min-w-0 gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_410px] lg:items-start lg:py-14">
-            <div className="animate-fade-up min-w-0 space-y-7">
+          <div className="container-page relative grid min-w-0 gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:py-14">
+            <div className="animate-fade-up min-w-0 space-y-7 lg:self-center">
               <div className="grid max-w-full gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
                 <BackButton
                   fallbackHref="/courses"
@@ -277,7 +277,7 @@ export async function CourseDetailsPage({
               className="animate-blur-in glass-panel-strong min-w-0 overflow-hidden rounded-2xl lg:sticky lg:top-24"
               style={{ animationDelay: "0.2s" }}
             >
-              <div className="relative aspect-[4/3] overflow-hidden sm:aspect-video lg:aspect-[4/3]">
+              <div className="relative aspect-[16/10] overflow-hidden sm:aspect-video">
                 {course.thumbnail_url ? (
                   <Image
                     src={course.thumbnail_url}
@@ -298,18 +298,18 @@ export async function CourseDetailsPage({
                     تمكين
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
-                  <p className="text-xs font-black text-white/75">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-3.5 text-white">
+                  <p className="text-[11px] font-black text-white/75">
                     جاهز للمتابعة
                   </p>
-                  <p className="mt-1 text-lg font-black">
+                  <p className="mt-0.5 text-base font-black">
                     {isEnrolled
                       ? "اكمل من منطقة الدراسة"
                       : "اشترك وابدأ الكورس"}
                   </p>
                 </div>
               </div>
-              <div className="space-y-4 p-5 sm:p-6">
+              <div className="space-y-4 p-4 sm:p-5">
                 <CoursePurchaseForm
                   courseId={course.id}
                   courseTitle={course.title}
