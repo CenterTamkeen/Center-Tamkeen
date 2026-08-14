@@ -232,6 +232,14 @@ export async function createStudentNotificationAction(
 
   try {
     if (session.profile.role === "admin") {
+      if (parsed.data.targetMode !== "course") {
+        return failure(
+          "اختار كورس محدد لإرسال الإشعار لطلابه فقط.",
+          undefined,
+          values,
+        );
+      }
+
       recipientProfileIds = await getAdminRecipientProfileIds(parsed.data);
     } else {
       const teacher = await getCurrentTeacher(session.profile.id);

@@ -35,11 +35,11 @@ export const notificationCreateSchema = z
     href: z
       .string()
       .trim()
-      .min(1, "لينك الإشعار مطلوب.")
       .max(500, "لينك الإشعار طويل.")
-      .refine(isSafeNotificationHref, {
+      .refine((value) => !value || isSafeNotificationHref(value), {
         message: "اكتب لينك داخلي يبدأ بـ / أو لينك كامل https://.",
-      }),
+      })
+      .transform((value) => value || null),
     targetMode: z.enum(notificationTargetModes, {
       message: "اختار الطلاب المستهدفين.",
     }),

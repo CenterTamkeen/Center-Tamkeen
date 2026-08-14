@@ -26,8 +26,9 @@ export function NotificationComposer({
     initialActionState,
   );
   const initialTargetMode =
-    state.values?.targetMode ??
-    (role === "admin" ? "all_students" : "teacher_students");
+    role === "admin"
+      ? "course"
+      : (state.values?.targetMode ?? "teacher_students");
   const [selectedTargetMode, setSelectedTargetMode] =
     useState(initialTargetMode);
   const isCourseTarget = selectedTargetMode === "course";
@@ -71,14 +72,14 @@ export function NotificationComposer({
 
           <label className="space-y-2 lg:col-span-2">
             <span className="text-foreground/80 text-sm font-semibold">
-              لينك عند الضغط
+              لينك عند الضغط (اختياري)
             </span>
             <input
               name="href"
               defaultValue={state.values?.href ?? ""}
               className="field bg-background/60 py-2.5 text-left"
               dir="ltr"
-              placeholder="/courses أو https://..."
+              placeholder="اختياري: /courses أو https://..."
             />
             <ErrorText message={state.fieldErrors?.href?.[0]} />
           </label>
@@ -94,11 +95,7 @@ export function NotificationComposer({
               className="field bg-background/60 py-2.5"
             >
               {role === "admin" ? (
-                <>
-                  <option value="all_students">كل الطلاب</option>
-                  <option value="grade_section">حسب الصف والمسار</option>
-                  <option value="course">طلاب كورس معين</option>
-                </>
+                <option value="course">طلاب كورس معين</option>
               ) : (
                 <>
                   <option value="teacher_students">كل طلابي</option>
@@ -131,7 +128,7 @@ export function NotificationComposer({
             <ErrorText message={state.fieldErrors?.courseId?.[0]} />
           </label>
 
-          {role === "admin" ? (
+          {role === "admin" && isGradeTarget ? (
             <>
               <label className="space-y-2">
                 <span className="text-foreground/80 text-sm font-semibold">
@@ -191,7 +188,7 @@ export function NotificationComposer({
         <p className="eyebrow">ملاحظات سريعة</p>
         <div className="text-foreground/65 mt-3 grid gap-2 text-sm leading-6 md:grid-cols-2">
           <p>الإشعار يظهر في لوحة الطالب ضمن آخر التنبيهات.</p>
-          <p>لو كتبت لينك داخلي مثل /courses، الطالب هينتقل له عند الضغط.</p>
+          <p>لو سبت اللينك فاضي، الإشعار هيظهر بدون انتقال عند الضغط.</p>
         </div>
       </div>
     </div>

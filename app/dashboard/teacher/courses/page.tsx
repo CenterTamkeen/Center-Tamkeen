@@ -44,8 +44,8 @@ export default async function TeacherCoursesPage() {
         {courses.length > 0 ? (
           courses.map((course) => (
             <article key={course.id} className="card-modern p-4">
-              <div className="grid gap-4 md:grid-cols-[180px_1fr] lg:grid-cols-[180px_1fr_auto]">
-                <div className="bg-primary-50 relative aspect-video overflow-hidden rounded-xl md:h-full">
+              <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
+                <div className="bg-primary-50 relative aspect-video w-full shrink-0 overflow-hidden rounded-xl md:h-28 md:w-44 lg:h-32 lg:w-48">
                   {course.thumbnail_url ? (
                     <Image
                       src={course.thumbnail_url}
@@ -60,7 +60,7 @@ export default async function TeacherCoursesPage() {
                     </div>
                   )}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-lg font-black">{course.title}</h3>
                     <span className="chip">
@@ -93,7 +93,7 @@ export default async function TeacherCoursesPage() {
                     ) : null}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 md:col-span-2 lg:col-span-1 lg:flex-col lg:items-stretch">
+                <div className="flex flex-wrap items-center gap-2 md:w-24 md:flex-col md:items-stretch">
                   <Link
                     href={`/dashboard/teacher/courses/${course.id}/lessons`}
                     className="btn-secondary px-3 py-2 text-xs"

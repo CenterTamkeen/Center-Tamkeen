@@ -4,6 +4,8 @@ import { AdminSidebar } from "@/components/dashboard/admin-sidebar";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requireRole } from "@/lib/auth/roles";
 
+export const dynamic = "force-dynamic";
+
 type AdminLayoutProps = {
   children: ReactNode;
 };
