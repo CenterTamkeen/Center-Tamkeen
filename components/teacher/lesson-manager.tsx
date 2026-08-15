@@ -11,7 +11,6 @@ import {
   createLessonAction,
   deleteLessonAttachmentAction,
   deleteLessonAction,
-  moveLessonAction,
   moveLessonToCourseAction,
   reorderLessonsAction,
   updateLessonAction,
@@ -703,33 +702,11 @@ export function LessonManager({
                   <span className="text-foreground/55 rounded-lg bg-white/65 px-2.5 py-1 text-xs font-black">
                     {lesson.video_provider === "youtube" ? "YouTube" : "Bunny"}
                   </span>
-                  <p className="text-sm font-black">اسحب لإعادة الترتيب</p>
+                  <p className="text-sm font-black">
+                    اسحب لإعادة الترتيب ثم اضغط حفظ الترتيب
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <form action={moveLessonAction}>
-                    <input type="hidden" name="courseId" value={courseId} />
-                    <input type="hidden" name="lessonId" value={lesson.id} />
-                    <input type="hidden" name="direction" value="up" />
-                    <button
-                      type="submit"
-                      disabled={index === 0}
-                      className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
-                    >
-                      أعلى
-                    </button>
-                  </form>
-                  <form action={moveLessonAction}>
-                    <input type="hidden" name="courseId" value={courseId} />
-                    <input type="hidden" name="lessonId" value={lesson.id} />
-                    <input type="hidden" name="direction" value="down" />
-                    <button
-                      type="submit"
-                      disabled={index === orderedLessons.length - 1}
-                      className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
-                    >
-                      أسفل
-                    </button>
-                  </form>
                   <form action={deleteLessonAction}>
                     <input type="hidden" name="courseId" value={courseId} />
                     <input type="hidden" name="lessonId" value={lesson.id} />

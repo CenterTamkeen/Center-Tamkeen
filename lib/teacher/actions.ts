@@ -997,35 +997,6 @@ async function applyLessonOrder(courseId: string, lessonIds: string[]) {
   }
 }
 
-export async function moveLessonAction(formData: FormData) {
-  const courseId = getString(formData, "courseId");
-  const lessonId = getString(formData, "lessonId");
-  const direction = getString(formData, "direction");
-  const { teacher } = await requireTeacher();
-
-  if (!(await assertOwnsCourse(teacher.id, courseId))) {
-    return;
-  }
-
-  const ordered = (await getCourseLessonOrder(courseId)).map(
-    (lesson) => lesson.id,
-  );
-  const currentIndex = ordered.indexOf(lessonId);
-  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ordered.length) {
-    return;
-  }
-
-  [ordered[currentIndex], ordered[targetIndex]] = [
-    ordered[targetIndex],
-    ordered[currentIndex],
-  ];
-
-  await applyLessonOrder(courseId, ordered);
-  revalidateLessonPaths(courseId);
-}
-
 export async function reorderLessonsAction(formData: FormData) {
   const courseId = getString(formData, "courseId");
   const lessonIds = getListFromCsv(formData, "lessonIds");
