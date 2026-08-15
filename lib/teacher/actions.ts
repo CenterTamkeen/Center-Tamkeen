@@ -683,16 +683,12 @@ export async function createLessonAction(
     );
   }
 
-  const { count } = await supabase
-    .from("lessons")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", courseId);
   const { data: lesson, error } = await supabase
     .from("lessons")
     .insert({
       course_id: courseId,
       title: parsed.data.title,
-      order_index: count ?? 0,
+      order_index: await getNextLessonOrderIndex(courseId),
       bunny_video_id: videoSource.bunnyVideoId,
       youtube_video_id: videoSource.youtubeVideoId,
       youtube_url: videoSource.youtubeUrl,
@@ -940,6 +936,67 @@ export async function deleteLessonAction(formData: FormData) {
   revalidateLessonPaths(courseId);
 }
 
+async function getNextLessonOrderIndex(courseId: string) {
+  const rows = await getCourseLessonOrder(courseId);
+
+  return rows.reduce((next, row) => Math.max(next, row.order_index + 1), 0);
+}
+
+async function getCourseLessonOrder(courseId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lessons")
+    .select("id, order_index")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  return data ?? [];
+}
+
+// lessons has a unique (course_id, order_index) constraint, so every row is parked
+// on a free slot above the current maximum before the final positions are written.
+async function applyLessonOrder(courseId: string, lessonIds: string[]) {
+  const rows = await getCourseLessonOrder(courseId);
+  const currentIndexes = new Map(rows.map((row) => [row.id, row.order_index]));
+  const finalOrder = lessonIds.filter((lessonId) =>
+    currentIndexes.has(lessonId),
+  );
+
+  for (const row of rows) {
+    if (!finalOrder.includes(row.id)) {
+      finalOrder.push(row.id);
+    }
+  }
+
+  const isAlreadyApplied = finalOrder.every(
+    (lessonId, index) => currentIndexes.get(lessonId) === index,
+  );
+
+  if (finalOrder.length === 0 || isAlreadyApplied) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const parkingOffset =
+    rows.reduce((max, row) => Math.max(max, row.order_index), 0) + 1;
+
+  for (const targetIndexes of [
+    finalOrder.map((_, index) => parkingOffset + index),
+    finalOrder.map((_, index) => index),
+  ]) {
+    await Promise.all(
+      finalOrder.map((lessonId, index) =>
+        supabase
+          .from("lessons")
+          .update({ order_index: targetIndexes[index] })
+          .eq("id", lessonId)
+          .eq("course_id", courseId),
+      ),
+    );
+  }
+}
+
 export async function moveLessonAction(formData: FormData) {
   const courseId = getString(formData, "courseId");
   const lessonId = getString(formData, "lessonId");
@@ -950,34 +1007,22 @@ export async function moveLessonAction(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  const { data: lessons } = await supabase
-    .from("lessons")
-    .select("id, order_index")
-    .eq("course_id", courseId)
-    .order("order_index", { ascending: true });
-  const ordered = lessons ?? [];
-  const currentIndex = ordered.findIndex((lesson) => lesson.id === lessonId);
-  const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  const ordered = (await getCourseLessonOrder(courseId)).map(
+    (lesson) => lesson.id,
+  );
+  const currentIndex = ordered.indexOf(lessonId);
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
-  if (currentIndex < 0 || swapIndex < 0 || swapIndex >= ordered.length) {
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ordered.length) {
     return;
   }
 
-  const current = ordered[currentIndex];
-  const swap = ordered[swapIndex];
+  [ordered[currentIndex], ordered[targetIndex]] = [
+    ordered[targetIndex],
+    ordered[currentIndex],
+  ];
 
-  await Promise.all([
-    supabase
-      .from("lessons")
-      .update({ order_index: swap.order_index })
-      .eq("id", current.id),
-    supabase
-      .from("lessons")
-      .update({ order_index: current.order_index })
-      .eq("id", swap.id),
-  ]);
-
+  await applyLessonOrder(courseId, ordered);
   revalidateLessonPaths(courseId);
 }
 
@@ -993,17 +1038,7 @@ export async function reorderLessonsAction(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  await Promise.all(
-    lessonIds.map((lessonId, index) =>
-      supabase
-        .from("lessons")
-        .update({ order_index: index })
-        .eq("id", lessonId)
-        .eq("course_id", courseId),
-    ),
-  );
-
+  await applyLessonOrder(courseId, lessonIds);
   revalidateLessonPaths(courseId);
 }
 
@@ -1025,10 +1060,6 @@ export async function duplicateLessonAction(formData: FormData) {
     .eq("id", lessonId)
     .eq("course_id", courseId)
     .maybeSingle();
-  const { count } = await supabase
-    .from("lessons")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", courseId);
 
   if (!lesson) {
     return;
@@ -1041,7 +1072,7 @@ export async function duplicateLessonAction(formData: FormData) {
   await supabase.from("lessons").insert({
     course_id: courseId,
     title: `${lesson.title} - نسخة`,
-    order_index: count ?? 0,
+    order_index: await getNextLessonOrderIndex(courseId),
     vdocipher_video_id: lesson.vdocipher_video_id,
     bunny_video_id: lesson.bunny_video_id,
     youtube_video_id: lesson.youtube_video_id,
@@ -1105,16 +1136,12 @@ export async function moveLessonToCourseAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("lessons")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", targetCourseId);
 
   await supabase
     .from("lessons")
     .update({
       course_id: targetCourseId,
-      order_index: count ?? 0,
+      order_index: await getNextLessonOrderIndex(targetCourseId),
     })
     .eq("id", lessonId)
     .eq("course_id", courseId);

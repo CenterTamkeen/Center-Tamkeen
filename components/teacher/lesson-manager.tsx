@@ -576,10 +576,19 @@ export function LessonManager({
   lessons: TeacherLesson[];
   courses: { id: string; title: string }[];
 }) {
-  const [orderedLessonIds, setOrderedLessonIds] = useState(
+  const serverOrderKey = lessons.map((lesson) => lesson.id).join(",");
+  const [orderedLessonIds, setOrderedLessonIds] = useState(() =>
     lessons.map((lesson) => lesson.id),
   );
+  const [syncedOrderKey, setSyncedOrderKey] = useState(serverOrderKey);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Drop the local drag order whenever the server sends a different lesson order.
+  if (syncedOrderKey !== serverOrderKey) {
+    setSyncedOrderKey(serverOrderKey);
+    setOrderedLessonIds(lessons.map((lesson) => lesson.id));
+  }
+
   const orderedLessons = useMemo(() => {
     const lessonsById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
 
@@ -715,7 +724,7 @@ export function LessonManager({
                     <input type="hidden" name="direction" value="down" />
                     <button
                       type="submit"
-                      disabled={index === lessons.length - 1}
+                      disabled={index === orderedLessons.length - 1}
                       className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
                     >
                       أسفل

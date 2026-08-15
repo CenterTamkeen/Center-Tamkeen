@@ -228,7 +228,8 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
       "id, course_id, title, order_index, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
     )
     .eq("course_id", courseId)
-    .order("order_index", { ascending: true });
+    .order("order_index", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) {
     logTeacherError("lessons", error.message);
