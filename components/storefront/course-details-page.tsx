@@ -28,6 +28,7 @@ import { absoluteUrl } from "@/lib/seo";
 type CourseDetailsPageProps = {
   id: string;
   teacherSlug?: string;
+  selectedLessonId?: string;
 };
 
 type LessonWithMaterials = NonNullable<
@@ -96,6 +97,7 @@ export async function generateCourseMetadata(id: string): Promise<Metadata> {
 export async function CourseDetailsPage({
   id,
   teacherSlug,
+  selectedLessonId,
 }: CourseDetailsPageProps) {
   const [course, session] = await Promise.all([
     getCourseById(id),
@@ -142,13 +144,20 @@ export async function CourseDetailsPage({
     lessonCount > 0
       ? Math.round((completedLessonCount / lessonCount) * 100)
       : 0;
-  const playableLesson = isEnrolled
+  const autoSelectedLesson = isEnrolled
     ? (course.lessons.find(
         (lesson) =>
           hasPlayableVideo(lesson) &&
           progressByLessonId.get(lesson.id)?.status !== "completed",
       ) ?? course.lessons.find(hasPlayableVideo))
     : undefined;
+  const explicitlySelectedLesson =
+    selectedLessonId && isEnrolled
+      ? course.lessons.find(
+          (lesson) => lesson.id === selectedLessonId && hasPlayableVideo(lesson),
+        )
+      : undefined;
+  const playableLesson = explicitlySelectedLesson ?? autoSelectedLesson;
   const playableVideoStatus = playableLesson?.bunny_video_id
     ? await getBunnyStreamVideoStatus(playableLesson.bunny_video_id)
     : undefined;
@@ -393,6 +402,11 @@ export async function CourseDetailsPage({
                       <LessonMaterials lesson={playableLesson} />
                     }
                   />
+                  <LessonNavigation
+                    courseHref={courseHref}
+                    lessons={course.lessons}
+                    currentLessonId={playableLesson.id}
+                  />
                 </div>
               </ScrollReveal>
             ) : !isEnrolled ? (
@@ -426,66 +440,128 @@ export async function CourseDetailsPage({
               </div>
               <div className="glass-panel-strong overflow-hidden rounded-2xl">
                 {course.lessons.length > 0 ? (
-                  course.lessons.map((lesson, i) => (
-                    <div
-                      key={lesson.id}
-                      className="group hover:bg-primary-50/30 grid gap-4 border-b px-4 py-4 transition-all duration-300 last:border-b-0 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5"
-                      style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        {course.thumbnail_url ? (
-                          <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl">
-                            <Image
-                              src={course.thumbnail_url}
-                              alt={lesson.title}
-                              fill
-                              sizes="80px"
-                              className="object-cover"
-                            />
+                  course.lessons.map((lesson, i) => {
+                    const isCurrentLesson = playableLesson?.id === lesson.id;
+                    const canPlay = isEnrolled && hasPlayableVideo(lesson);
+                    const lessonUrl = canPlay
+                      ? `${courseHref}?lesson=${lesson.id}#study`
+                      : undefined;
+
+                    const content = (
+                      <>
+                        <div className="flex min-w-0 items-center gap-3">
+                          {course.thumbnail_url ? (
+                            <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl">
+                              <Image
+                                src={course.thumbnail_url}
+                                alt={lesson.title}
+                                fill
+                                sizes="80px"
+                                className="object-cover"
+                              />
+                              {isCurrentLesson ? (
+                                <div className="from-primary-500/80 absolute inset-0 flex items-center justify-center bg-gradient-to-br to-transparent">
+                                  <svg
+                                    className="h-6 w-6 text-white drop-shadow"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                  >
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
+                              isCurrentLesson
+                                ? "bg-primary-500 text-white"
+                                : "text-foreground/45"
+                            }`}
+                            style={
+                              isCurrentLesson
+                                ? undefined
+                                : { background: "rgb(236 245 241 / 0.6)" }
+                            }
+                          >
+                            {(i + 1).toLocaleString("ar-EG")}
+                          </span>
+                          <div className="min-w-0">
+                            <h3
+                              className={`font-bold transition-colors duration-300 ${
+                                isCurrentLesson
+                                  ? "text-primary-700"
+                                  : "group-hover:text-primary-700"
+                              }`}
+                            >
+                              {lesson.title}
+                            </h3>
+                            <p className="text-foreground/50 text-sm">
+                              {formatDuration(lesson.duration)}
+                            </p>
                           </div>
-                        ) : null}
-                        <span
-                          className="text-foreground/45 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black"
-                          style={{
-                            background: "rgb(236 245 241 / 0.6)",
-                          }}
-                        >
-                          {(i + 1).toLocaleString("ar-EG")}
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="group-hover:text-primary-700 font-bold transition-colors duration-300">
-                            {lesson.title}
-                          </h3>
-                          <p className="text-foreground/50 text-sm">
-                            {formatDuration(lesson.duration)}
-                          </p>
                         </div>
-                      </div>
-                      <LessonProgressBadge
-                        isEnrolled={isEnrolled}
-                        isStarted={progressByLessonId.has(lesson.id)}
-                        isCompleted={
-                          progressByLessonId.get(lesson.id)?.status ===
-                          "completed"
-                        }
-                      />
-                      {lesson.is_free_preview ? (
-                        <span
-                          className="badge-pulse text-primary-700 rounded-lg px-2.5 py-1 text-xs font-black"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, rgb(231 245 241 / 0.9), rgb(197 232 223 / 0.5))",
-                          }}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <LessonProgressBadge
+                            isEnrolled={isEnrolled}
+                            isStarted={progressByLessonId.has(lesson.id)}
+                            isCompleted={
+                              progressByLessonId.get(lesson.id)?.status ===
+                              "completed"
+                            }
+                          />
+                          {isCurrentLesson ? (
+                            <span className="bg-primary-500 animate-pulse rounded-lg px-2.5 py-1 text-xs font-black text-white">
+                              قيد التشغيل
+                            </span>
+                          ) : null}
+                          {lesson.is_free_preview ? (
+                            <span
+                              className="badge-pulse text-primary-700 rounded-lg px-2.5 py-1 text-xs font-black"
+                              style={{
+                                background:
+                                  "linear-gradient(135deg, rgb(231 245 241 / 0.9), rgb(197 232 223 / 0.5))",
+                              }}
+                            >
+                              Preview
+                            </span>
+                          ) : !isEnrolled ? (
+                            <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
+                              مقفلة للطلاب غير المشتركين
+                            </span>
+                          ) : null}
+                        </div>
+                      </>
+                    );
+
+                    if (lessonUrl) {
+                      return (
+                        <Link
+                          key={lesson.id}
+                          href={lessonUrl}
+                          scroll={false}
+                          className={`group grid gap-4 border-b px-4 py-4 transition-all duration-300 last:border-b-0 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5 ${
+                            isCurrentLesson
+                              ? "bg-primary-50/50"
+                              : "hover:bg-primary-50/30"
+                          }`}
+                          style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
                         >
-                          Preview
-                        </span>
-                      ) : !isEnrolled ? (
-                        <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
-                          مقفلة للطلاب غير المشتركين
-                        </span>
-                      ) : null}
-                    </div>
-                  ))
+                          {content}
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={lesson.id}
+                        className="group grid gap-4 border-b px-4 py-4 transition-all duration-300 last:border-b-0 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5"
+                        style={{ borderColor: "rgb(208 227 218 / 0.4)" }}
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-foreground/60 px-5 py-10 text-center">
                     الحصص هتظهر هنا بعد إضافتها من لوحة المدرس.
@@ -827,6 +903,86 @@ function SidebarStat({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-3 rounded-xl border bg-white/45 px-3 py-2.5">
       <span className="text-foreground/55 text-sm font-bold">{label}</span>
       <span className="font-black">{value}</span>
+    </div>
+  );
+}
+
+function LessonNavigation({
+  courseHref,
+  lessons,
+  currentLessonId,
+}: {
+  courseHref: string;
+  lessons: LessonWithMaterials[];
+  currentLessonId: string;
+}) {
+  const currentIndex = lessons.findIndex(
+    (lesson) => lesson.id === currentLessonId,
+  );
+  const prevLesson = currentIndex > 0 ? lessons[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex < lessons.length - 1 ? lessons[currentIndex + 1] : null;
+
+  if (!prevLesson && !nextLesson) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+      {prevLesson ? (
+        <Link
+          href={`${courseHref}?lesson=${prevLesson.id}#study`}
+          scroll={false}
+          className="hover:bg-primary-50 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition-colors"
+        >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <span className="max-w-[120px] truncate sm:max-w-[180px]">
+            {prevLesson.title}
+          </span>
+        </Link>
+      ) : (
+        <span />
+      )}
+
+      <span className="text-foreground/50 text-xs font-bold">
+        {(currentIndex + 1).toLocaleString("ar-EG")} من{" "}
+        {lessons.length.toLocaleString("ar-EG")}
+      </span>
+
+      {nextLesson ? (
+        <Link
+          href={`${courseHref}?lesson=${nextLesson.id}#study`}
+          scroll={false}
+          className="hover:bg-primary-50 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition-colors"
+        >
+          <span className="max-w-[120px] truncate sm:max-w-[180px]">
+            {nextLesson.title}
+          </span>
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </Link>
+      ) : (
+        <span />
+      )}
     </div>
   );
 }
