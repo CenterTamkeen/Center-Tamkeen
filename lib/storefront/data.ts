@@ -82,6 +82,7 @@ type CourseLessonDetails = Pick<
 };
 
 export type CourseDetails = CourseSummary & {
+  lessonCount: number;
   lessons: CourseLessonDetails[];
   reviews: (Pick<
     ReviewRow,
@@ -920,7 +921,10 @@ export async function getTeacherPublicStats(
   teacherId: string,
 ): Promise<TeacherPublicStats> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  // Enrollments are hidden from anonymous/public clients by RLS. Use the same
+  // privileged server-side source as the teachers listing for accurate stats.
+  const client = getAdminClient() ?? supabase;
+  const { data, error } = await client
     .from("courses")
     .select("id, enrollments(student_id), reviews(rating)")
     .eq("teacher_id", teacherId)
@@ -993,7 +997,25 @@ export async function getCourseById(id: string) {
     return null;
   }
 
-  return data as CourseDetails;
+  // RLS intentionally exposes only preview lessons to non-enrolled students.
+  // Read the total count separately with the server-only admin client so the
+  // public course page can show the real number without exposing locked data.
+  const admin = getAdminClient();
+  const { count: totalLessonCount, error: lessonCountError } = admin
+    ? await admin
+        .from("lessons")
+        .select("id", { count: "exact", head: true })
+        .eq("course_id", id)
+    : { count: null, error: null };
+
+  if (lessonCountError) {
+    logStorefrontError("course-lesson-count", lessonCountError.message);
+  }
+
+  return {
+    ...(data as CourseDetails),
+    lessonCount: totalLessonCount ?? data.lessons?.length ?? 0,
+  };
 }
 
 export async function getLatestReviews(limit = 6) {

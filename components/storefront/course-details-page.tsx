@@ -120,7 +120,10 @@ export async function CourseDetailsPage({
     await getCurrentStudentEnrollmentCourseIds([course.id])
   ).includes(course.id);
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
-  const lessonCount = course.lessons.length;
+  // The details query only returns lessons the viewer is allowed to inspect
+  // (preview lessons for non-enrolled students). The total is provided by the
+  // server separately so the public course summary remains accurate.
+  const lessonCount = course.lessonCount;
   const courseProgress = isEnrolled
     ? await getCurrentStudentCourseProgress(course.id)
     : { studentId: null, progress: [] };
