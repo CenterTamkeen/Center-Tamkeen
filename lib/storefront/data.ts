@@ -10,6 +10,29 @@ type LessonProgressRow = Database["public"]["Tables"]["lesson_progress"]["Row"];
 type StudentGrade = Database["public"]["Enums"]["student_grade"];
 type StudentSection = Database["public"]["Enums"]["student_section"];
 
+// Keep the course filter useful even before every subject has a published
+// course. Database subjects are merged below so existing/custom subjects are
+// still preserved.
+export const GENERAL_SECONDARY_SUBJECTS = [
+  "الفيزياء",
+  "الكيمياء",
+  "الرياضيات",
+  "الأحياء",
+  "العربي",
+  "الإنجليزي",
+  "اللغة الثانية",
+  "التاريخ",
+  "الجغرافيا",
+  "الفلسفة والمنطق",
+  "علم النفس والاجتماع",
+  "الاقتصاد والإحصاء",
+  "العلوم المتكاملة",
+  "البرمجة والذكاء الاصطناعي",
+  "التربية الدينية",
+  "التربية الوطنية",
+  "الجيولوجيا",
+] as const;
+
 export type TeacherSummary = Pick<
   TeacherRow,
   | "id"
@@ -469,16 +492,29 @@ export async function getCourseSubjects() {
 
   if (error) {
     logStorefrontError("course-subjects", error.message);
-    return [];
+    return [...GENERAL_SECONDARY_SUBJECTS];
   }
 
-  return Array.from(
-    new Set(
-      (data ?? [])
-        .map((course) => course.subject ?? course.teacher?.subject)
-        .filter((subject): subject is string => Boolean(subject)),
-    ),
+  const databaseSubjects = (data ?? [])
+    .map((course) => course.subject ?? course.teacher?.subject)
+    .filter((subject): subject is string => Boolean(subject));
+  const subjects = Array.from(
+    new Set([...GENERAL_SECONDARY_SUBJECTS, ...databaseSubjects]),
   );
+  const defaultOrder = new Map<string, number>(
+    GENERAL_SECONDARY_SUBJECTS.map((subject, index) => [subject, index]),
+  );
+
+  return subjects.sort((a, b) => {
+    const aOrder = defaultOrder.get(a) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = defaultOrder.get(b) ?? Number.MAX_SAFE_INTEGER;
+
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    return a.localeCompare(b, "ar");
+  });
 }
 
 export async function getTeachersPage(options: TeacherPageOptions = {}) {
