@@ -11,6 +11,9 @@ type CoursePageProps = {
   params: Promise<{
     segments: string[];
   }>;
+  searchParams: Promise<{
+    lesson?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -48,8 +51,12 @@ export async function generateMetadata({ params }: CoursePageProps) {
   return generateCourseMetadata(route.id);
 }
 
-export default async function CoursePage({ params }: CoursePageProps) {
+export default async function CoursePage({
+  params,
+  searchParams,
+}: CoursePageProps) {
   const { segments } = await params;
+  const { lesson: selectedLessonId } = await searchParams;
   const route = readCourseRoute(segments);
 
   if (!route) {
@@ -68,5 +75,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
     }
   }
 
-  return <CourseDetailsPage id={route.id} teacherSlug={route.teacherSlug} />;
+  return (
+    <CourseDetailsPage
+      id={route.id}
+      teacherSlug={route.teacherSlug}
+      selectedLessonId={selectedLessonId}
+    />
+  );
 }
