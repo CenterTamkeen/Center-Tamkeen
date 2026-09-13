@@ -26,6 +26,7 @@ type CoursePurchaseFormProps = {
   courseHref: string;
   price: number;
   isStudent: boolean;
+  isAuthenticated: boolean;
   isEnrolled?: boolean;
 };
 
@@ -51,6 +52,7 @@ export function CoursePurchaseForm({
   courseHref,
   price,
   isStudent,
+  isAuthenticated,
   isEnrolled = false,
 }: CoursePurchaseFormProps) {
   const [activationCode, setActivationCode] = useState("");
@@ -61,6 +63,28 @@ export function CoursePurchaseForm({
   const courseActivationWhatsappMessage = `أهلا تمكين، محتاج كود تفعيل لكورس: ${courseTitle}.`;
   const isCodeComplete = activationCode.length === CODE_LENGTH;
 
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-3">
+        <div className="border-primary-100 bg-primary-50/40 flex items-start gap-3 rounded-2xl border p-4">
+          <span className="bg-primary-100/60 text-primary-700 grid size-9 shrink-0 place-items-center rounded-xl">
+            <ShieldCheckIcon className="size-4.5" />
+          </span>
+          <p className="text-foreground/70 text-sm leading-6">
+            سجّل حساب طالب أولًا عشان تقدر تشترك وتفتح حصص الكورس.
+          </p>
+        </div>
+        <a
+          href="/signup"
+          className="btn-primary flex w-full justify-center gap-2 py-3.5"
+        >
+          <LogInIcon className="size-4.5" />
+          إنشاء حساب طالب
+        </a>
+      </div>
+    );
+  }
+
   if (!isStudent) {
     return (
       <div className="space-y-3">
@@ -69,16 +93,16 @@ export function CoursePurchaseForm({
             <ShieldCheckIcon className="size-4.5" />
           </span>
           <p className="text-foreground/70 text-sm leading-6">
-            الاشتراك في الكورسات متاح لحسابات الطلاب، سجّل كطالب وابدأ في دقيقة.
+            الاشتراك في الكورسات متاح لحسابات الطلاب فقط.
           </p>
         </div>
-        <a
+        <Link
           href="/login"
           className="btn-primary flex w-full justify-center gap-2 py-3.5"
         >
           <LogInIcon className="size-4.5" />
-          سجّل كطالب للشراء
-        </a>
+          الدخول بحساب طالب
+        </Link>
       </div>
     );
   }

@@ -1033,24 +1033,52 @@ export async function getCourseById(id: string) {
     return null;
   }
 
-  // RLS intentionally exposes only preview lessons to non-enrolled students.
-  // Read the total count separately with the server-only admin client so the
-  // public course page can show the real number without exposing locked data.
+  // RLS intentionally exposes only preview lesson content to non-enrolled
+  // students. Read a safe lesson index separately with the server-only admin
+  // client so the public course page can show locked lesson titles without
+  // exposing videos, attachments, or quiz questions.
   const admin = getAdminClient();
-  const { count: totalLessonCount, error: lessonCountError } = admin
+  const { data: lessonIndex, error: lessonIndexError } = admin
     ? await admin
         .from("lessons")
-        .select("id", { count: "exact", head: true })
+        .select("id, title, order_index, duration, is_free_preview")
         .eq("course_id", id)
-    : { count: null, error: null };
+        .order("order_index", { ascending: true })
+    : { data: null, error: null };
 
-  if (lessonCountError) {
-    logStorefrontError("course-lesson-count", lessonCountError.message);
+  if (lessonIndexError) {
+    logStorefrontError("course-lesson-index", lessonIndexError.message);
   }
+
+  const visibleLessons = (data.lessons ?? []) as CourseLessonDetails[];
+  const lessonDetailsById = new Map(
+    visibleLessons.map((lesson) => [lesson.id, lesson]),
+  );
+  const lessons = lessonIndex
+    ? lessonIndex.map((lesson) => {
+        const details = lessonDetailsById.get(lesson.id);
+
+        if (details) {
+          return details;
+        }
+
+        return {
+          ...lesson,
+          bunny_video_id: null,
+          youtube_video_id: null,
+          youtube_url: null,
+          video_provider: "bunny",
+          thumbnail_url: null,
+          lesson_attachments: [],
+          lesson_quiz_questions: [],
+        } as CourseLessonDetails;
+      })
+    : visibleLessons;
 
   return {
     ...(data as CourseDetails),
-    lessonCount: totalLessonCount ?? data.lessons?.length ?? 0,
+    lessons,
+    lessonCount: lessonIndex?.length ?? lessons.length,
   };
 }
 

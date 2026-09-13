@@ -11,6 +11,7 @@ import { CoursePurchaseForm } from "@/components/storefront/course-purchase-form
 import { CourseReviewForm } from "@/components/storefront/course-review-form";
 import { LessonQuiz } from "@/components/storefront/lesson-quiz";
 import { PurchaseScrollButton } from "@/components/storefront/purchase-scroll-button";
+import { LockClosedIcon } from "@/components/ui/icons";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getCurrentUserProfile } from "@/lib/auth/roles";
 import { getBunnyStreamVideoStatus } from "@/lib/bunny-stream";
@@ -117,14 +118,14 @@ export async function CourseDetailsPage({
   const teacherName = course.teacher?.profile?.full_name ?? "مدرس تمكين";
   const viewerName = session?.profile.full_name ?? null;
   const viewerEmail = session?.user.email ?? null;
+  const isAuthenticated = Boolean(session);
   const isStudent = session?.profile.role === "student";
   const isEnrolled = (
     await getCurrentStudentEnrollmentCourseIds([course.id])
   ).includes(course.id);
   const previewLesson = course.lessons.find((lesson) => lesson.is_free_preview);
-  // The details query only returns lessons the viewer is allowed to inspect
-  // (preview lessons for non-enrolled students). The total is provided by the
-  // server separately so the public course summary remains accurate.
+  // Non-enrolled viewers receive a safe lesson index for the outline, while
+  // video, attachment, and quiz details remain limited by RLS.
   const lessonCount = course.lessonCount;
   const courseProgress = isEnrolled
     ? await getCurrentStudentCourseProgress(course.id)
@@ -157,7 +158,8 @@ export async function CourseDetailsPage({
   const explicitlySelectedLesson =
     selectedLessonId && isEnrolled
       ? course.lessons.find(
-          (lesson) => lesson.id === selectedLessonId && hasPlayableVideo(lesson),
+          (lesson) =>
+            lesson.id === selectedLessonId && hasPlayableVideo(lesson),
         )
       : undefined;
   const playableLesson = explicitlySelectedLesson ?? autoSelectedLesson;
@@ -328,6 +330,7 @@ export async function CourseDetailsPage({
                   courseHref={courseHref}
                   price={course.price}
                   isStudent={isStudent}
+                  isAuthenticated={isAuthenticated}
                   isEnrolled={isEnrolled}
                 />
               </div>
@@ -417,11 +420,18 @@ export async function CourseDetailsPage({
                 <div className="glass-panel-strong rounded-2xl p-5 text-center">
                   <p className="eyebrow">منطقة الدراسة</p>
                   <h2 className="mt-2 text-2xl font-black">
-                    اشترك في الكورس لفتح الحصص الكاملة
+                    {!isAuthenticated
+                      ? "سجّل حساب طالب لفتح الحصص"
+                      : !isStudent
+                        ? "استخدم حساب طالب لفتح الحصص"
+                        : "اشترك في الكورس لفتح الحصص الكاملة"}
                   </h2>
                   <p className="text-foreground/60 mx-auto mt-3 max-w-2xl leading-7">
-                    الفيديوهات الكاملة متاحة فقط للطلاب المشتركين. تقدر تشوف حصة
-                    الـ Preview المجانية لو المدرس محدد واحدة.
+                    {!isAuthenticated
+                      ? "أنشئ حساب طالب أولًا، وبعدها تقدر تشترك وتبدأ الدراسة."
+                      : !isStudent
+                        ? "افتح الكورس بحساب طالب مسجل على المنصة."
+                        : "الفيديوهات الكاملة متاحة فقط للطلاب المشتركين. تقدر تشوف حصة الـ Preview المجانية لو المدرس محدد واحدة."}
                   </p>
                   <PurchaseScrollButton />
                 </div>
@@ -446,6 +456,7 @@ export async function CourseDetailsPage({
                   course.lessons.map((lesson, i) => {
                     const isCurrentLesson = playableLesson?.id === lesson.id;
                     const canPlay = isEnrolled && hasPlayableVideo(lesson);
+                    const isLocked = !isEnrolled && !lesson.is_free_preview;
                     const lessonUrl = canPlay
                       ? `${courseHref}?lesson=${lesson.id}#study`
                       : undefined;
@@ -529,8 +540,11 @@ export async function CourseDetailsPage({
                               Preview
                             </span>
                           ) : !isEnrolled ? (
-                            <span className="text-foreground/45 inline-flex items-center gap-2 text-xs font-black">
-                              مقفلة للطلاب غير المشتركين
+                            <span className="text-foreground/45 inline-flex items-center gap-1.5 text-xs font-black">
+                              {isLocked ? (
+                                <LockClosedIcon className="size-3.5" />
+                              ) : null}
+                              {isLocked ? "اشترك لفتح الحصة" : "متاحة Preview"}
                             </span>
                           ) : null}
                         </div>
@@ -567,7 +581,7 @@ export async function CourseDetailsPage({
                   })
                 ) : (
                   <p className="text-foreground/60 px-5 py-10 text-center">
-                    الحصص هتظهر هنا بعد إضافتها من لوحة المدرس.
+                    لا توجد حصص منشورة في هذا الكورس حاليًا.
                   </p>
                 )}
               </div>
