@@ -29,12 +29,42 @@ import {
 } from "@/lib/storefront/data";
 
 const subjects = [
-  { title: "الفيزياء", tone: "bg-[#eef7ff]", icon: "Φ" },
-  { title: "الكيمياء", tone: "bg-[#eefbf5]", icon: "K" },
-  { title: "الرياضيات", tone: "bg-[#fff8df]", icon: "∑" },
-  { title: "الأحياء", tone: "bg-[#f0f9f1]", icon: "DNA" },
-  { title: "العربي", tone: "bg-[#fff1f1]", icon: "ض" },
-  { title: "الإنجليزي", tone: "bg-[#f3f0ff]", icon: "EN" },
+  {
+    title: "الفيزياء",
+    descriptor: "فهم القوانين والتطبيقات",
+    accent: "#65bdf5",
+    icon: "Φ",
+  },
+  {
+    title: "الكيمياء",
+    descriptor: "تجارب ومفاهيم ببساطة",
+    accent: "#f3c95d",
+    icon: "K",
+  },
+  {
+    title: "الرياضيات",
+    descriptor: "حل المسائل خطوة بخطوة",
+    accent: "#8bd17c",
+    icon: "∑",
+  },
+  {
+    title: "الأحياء",
+    descriptor: "اكتشف أسرار الحياة",
+    accent: "#55d2c1",
+    icon: "DNA",
+  },
+  {
+    title: "العربي",
+    descriptor: "لغة وبلاغة ونصوص",
+    accent: "#e98d9a",
+    icon: "ض",
+  },
+  {
+    title: "الإنجليزي",
+    descriptor: "طوّر مهاراتك بثقة",
+    accent: "#b39afd",
+    icon: "EN",
+  },
 ];
 
 const features = [
@@ -256,36 +286,117 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="container-page py-16">
-          <ScrollReveal>
-            <div className="mb-9 text-center">
-              <p className="eyebrow">المواد</p>
-              <h2 className="text-primary-950 mt-2 text-3xl font-black">
-                تعلم المادة المناسبة لك
-              </h2>
-              <p className="text-foreground/55 mt-3">
-                كل المواد الأساسية في مكان واحد، ومع كل مدرس كورساته.
-              </p>
-            </div>
-          </ScrollReveal>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subjects.map((subject, index) => (
-              <ScrollReveal key={subject.title} delay={index * 0.05}>
-                <div
-                  className={`${subject.tone} group hover:border-primary-200 flex items-center justify-between rounded-2xl border border-black/5 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]`}
-                >
-                  <p className="font-black">{subject.title}</p>
-                  <span className="text-primary-700 flex h-12 min-w-12 items-center justify-center rounded-xl bg-white text-sm font-black shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-2">
-                    {subject.icon}
-                  </span>
-                </div>
-              </ScrollReveal>
-            ))}
+        <section className="relative overflow-hidden py-16 sm:py-20 lg:py-24">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="bg-primary-500/8 dark:bg-primary-400/8 absolute -top-32 right-[8%] h-80 w-80 rounded-full blur-3xl" />
+            <div className="bg-accent-500/8 dark:bg-accent-400/7 absolute -bottom-40 left-[10%] h-96 w-96 rounded-full blur-3xl" />
+            <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgb(22_138_117_/_0.16)_1px,transparent_1px)] [background-size:32px_32px] opacity-40 dark:opacity-25" />
           </div>
-          <div className="mt-8 text-center">
-            <Link href="/courses" className="btn-secondary px-5 py-3">
-              استعراض كل الكورسات
-            </Link>
+
+          <div className="container-page relative">
+            <ScrollReveal>
+              <div className="mx-auto mb-10 max-w-3xl text-center">
+                <div className="bg-primary-50/80 text-primary-700 dark:border-primary-400/20 dark:bg-primary-500/10 dark:text-primary-500 mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black">
+                  <span className="bg-accent-400 h-1.5 w-1.5 rounded-full" />
+                  <span>المواد الدراسية</span>
+                </div>
+                <h2 className="heading-gradient text-3xl font-black sm:text-4xl">
+                  طريقك يبدأ من المادة المناسبة
+                </h2>
+                <p className="text-foreground/55 mt-3 leading-7">
+                  اختار المادة، واستكشف الكورسات والمدرسين اللي هيساعدوك تبدأ
+                  بثقة.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {subjects.map((subject, index) => (
+                <ScrollReveal key={subject.title} delay={index * 0.05}>
+                  <Link
+                    href={`/courses?subject=${encodeURIComponent(subject.title)}`}
+                    aria-label={`استكشف كورسات ${subject.title}`}
+                    className="group border-primary-100/70 dark:border-primary-300/15 relative flex min-h-44 overflow-hidden rounded-[1.5rem] border bg-white/70 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[var(--shadow-card-hover)] dark:bg-white/[0.035]"
+                  >
+                    <div
+                      className="absolute -top-14 -left-12 h-36 w-36 rounded-full opacity-20 blur-3xl transition-opacity duration-500 group-hover:opacity-45"
+                      style={{ backgroundColor: subject.accent }}
+                    />
+                    <div
+                      className="absolute right-5 bottom-0 left-5 h-px opacity-60"
+                      style={{
+                        background: `linear-gradient(90deg, transparent, ${subject.accent}, transparent)`,
+                      }}
+                    />
+
+                    <div className="relative flex w-full flex-col justify-between gap-9">
+                      <div className="flex items-center justify-between">
+                        <span className="text-foreground/35 text-[11px] font-black tracking-[0.24em]">
+                          {(index + 1).toString().padStart(2, "0")}
+                        </span>
+                        <span
+                          className="flex h-12 min-w-12 items-center justify-center rounded-2xl border text-xs font-black shadow-sm transition duration-500 group-hover:scale-110 group-hover:rotate-6"
+                          style={{
+                            backgroundColor: `${subject.accent}14`,
+                            borderColor: `${subject.accent}42`,
+                            color: subject.accent,
+                          }}
+                        >
+                          {subject.icon}
+                        </span>
+                      </div>
+
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <h3 className="text-foreground text-xl font-black">
+                            {subject.title}
+                          </h3>
+                          <p className="text-foreground/45 mt-1 text-xs font-semibold">
+                            {subject.descriptor}
+                          </p>
+                        </div>
+                        <span className="text-foreground/30 group-hover:text-primary-500 shrink-0 transition-all duration-300 group-hover:-translate-x-1">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            <ScrollReveal delay={0.25}>
+              <div className="mt-10 flex justify-center">
+                <Link href="/courses" className="btn-primary gap-2 px-5 py-3">
+                  استعرض كل الكورسات
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
