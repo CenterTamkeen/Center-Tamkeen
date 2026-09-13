@@ -28,44 +28,296 @@ import {
   type TeacherSummary,
 } from "@/lib/storefront/data";
 
-const subjects = [
+type SubjectIconName =
+  | "physics"
+  | "chemistry"
+  | "math"
+  | "biology"
+  | "arabic"
+  | "english"
+  | "second-language"
+  | "history"
+  | "geography"
+  | "philosophy"
+  | "psychology"
+  | "economics"
+  | "integrated-science"
+  | "programming"
+  | "religion"
+  | "national"
+  | "geology";
+
+const subjects: {
+  title: string;
+  descriptor: string;
+  accent: string;
+  icon: SubjectIconName;
+}[] = [
   {
     title: "الفيزياء",
     descriptor: "فهم القوانين والتطبيقات",
     accent: "#65bdf5",
-    icon: "Φ",
+    icon: "physics",
   },
   {
     title: "الكيمياء",
     descriptor: "تجارب ومفاهيم ببساطة",
     accent: "#f3c95d",
-    icon: "K",
+    icon: "chemistry",
   },
   {
     title: "الرياضيات",
     descriptor: "حل المسائل خطوة بخطوة",
     accent: "#8bd17c",
-    icon: "∑",
+    icon: "math",
   },
   {
     title: "الأحياء",
     descriptor: "اكتشف أسرار الحياة",
     accent: "#55d2c1",
-    icon: "DNA",
+    icon: "biology",
   },
   {
     title: "العربي",
     descriptor: "لغة وبلاغة ونصوص",
     accent: "#e98d9a",
-    icon: "ض",
+    icon: "arabic",
   },
   {
     title: "الإنجليزي",
     descriptor: "طوّر مهاراتك بثقة",
     accent: "#b39afd",
-    icon: "EN",
+    icon: "english",
+  },
+  {
+    title: "اللغة الثانية",
+    descriptor: "فرنساوي وألماني ولغات أكثر",
+    accent: "#f59a68",
+    icon: "second-language",
+  },
+  {
+    title: "التاريخ",
+    descriptor: "افهم الأحداث وصنّاعها",
+    accent: "#d7a35d",
+    icon: "history",
+  },
+  {
+    title: "الجغرافيا",
+    descriptor: "اقرأ العالم من حولك",
+    accent: "#5fb8a5",
+    icon: "geography",
+  },
+  {
+    title: "الفلسفة والمنطق",
+    descriptor: "فكّر وحلّل بوضوح",
+    accent: "#c18cf0",
+    icon: "philosophy",
+  },
+  {
+    title: "علم النفس والاجتماع",
+    descriptor: "افهم الإنسان والمجتمع",
+    accent: "#ed8caf",
+    icon: "psychology",
+  },
+  {
+    title: "الاقتصاد والإحصاء",
+    descriptor: "أرقام وقرارات أذكى",
+    accent: "#78c878",
+    icon: "economics",
+  },
+  {
+    title: "العلوم المتكاملة",
+    descriptor: "علوم مترابطة في مادة واحدة",
+    accent: "#54c5e8",
+    icon: "integrated-science",
+  },
+  {
+    title: "البرمجة والذكاء الاصطناعي",
+    descriptor: "مهارات المستقبل تبدأ هنا",
+    accent: "#68a7f5",
+    icon: "programming",
+  },
+  {
+    title: "التربية الدينية",
+    descriptor: "قيم ومعرفة وبناء شخصية",
+    accent: "#d8bb68",
+    icon: "religion",
+  },
+  {
+    title: "التربية الوطنية",
+    descriptor: "انتماء ووعي ومسؤولية",
+    accent: "#e67c78",
+    icon: "national",
+  },
+  {
+    title: "الجيولوجيا",
+    descriptor: "الأرض وثرواتها وتكوينها",
+    accent: "#b88a68",
+    icon: "geology",
   },
 ];
+
+function SubjectIcon({ name }: { name: SubjectIconName }) {
+  const iconProps = {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  } as const;
+
+  switch (name) {
+    case "physics":
+      return (
+        <svg {...iconProps}>
+          <circle cx="12" cy="12" r="2.3" />
+          <path d="M20 12c0 2-3.6 3.6-8 3.6S4 14 4 12s3.6-3.6 8-3.6 8 1.6 8 3.6Z" />
+          <path d="M15.2 5.2c1.7 1.1 1.2 5-.9 8.6s-5 5.6-6.7 4.6-1.2-5 .9-8.6 5-5.7 6.7-4.6Z" />
+        </svg>
+      );
+    case "chemistry":
+      return (
+        <svg {...iconProps}>
+          <path d="M9 3h6M10 3v6l-5.4 9.2A1.8 1.8 0 0 0 6.2 21h11.6a1.8 1.8 0 0 0 1.6-2.8L14 9V3" />
+          <path d="M7.2 16h9.6" />
+        </svg>
+      );
+    case "math":
+      return (
+        <svg {...iconProps}>
+          <path d="M7 4h10l-9.5 16M7 20h10M9 7h.01M13 14h.01" />
+        </svg>
+      );
+    case "biology":
+      return (
+        <svg {...iconProps}>
+          <path d="M20 4C10 4 5 8.5 5 15c0 2.8 2 5 5 5 6.5 0 10-5 10-16Z" />
+          <path d="M4 20c4-4 7.2-7 12-10" />
+        </svg>
+      );
+    case "arabic":
+      return (
+        <svg {...iconProps}>
+          <text
+            x="12"
+            y="17"
+            textAnchor="middle"
+            fill="currentColor"
+            stroke="none"
+            fontSize="14"
+            fontWeight="800"
+          >
+            ع
+          </text>
+        </svg>
+      );
+    case "english":
+      return (
+        <svg {...iconProps}>
+          <text
+            x="12"
+            y="16"
+            textAnchor="middle"
+            fill="currentColor"
+            stroke="none"
+            fontSize="9"
+            fontWeight="800"
+          >
+            EN
+          </text>
+        </svg>
+      );
+    case "second-language":
+      return (
+        <svg {...iconProps}>
+          <text
+            x="12"
+            y="16"
+            textAnchor="middle"
+            fill="currentColor"
+            stroke="none"
+            fontSize="9"
+            fontWeight="800"
+          >
+            2L
+          </text>
+        </svg>
+      );
+    case "history":
+      return (
+        <svg {...iconProps}>
+          <path d="m4 8 8-4 8 4M5 9h14M6 9v8M10 9v8M14 9v8M18 9v8M4 19h16" />
+        </svg>
+      );
+    case "geography":
+      return (
+        <svg {...iconProps}>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M3.8 12h16.4M12 3.5c2 2.3 3 5.1 3 8.5s-1 6.2-3 8.5c-2-2.3-3-5.1-3-8.5s1-6.2 3-8.5Z" />
+        </svg>
+      );
+    case "philosophy":
+      return (
+        <svg {...iconProps}>
+          <path d="M9 18h6M10 21h4M8.5 14.5a5.2 5.2 0 1 1 7 0c-.9.8-1.3 1.8-1.5 3.5h-4c-.2-1.7-.6-2.7-1.5-3.5Z" />
+          <path d="M12 6v3M10.5 7.5h3" />
+        </svg>
+      );
+    case "psychology":
+      return (
+        <svg {...iconProps}>
+          <path d="M9.2 4.5A3 3 0 0 0 6 7.4a3 3 0 0 0-1.2 5.7A3.1 3.1 0 0 0 8 17.7a3 3 0 0 0 5.5.7 3 3 0 0 0 5.5-1 3.1 3.1 0 0 0 2-4.3A3 3 0 0 0 20 7.3a3.1 3.1 0 0 0-4.5-2.6 3.2 3.2 0 0 0-6.3-.2Z" />
+          <path d="M12 6v12M8 9.5h2M14 8h2M14 14h2M8 15h2" />
+        </svg>
+      );
+    case "economics":
+      return (
+        <svg {...iconProps}>
+          <path d="M4 19V5M4 19h16M7 15l3-3 3 2 5-6" />
+          <path d="M15 8h3v3" />
+        </svg>
+      );
+    case "integrated-science":
+      return (
+        <svg {...iconProps}>
+          <path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z" />
+          <circle cx="12" cy="12" r="2" />
+          <path d="m7.5 7.5 2.8 2.8M16.5 7.5l-2.8 2.8M7.5 16.5l2.8-2.8M16.5 16.5l-2.8-2.8" />
+        </svg>
+      );
+    case "programming":
+      return (
+        <svg {...iconProps}>
+          <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" />
+        </svg>
+      );
+    case "religion":
+      return (
+        <svg {...iconProps}>
+          <path d="M12 3a8.5 8.5 0 1 0 8.5 8.5A6.5 6.5 0 1 1 12 3Z" />
+          <path d="M17.5 5.5v4M15.5 7.5h4" />
+        </svg>
+      );
+    case "national":
+      return (
+        <svg {...iconProps}>
+          <path d="M5 21V4M5 5c4-3 7 3 14 0v9c-7 3-10-3-14 0" />
+          <path d="M3 21h4" />
+        </svg>
+      );
+    case "geology":
+      return (
+        <svg {...iconProps}>
+          <path d="m3 19 6-8 3 4 3-5 6 9H3Z" />
+          <path d="m9 11 2-3 2 3M5 19h14" />
+        </svg>
+      );
+  }
+}
 
 const features = [
   {
@@ -310,7 +562,7 @@ export default async function Home() {
               </div>
             </ScrollReveal>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {subjects.map((subject, index) => (
                 <ScrollReveal key={subject.title} delay={index * 0.05}>
                   <Link
@@ -342,7 +594,7 @@ export default async function Home() {
                             color: subject.accent,
                           }}
                         >
-                          {subject.icon}
+                          <SubjectIcon name={subject.icon} />
                         </span>
                       </div>
 
