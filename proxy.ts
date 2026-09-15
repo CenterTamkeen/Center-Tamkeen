@@ -13,17 +13,35 @@ function isRoute(pathname: string, routes: string[]) {
   );
 }
 
-function redirectTo(request: NextRequest, pathname: string) {
-  return NextResponse.redirect(new URL(pathname, request.url));
+function redirectTo(
+  request: NextRequest,
+  pathname: string,
+  sourceResponse: NextResponse,
+) {
+  const response = NextResponse.redirect(new URL(pathname, request.url));
+
+  // Supabase may refresh the access token while getUser() runs below. Keep
+  // the refreshed auth cookies when this request also needs a redirect.
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie);
+  });
+
+  return response;
 }
 
-function loginRedirect(request: NextRequest) {
+function loginRedirect(request: NextRequest, sourceResponse: NextResponse) {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set(
     "next",
     `${request.nextUrl.pathname}${request.nextUrl.search}`,
   );
-  return NextResponse.redirect(loginUrl);
+  const response = NextResponse.redirect(loginUrl);
+
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie);
+  });
+
+  return response;
 }
 
 function isAllowedDashboardPath(pathname: string, role: AppRole) {
@@ -75,7 +93,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && isRoute(pathname, protectedRoutes)) {
-    return loginRedirect(request);
+    return loginRedirect(request, response);
   }
 
   if (!user) {
@@ -89,20 +107,20 @@ export async function proxy(request: NextRequest) {
     .maybeSingle();
 
   if (!profile && isRoute(pathname, protectedRoutes)) {
-    return redirectTo(request, "/login");
+    return redirectTo(request, "/login", response);
   }
 
   if (profile && isRoute(pathname, authRoutes)) {
-    return redirectTo(request, getRoleHomePath(profile.role));
+    return redirectTo(request, getRoleHomePath(profile.role), response);
   }
 
   if (profile && pathname.startsWith("/dashboard")) {
     if (pathname === "/dashboard") {
-      return redirectTo(request, getRoleHomePath(profile.role));
+      return redirectTo(request, getRoleHomePath(profile.role), response);
     }
 
     if (!isAllowedDashboardPath(pathname, profile.role)) {
-      return redirectTo(request, getRoleHomePath(profile.role));
+      return redirectTo(request, getRoleHomePath(profile.role), response);
     }
   }
 
