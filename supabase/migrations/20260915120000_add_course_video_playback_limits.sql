@@ -13,6 +13,7 @@ check (video_playback_limit is null or video_playback_limit in (3, 5, 7));
 -- The limit is read from the course inside the database function, rather than
 -- accepted from the client or application server.
 drop function if exists public.record_lesson_playback(uuid, uuid, uuid, integer);
+drop function if exists public.record_lesson_playback(uuid, uuid, uuid);
 
 create function public.record_lesson_playback(
   student_uuid uuid,
