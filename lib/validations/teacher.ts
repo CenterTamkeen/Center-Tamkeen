@@ -4,6 +4,7 @@ import { gradeLabels, sectionLabels } from "@/lib/validations/auth";
 
 const gradeValues = Object.keys(gradeLabels) as [string, ...string[]];
 const sectionValues = Object.keys(sectionLabels) as [string, ...string[]];
+const playbackLimitValues = ["3", "5", "7", "unlimited"] as const;
 
 const imageSchema = z
   .instanceof(File)
@@ -110,6 +111,9 @@ export const courseSchema = z.object({
     .max(100000, "السعر أكبر من الحد المسموح."),
   targetGrade: z.enum(gradeValues).optional().or(z.literal("")),
   targetSection: z.enum(sectionValues).optional().or(z.literal("")),
+  videoPlaybackLimit: z.enum(playbackLimitValues, {
+    error: "اختار عدد مرات مشاهدة الفيديو.",
+  }),
   thumbnail: imageSchema,
 });
 

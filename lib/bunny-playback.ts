@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube";
 
-const STUDENT_LESSON_PLAYBACK_LIMIT = 3;
+const LEGACY_STUDENT_LESSON_PLAYBACK_LIMIT = 3;
 
 export async function getAuthorizedBunnyLessonVideo(lessonId: string) {
   const supabase = await createClient();
@@ -38,7 +38,7 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
   const { data: lesson, error } = await supabase
     .from("lessons")
     .select(
-      "id, bunny_video_id, youtube_video_id, course_id, is_free_preview, video_provider",
+      "id, bunny_video_id, youtube_video_id, course_id, is_free_preview, video_provider, course:courses(video_playback_limit)",
     )
     .eq("id", lessonId)
     .maybeSingle();
@@ -66,6 +66,12 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
     return null;
   }
 
+  const coursePlaybackLimit = lesson.course?.video_playback_limit;
+  let playbackLimit =
+    coursePlaybackLimit === undefined
+      ? LEGACY_STUDENT_LESSON_PLAYBACK_LIMIT
+      : coursePlaybackLimit;
+
   let playbackCount: number | null = null;
   let remainingPlaybacks: number | null = null;
 
@@ -80,16 +86,17 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
       return {
         deniedReason: "playback_limit_reached" as const,
         playbackCount: playbackAccess.playbackCount,
-        playbackLimit: STUDENT_LESSON_PLAYBACK_LIMIT,
+        playbackLimit: playbackAccess.playbackLimit,
       };
     }
 
     if (playbackAccess) {
       playbackCount = playbackAccess.playbackCount;
-      remainingPlaybacks = Math.max(
-        0,
-        STUDENT_LESSON_PLAYBACK_LIMIT - playbackAccess.playbackCount,
-      );
+      playbackLimit = playbackAccess.playbackLimit;
+      remainingPlaybacks =
+        playbackLimit === null
+          ? null
+          : Math.max(0, playbackLimit - playbackAccess.playbackCount);
     }
   }
 
@@ -102,7 +109,7 @@ export async function getAuthorizedLessonPlaybackUrl(lessonId: string) {
     provider,
     embedUrl,
     playbackCount,
-    playbackLimit: STUDENT_LESSON_PLAYBACK_LIMIT,
+    playbackLimit,
     remainingPlaybacks,
   };
 }
@@ -141,7 +148,6 @@ async function recordStudentLessonPlayback({
     student_uuid: student.id,
     course_uuid: courseId,
     lesson_uuid: lessonId,
-    max_playbacks: STUDENT_LESSON_PLAYBACK_LIMIT,
   });
 
   if (error) {
@@ -157,6 +163,7 @@ async function recordStudentLessonPlayback({
   return {
     allowed: result.allowed,
     playbackCount: result.playback_count,
+    playbackLimit: result.playback_limit,
   };
 }
 

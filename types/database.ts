@@ -166,6 +166,7 @@ export type Database = {
           target_grade: PublicEnums["student_grade"] | null;
           target_section: PublicEnums["student_section"] | null;
           thumbnail_url: string | null;
+          video_playback_limit: number | null;
           is_published: boolean;
           created_at: string;
           updated_at: string;
@@ -180,6 +181,7 @@ export type Database = {
           target_grade?: PublicEnums["student_grade"] | null;
           target_section?: PublicEnums["student_section"] | null;
           thumbnail_url?: string | null;
+          video_playback_limit?: number | null;
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -194,6 +196,7 @@ export type Database = {
           target_grade?: PublicEnums["student_grade"] | null;
           target_section?: PublicEnums["student_section"] | null;
           thumbnail_url?: string | null;
+          video_playback_limit?: number | null;
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -1142,11 +1145,11 @@ export type Database = {
           student_uuid: string;
           course_uuid: string;
           lesson_uuid: string;
-          max_playbacks?: number;
         };
         Returns: {
           allowed: boolean;
           playback_count: number;
+          playback_limit: number | null;
         }[];
       };
       redeem_course_activation_code: {

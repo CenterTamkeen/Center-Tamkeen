@@ -394,6 +394,7 @@ export async function createCourseAction(
     "price",
     "targetGrade",
     "targetSection",
+    "videoPlaybackLimit",
   ]);
   let teacherId = "";
   let teacherSubject = "";
@@ -413,6 +414,7 @@ export async function createCourseAction(
     price: getString(formData, "price"),
     targetGrade: getString(formData, "targetGrade"),
     targetSection: getString(formData, "targetSection"),
+    videoPlaybackLimit: getString(formData, "videoPlaybackLimit"),
     thumbnail: getOptionalUpload(formData, "thumbnail"),
   });
 
@@ -452,6 +454,10 @@ export async function createCourseAction(
     target_grade: (parsed.data.targetGrade || null) as StudentGrade | null,
     target_section: (parsed.data.targetSection ||
       null) as StudentSection | null,
+    video_playback_limit:
+      parsed.data.videoPlaybackLimit === "unlimited"
+        ? null
+        : Number(parsed.data.videoPlaybackLimit),
     thumbnail_url: thumbnailUrl,
     is_published: false,
   });
@@ -512,6 +518,7 @@ export async function updateCourseAction(
     "price",
     "targetGrade",
     "targetSection",
+    "videoPlaybackLimit",
   ]);
   const { teacher } = await requireTeacher();
 
@@ -526,6 +533,7 @@ export async function updateCourseAction(
     price: getString(formData, "price"),
     targetGrade: getString(formData, "targetGrade"),
     targetSection: getString(formData, "targetSection"),
+    videoPlaybackLimit: getString(formData, "videoPlaybackLimit"),
     thumbnail: getOptionalUpload(formData, "thumbnail"),
   });
 
@@ -566,6 +574,10 @@ export async function updateCourseAction(
       target_grade: (parsed.data.targetGrade || null) as StudentGrade | null,
       target_section: (parsed.data.targetSection ||
         null) as StudentSection | null,
+      video_playback_limit:
+        parsed.data.videoPlaybackLimit === "unlimited"
+          ? null
+          : Number(parsed.data.videoPlaybackLimit),
       ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
     })
     .eq("id", courseId)

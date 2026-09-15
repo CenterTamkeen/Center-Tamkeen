@@ -59,6 +59,7 @@ export function BunnyVideoPlayer({
   const [remainingPlaybacks, setRemainingPlaybacks] = useState<number | null>(
     null,
   );
+  const [playbackLimit, setPlaybackLimit] = useState<number | null>(null);
   const [progressStatus, setProgressStatus] = useState<LessonProgressStatus>(
     initialProgressStatus,
   );
@@ -247,9 +248,11 @@ export function BunnyVideoPlayer({
         const data = (await response.json()) as {
           embedUrl?: string;
           provider?: VideoProvider;
+          playbackLimit?: number | null;
           remainingPlaybacks?: number | null;
         };
         setEmbedUrl(data.embedUrl ?? null);
+        setPlaybackLimit(data.playbackLimit ?? null);
         setRemainingPlaybacks(data.remainingPlaybacks ?? null);
 
         if (data.provider === "youtube") {
@@ -437,11 +440,13 @@ export function BunnyVideoPlayer({
           <p className="text-foreground/65 text-sm font-bold">
             {progressStatus === "completed"
               ? "تم احتساب الحصة ضمن تقدمك."
-              : remainingPlaybacks !== null
-                ? `متبقي لك ${remainingPlaybacks.toLocaleString("ar-EG")} مرات تشغيل لهذه الحصة.`
-                : effectiveDurationSeconds
-                  ? "سيتم احتساب الحصة تلقائيًا عند الوصول لنهاية الفيديو."
-                  : "تم تسجيل بداية الحصة، وسيتم حساب اكتمالها عند توفر مدة الفيديو."}
+              : playbackLimit === null
+                ? "يمكنك مشاهدة هذه الحصة بلا حدود."
+                : remainingPlaybacks !== null
+                  ? `متبقي لك ${remainingPlaybacks.toLocaleString("ar-EG")} مرات تشغيل لهذه الحصة.`
+                  : effectiveDurationSeconds
+                    ? "سيتم احتساب الحصة تلقائيًا عند الوصول لنهاية الفيديو."
+                    : "تم تسجيل بداية الحصة، وسيتم حساب اكتمالها عند توفر مدة الفيديو."}
           </p>
           {progressSaving ? (
             <p className="text-foreground/45 mt-1 text-xs font-bold">

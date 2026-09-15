@@ -23,6 +23,7 @@ type CourseFormProps = {
     | "target_grade"
     | "target_section"
     | "thumbnail_url"
+    | "video_playback_limit"
   > | null;
   subjectOptions: string[];
 };
@@ -34,6 +35,11 @@ export function CourseForm({ course, subjectOptions }: CourseFormProps) {
     initialActionState,
   );
   const selectedSubject = state.values?.subject ?? course?.subject ?? "";
+  const selectedPlaybackLimit =
+    state.values?.videoPlaybackLimit ??
+    (course?.video_playback_limit === null
+      ? "unlimited"
+      : String(course?.video_playback_limit ?? 3));
 
   return (
     <form action={formAction} className="space-y-5">
@@ -151,6 +157,27 @@ export function CourseForm({ course, subjectOptions }: CourseFormProps) {
             ))}
           </select>
           <ErrorText message={state.fieldErrors?.targetSection?.[0]} />
+        </label>
+
+        <label className="space-y-2 sm:col-span-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            عدد مرات مشاهدة كل فيديو
+          </span>
+          <select
+            name="videoPlaybackLimit"
+            defaultValue={selectedPlaybackLimit}
+            className="field bg-background/60 py-2.5"
+          >
+            <option value="3">3 مرات</option>
+            <option value="5">5 مرات</option>
+            <option value="7">7 مرات</option>
+            <option value="unlimited">غير محدود</option>
+          </select>
+          <p className="text-foreground/50 text-xs leading-5 font-semibold">
+            يطبق على كل حصة مدفوعة في الكورس. خيار غير محدود يتيح للطلاب
+            المشاهدة بلا حد.
+          </p>
+          <ErrorText message={state.fieldErrors?.videoPlaybackLimit?.[0]} />
         </label>
 
         {course?.thumbnail_url ? (
