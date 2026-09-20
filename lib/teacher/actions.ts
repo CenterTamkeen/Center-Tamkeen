@@ -475,6 +475,57 @@ async function deleteBunnyVideos(videoIds: (string | null | undefined)[]) {
   );
 }
 
+async function deleteLessonsFromCourse(courseId: string, lessonIds: string[]) {
+  const authenticatedClient = await createClient();
+  const clients = [authenticatedClient];
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    try {
+      clients.push(createAdminClient());
+    } catch (error) {
+      console.error("Failed to initialize the lesson deletion client.", error);
+    }
+  }
+
+  for (const client of clients) {
+    const { data: lessons, error: lessonsError } = await client
+      .from("lessons")
+      .select("id, bunny_video_id")
+      .eq("course_id", courseId)
+      .in("id", lessonIds);
+
+    if (lessonsError) {
+      console.error("Failed to load lessons before deletion.", lessonsError);
+      continue;
+    }
+
+    if (!lessons || lessons.length === 0) {
+      continue;
+    }
+
+    const { data: deletedLessons, error: deleteError } = await client
+      .from("lessons")
+      .delete()
+      .eq("course_id", courseId)
+      .in("id", lessonIds)
+      .select("id, bunny_video_id");
+
+    if (deleteError) {
+      console.error("Failed to delete lessons.", deleteError);
+      continue;
+    }
+
+    if (!deletedLessons || deletedLessons.length === 0) {
+      console.error("Lesson deletion affected no rows.");
+      continue;
+    }
+
+    return deletedLessons;
+  }
+
+  return null;
+}
+
 async function getUnusedBunnyVideoIds(
   courseId: string,
   videoIds: (string | null | undefined)[],
@@ -1080,34 +1131,9 @@ export async function deleteLessonAction(formData: FormData) {
     return;
   }
 
-  // Ownership is checked with the authenticated client first. Use the admin
-  // client only after that check so cascades are not blocked by lesson-level
-  // RLS policies or related progress/quiz/attachment rows.
-  const admin = createAdminClient();
-  const { data: lesson, error: lessonError } = await admin
-    .from("lessons")
-    .select("bunny_video_id")
-    .eq("id", lessonId)
-    .eq("course_id", courseId)
-    .maybeSingle();
+  const deletedLessons = await deleteLessonsFromCourse(courseId, [lessonId]);
 
-  if (lessonError) {
-    console.error("Failed to load lesson before deletion.", lessonError);
-    return;
-  }
-
-  if (!lesson) {
-    return;
-  }
-
-  const { error: deleteError } = await admin
-    .from("lessons")
-    .delete()
-    .eq("id", lessonId)
-    .eq("course_id", courseId);
-
-  if (deleteError) {
-    console.error("Failed to delete lesson.", deleteError);
+  if (!deletedLessons) {
     return;
   }
 
@@ -1115,7 +1141,7 @@ export async function deleteLessonAction(formData: FormData) {
 
   const unusedVideoIds = await getUnusedBunnyVideoIds(
     courseId,
-    [lesson?.bunny_video_id],
+    deletedLessons.map((lesson) => lesson.bunny_video_id),
     [lessonId],
   );
 
@@ -1256,30 +1282,9 @@ export async function bulkDeleteLessonsAction(formData: FormData) {
     return;
   }
 
-  const admin = createAdminClient();
-  const { data: lessons, error: lessonsError } = await admin
-    .from("lessons")
-    .select("bunny_video_id")
-    .eq("course_id", courseId)
-    .in("id", lessonIds);
+  const deletedLessons = await deleteLessonsFromCourse(courseId, lessonIds);
 
-  if (lessonsError) {
-    console.error("Failed to load lessons before bulk deletion.", lessonsError);
-    return;
-  }
-
-  if (!lessons || lessons.length === 0) {
-    return;
-  }
-
-  const { error: deleteError } = await admin
-    .from("lessons")
-    .delete()
-    .eq("course_id", courseId)
-    .in("id", lessonIds);
-
-  if (deleteError) {
-    console.error("Failed to bulk delete lessons.", deleteError);
+  if (!deletedLessons) {
     return;
   }
 
@@ -1287,7 +1292,7 @@ export async function bulkDeleteLessonsAction(formData: FormData) {
 
   const unusedVideoIds = await getUnusedBunnyVideoIds(
     courseId,
-    (lessons ?? []).map((lesson) => lesson.bunny_video_id),
+    deletedLessons.map((lesson) => lesson.bunny_video_id),
     lessonIds,
   );
 
