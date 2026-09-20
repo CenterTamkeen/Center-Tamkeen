@@ -1082,18 +1082,20 @@ export async function getCourseById(id: string) {
       })
     : visibleLessons;
 
+  const folders = ((data.lesson_folders ?? []) as CourseLessonFolder[])
+    .slice()
+    .sort(
+      (first, second) =>
+        first.order_index - second.order_index ||
+        first.name.localeCompare(second.name, "ar"),
+    );
+
   return {
-    ...(data as CourseDetails),
-    folders: ((data as CourseDetails).folders ?? [])
-      .slice()
-      .sort(
-        (first, second) =>
-          first.order_index - second.order_index ||
-          first.name.localeCompare(second.name, "ar"),
-      ),
+    ...data,
+    folders,
     lessons,
     lessonCount: lessonIndex?.length ?? lessons.length,
-  };
+  } as CourseDetails;
 }
 
 export async function getLatestReviews(limit = 6) {
