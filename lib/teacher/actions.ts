@@ -1080,13 +1080,38 @@ export async function deleteLessonAction(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  const { data: lesson } = await supabase
+  // Ownership is checked with the authenticated client first. Use the admin
+  // client only after that check so cascades are not blocked by lesson-level
+  // RLS policies or related progress/quiz/attachment rows.
+  const admin = createAdminClient();
+  const { data: lesson, error: lessonError } = await admin
     .from("lessons")
     .select("bunny_video_id")
     .eq("id", lessonId)
     .eq("course_id", courseId)
     .maybeSingle();
+
+  if (lessonError) {
+    console.error("Failed to load lesson before deletion.", lessonError);
+    return;
+  }
+
+  if (!lesson) {
+    return;
+  }
+
+  const { error: deleteError } = await admin
+    .from("lessons")
+    .delete()
+    .eq("id", lessonId)
+    .eq("course_id", courseId);
+
+  if (deleteError) {
+    console.error("Failed to delete lesson.", deleteError);
+    return;
+  }
+
+  revalidateLessonPaths(courseId);
 
   const unusedVideoIds = await getUnusedBunnyVideoIds(
     courseId,
@@ -1095,14 +1120,6 @@ export async function deleteLessonAction(formData: FormData) {
   );
 
   await deleteBunnyVideos(unusedVideoIds);
-
-  await supabase
-    .from("lessons")
-    .delete()
-    .eq("id", lessonId)
-    .eq("course_id", courseId);
-
-  revalidateLessonPaths(courseId);
 }
 
 async function getNextLessonOrderIndex(courseId: string) {
@@ -1239,12 +1256,34 @@ export async function bulkDeleteLessonsAction(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  const { data: lessons } = await supabase
+  const admin = createAdminClient();
+  const { data: lessons, error: lessonsError } = await admin
     .from("lessons")
     .select("bunny_video_id")
     .eq("course_id", courseId)
     .in("id", lessonIds);
+
+  if (lessonsError) {
+    console.error("Failed to load lessons before bulk deletion.", lessonsError);
+    return;
+  }
+
+  if (!lessons || lessons.length === 0) {
+    return;
+  }
+
+  const { error: deleteError } = await admin
+    .from("lessons")
+    .delete()
+    .eq("course_id", courseId)
+    .in("id", lessonIds);
+
+  if (deleteError) {
+    console.error("Failed to bulk delete lessons.", deleteError);
+    return;
+  }
+
+  revalidateLessonPaths(courseId);
 
   const unusedVideoIds = await getUnusedBunnyVideoIds(
     courseId,
@@ -1253,14 +1292,6 @@ export async function bulkDeleteLessonsAction(formData: FormData) {
   );
 
   await deleteBunnyVideos(unusedVideoIds);
-
-  await supabase
-    .from("lessons")
-    .delete()
-    .eq("course_id", courseId)
-    .in("id", lessonIds);
-
-  revalidateLessonPaths(courseId);
 }
 
 export async function moveLessonToCourseAction(formData: FormData) {
