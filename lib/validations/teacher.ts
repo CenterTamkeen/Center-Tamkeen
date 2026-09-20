@@ -120,6 +120,7 @@ export const courseSchema = z.object({
 export const lessonSchema = z.object({
   courseId: z.uuid("الكورس غير صحيح."),
   title: z.string().trim().min(3, "عنوان الحصة مطلوب بحد أدنى 3 حروف."),
+  folderId: z.uuid("الفولدر غير صحيح.").optional().or(z.literal("")),
   bunnyVideoId: z.string().trim().optional(),
   youtubeUrl: youtubeUrlSchema,
   videoFile: videoSchema,
@@ -143,6 +144,19 @@ export const lessonSchema = z.object({
 
 export const lessonUpdateSchema = lessonSchema.extend({
   lessonId: z.uuid("الحصة غير صحيحة."),
+});
+
+export const lessonFolderSchema = z.object({
+  courseId: z.uuid("الكورس غير صحيح."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "اسم الفولدر مطلوب.")
+    .max(120, "اسم الفولدر طويل جدًا."),
+});
+
+export const lessonFolderUpdateSchema = lessonFolderSchema.extend({
+  folderId: z.uuid("الفولدر غير صحيح."),
 });
 
 export const couponSchema = z

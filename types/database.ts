@@ -272,10 +272,46 @@ export type Database = {
           },
         ];
       };
+      lesson_folders: {
+        Row: {
+          id: string;
+          course_id: string;
+          name: string;
+          order_index: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          name: string;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          course_id?: string;
+          name?: string;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lesson_folders_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       lessons: {
         Row: {
           id: string;
           course_id: string;
+          folder_id: string | null;
           title: string;
           order_index: number;
           vdocipher_video_id: string | null;
@@ -292,6 +328,7 @@ export type Database = {
         Insert: {
           id?: string;
           course_id: string;
+          folder_id?: string | null;
           title: string;
           order_index: number;
           vdocipher_video_id?: string | null;
@@ -308,6 +345,7 @@ export type Database = {
         Update: {
           id?: string;
           course_id?: string;
+          folder_id?: string | null;
           title?: string;
           order_index?: number;
           vdocipher_video_id?: string | null;
@@ -327,6 +365,13 @@ export type Database = {
             columns: ["course_id"];
             isOneToOne: false;
             referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lessons_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "lesson_folders";
             referencedColumns: ["id"];
           },
         ];

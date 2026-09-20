@@ -30,7 +30,7 @@ export default async function CourseLessonsPage({ params }: LessonsPageProps) {
     notFound();
   }
 
-  const [{ course, lessons }, courses] = await Promise.all([
+  const [{ course, lessons, folders }, courses] = await Promise.all([
     getTeacherLessons(teacher.id, courseId),
     getTeacherCourses(teacher.id),
   ]);
@@ -54,6 +54,7 @@ export default async function CourseLessonsPage({ params }: LessonsPageProps) {
         courseId={course.id}
         courseThumbnailUrl={course.thumbnail_url}
         lessons={lessons}
+        folders={folders}
         courses={courses.map((item) => ({ id: item.id, title: item.title }))}
       />
     </div>

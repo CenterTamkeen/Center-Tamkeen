@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { FormEvent } from "react";
+import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import { startTransition, useActionState, useMemo, useState } from "react";
 import * as tus from "tus-js-client";
 
@@ -9,13 +9,16 @@ import { initialActionState } from "@/lib/auth/action-state";
 import {
   bulkDeleteLessonsAction,
   createLessonAction,
+  createLessonFolderAction,
+  deleteLessonFolderAction,
   deleteLessonAttachmentAction,
   deleteLessonAction,
   moveLessonToCourseAction,
   reorderLessonsAction,
+  updateLessonFolderAction,
   updateLessonAction,
 } from "@/lib/teacher/actions";
-import type { TeacherLesson } from "@/lib/teacher/data";
+import type { TeacherLesson, TeacherLessonFolder } from "@/lib/teacher/data";
 
 import { ErrorText, FormFeedback } from "./form-feedback";
 
@@ -242,7 +245,13 @@ async function waitForBunnyUploadedBytes(videoId: string) {
   return false;
 }
 
-function CreateLessonForm({ courseId }: { courseId: string }) {
+function CreateLessonForm({
+  courseId,
+  folders,
+}: {
+  courseId: string;
+  folders: TeacherLessonFolder[];
+}) {
   const [state, formAction, isPending] = useActionState(
     createLessonAction,
     initialActionState,
@@ -317,6 +326,26 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
             className="field bg-background/60 py-2.5"
           />
           <ErrorText message={state.fieldErrors?.title?.[0]} />
+        </label>
+        <label className="space-y-2 sm:col-span-2">
+          <span className="text-foreground/80 text-sm font-semibold">
+            فولدر الحصة (اختياري)
+          </span>
+          <select
+            name="folderId"
+            defaultValue={state.values?.folderId ?? ""}
+            className="field bg-background/60 py-2.5"
+          >
+            <option value="">بدون فولدر</option>
+            {folders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-foreground/50 text-xs font-bold">
+            تقدر تعمل فولدر من بطاقة تنظيم الحصص أسفل النموذج.
+          </p>
         </label>
         <label className="space-y-2 sm:col-span-2">
           <span className="text-foreground/80 text-sm font-semibold">
@@ -413,9 +442,11 @@ function CreateLessonForm({ courseId }: { courseId: string }) {
 function LessonEditForm({
   lesson,
   courseId,
+  folders,
 }: {
   lesson: TeacherLesson;
   courseId: string;
+  folders: TeacherLessonFolder[];
 }) {
   const [state, formAction, isPending] = useActionState(
     updateLessonAction,
@@ -484,6 +515,19 @@ function LessonEditForm({
         />
         <ErrorText message={state.fieldErrors?.title?.[0]} />
       </div>
+      <select
+        name="folderId"
+        defaultValue={state.values?.folderId ?? lesson.folder_id ?? ""}
+        className="field bg-background/60 py-2.5 text-xs"
+        aria-label="فولدر الحصة"
+      >
+        <option value="">بدون فولدر</option>
+        {folders.map((folder) => (
+          <option key={folder.id} value={folder.id}>
+            {folder.name}
+          </option>
+        ))}
+      </select>
       <input
         name="videoFile"
         type="file"
@@ -564,15 +608,337 @@ function LessonEditForm({
   );
 }
 
+function RenameFolderForm({
+  courseId,
+  folder,
+}: {
+  courseId: string;
+  folder: TeacherLessonFolder;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    updateLessonFolderAction,
+    initialActionState,
+  );
+
+  return (
+    <form action={formAction} className="flex min-w-0 flex-1 gap-2">
+      <input type="hidden" name="courseId" value={courseId} />
+      <input type="hidden" name="folderId" value={folder.id} />
+      <input
+        name="name"
+        defaultValue={state.values?.name ?? folder.name}
+        className="field bg-background/60 min-w-0 flex-1 py-2 text-sm"
+        aria-label={`اسم فولدر ${folder.name}`}
+      />
+      <button
+        type="submit"
+        disabled={isPending}
+        className="btn-secondary shrink-0 px-3 py-2 text-xs"
+      >
+        {isPending ? "..." : "حفظ"}
+      </button>
+      <ErrorText message={state.fieldErrors?.name?.[0]} />
+    </form>
+  );
+}
+
+function LessonFolderManager({
+  courseId,
+  folders,
+  lessons,
+}: {
+  courseId: string;
+  folders: TeacherLessonFolder[];
+  lessons: TeacherLesson[];
+}) {
+  const [state, formAction, isPending] = useActionState(
+    createLessonFolderAction,
+    initialActionState,
+  );
+
+  return (
+    <section className="card-modern space-y-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow">تنظيم المحتوى</p>
+          <h3 className="text-lg font-black">فولدرات الحصص</h3>
+          <p className="text-foreground/55 mt-1 text-xs font-bold">
+            اعمل مجموعة باسم واضح، وبعدها اختارها عند إضافة أو تعديل أي حصة.
+          </p>
+        </div>
+        <span className="chip">
+          {folders.length.toLocaleString("ar-EG")} فولدر
+        </span>
+      </div>
+
+      <form action={formAction} className="flex flex-col gap-2 sm:flex-row">
+        <input type="hidden" name="courseId" value={courseId} />
+        <input
+          name="name"
+          defaultValue={state.values?.name ?? ""}
+          className="field bg-background/60 flex-1 py-2.5"
+          placeholder="مثال: شرح الوحدة الأولى"
+          aria-label="اسم فولدر جديد"
+        />
+        <button
+          type="submit"
+          disabled={isPending}
+          className="btn-primary shrink-0"
+        >
+          {isPending ? "جاري الإنشاء..." : "إنشاء فولدر"}
+        </button>
+      </form>
+      <FormFeedback state={state} />
+      <ErrorText message={state.fieldErrors?.name?.[0]} />
+
+      {folders.length > 0 ? (
+        <div className="grid gap-2">
+          {folders.map((folder) => (
+            <div
+              key={folder.id}
+              className="bg-primary-50/45 flex flex-wrap items-center gap-3 rounded-xl p-3"
+            >
+              <div className="bg-primary-100 text-primary-700 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+                  <path
+                    d="M3.75 6.75A2.25 2.25 0 0 1 6 4.5h4l1.5 2h6.5a2.25 2.25 0 0 1 2.25 2.25v8.5A2.25 2.25 0 0 1 18 19.5H6a2.25 2.25 0 0 1-2.25-2.25v-10.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              </div>
+              <RenameFolderForm courseId={courseId} folder={folder} />
+              <span className="text-foreground/50 text-xs font-bold">
+                {lessons
+                  .filter((lesson) => lesson.folder_id === folder.id)
+                  .length.toLocaleString("ar-EG")}{" "}
+                حصة
+              </span>
+              <form action={deleteLessonFolderAction}>
+                <input type="hidden" name="courseId" value={courseId} />
+                <input type="hidden" name="folderId" value={folder.id} />
+                <button
+                  type="submit"
+                  className="btn-secondary px-3 py-2 text-xs text-red-700"
+                >
+                  حذف الفولدر
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-foreground/50 border-primary-200 rounded-xl border border-dashed px-4 py-3 text-sm font-bold">
+          لسه مفيش فولدرات. ابدأ بإنشاء أول مجموعة للحصص.
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Kept as a reusable section primitive for future folder-only views.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LessonFolderSection({
+  name,
+  count,
+  children,
+}: {
+  name: string;
+  count: number;
+  children: ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <section
+      className="border-b last:border-b-0"
+      style={{ borderColor: "rgb(208 227 218 / 0.55)" }}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+        className="bg-primary-50/35 hover:bg-primary-50/65 flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <svg
+            viewBox="0 0 24 24"
+            className={`text-primary-700 h-5 w-5 shrink-0 transition-transform duration-200 ${
+              isOpen ? "rotate-0" : "-rotate-90"
+            }`}
+            fill="none"
+          >
+            <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" />
+          </svg>
+          <span className="truncate font-black">{name}</span>
+        </span>
+        <span className="text-foreground/50 shrink-0 text-xs font-bold">
+          {count.toLocaleString("ar-EG")} حصة
+        </span>
+      </button>
+      {isOpen ? <div>{children}</div> : null}
+    </section>
+  );
+}
+
+// Kept as a reusable lesson card primitive for future compact views.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LessonCard({
+  lesson,
+  index,
+  courseId,
+  courseThumbnailUrl,
+  courses,
+  folders,
+  selectedIds,
+  setSelectedIds,
+  moveDraggedLesson,
+}: {
+  lesson: TeacherLesson;
+  index: number;
+  courseId: string;
+  courseThumbnailUrl: string | null;
+  courses: { id: string; title: string }[];
+  folders: TeacherLessonFolder[];
+  selectedIds: string[];
+  setSelectedIds: Dispatch<SetStateAction<string[]>>;
+  moveDraggedLesson: (sourceId: string, targetId: string) => void;
+}) {
+  return (
+    <article
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData("text/plain", lesson.id);
+      }}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        moveDraggedLesson(event.dataTransfer.getData("text/plain"), lesson.id);
+      }}
+      className="space-y-4 border-b p-4 last:border-b-0"
+      style={{ borderColor: "rgb(208 227 218 / 0.55)" }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(lesson.id)}
+            onChange={(event) => {
+              setSelectedIds((current) =>
+                event.target.checked
+                  ? [...current, lesson.id]
+                  : current.filter((item) => item !== lesson.id),
+              );
+            }}
+            className="accent-primary-600 h-4 w-4"
+          />
+          {courseThumbnailUrl ? (
+            <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg">
+              <Image
+                src={courseThumbnailUrl}
+                alt={lesson.title}
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
+          <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
+            {(index + 1).toLocaleString("ar-EG")}
+          </span>
+          <span className="text-foreground/55 rounded-lg bg-white/65 px-2.5 py-1 text-xs font-black">
+            {lesson.video_provider === "youtube" ? "YouTube" : "Bunny"}
+          </span>
+          <p className="text-sm font-black">
+            اسحب لإعادة الترتيب ثم اضغط حفظ الترتيب
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <form action={deleteLessonAction}>
+            <input type="hidden" name="courseId" value={courseId} />
+            <input type="hidden" name="lessonId" value={lesson.id} />
+            <button
+              type="submit"
+              className="btn-secondary px-3 py-2 text-xs text-red-700"
+            >
+              حذف
+            </button>
+          </form>
+        </div>
+      </div>
+      <LessonEditForm lesson={lesson} courseId={courseId} folders={folders} />
+      {lesson.lesson_attachments.length > 0 ? (
+        <div className="grid gap-2">
+          {lesson.lesson_attachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="bg-primary-50/40 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold"
+            >
+              <a
+                href={attachment.file_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary-700 hover:underline"
+              >
+                {attachment.title}
+                {attachment.file_size
+                  ? ` - ${formatFileSize(attachment.file_size)}`
+                  : ""}
+              </a>
+              <form action={deleteLessonAttachmentAction}>
+                <input type="hidden" name="courseId" value={courseId} />
+                <input
+                  type="hidden"
+                  name="attachmentId"
+                  value={attachment.id}
+                />
+                <button className="btn-secondary px-2.5 py-1.5 text-xs text-red-700">
+                  حذف المرفق
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <form
+        action={moveLessonToCourseAction}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <input type="hidden" name="courseId" value={courseId} />
+        <input type="hidden" name="lessonId" value={lesson.id} />
+        <select
+          name="targetCourseId"
+          defaultValue=""
+          className="field bg-background/60 max-w-xs py-2 text-sm"
+        >
+          <option value="" disabled>
+            نقل لكورس آخر
+          </option>
+          {courses
+            .filter((course) => course.id !== courseId)
+            .map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
+              </option>
+            ))}
+        </select>
+        <button className="btn-secondary px-3 py-2 text-xs">نقل الحصة</button>
+      </form>
+    </article>
+  );
+}
+
 export function LessonManager({
   courseId,
   courseThumbnailUrl,
   lessons,
+  folders,
   courses,
 }: {
   courseId: string;
   courseThumbnailUrl: string | null;
   lessons: TeacherLesson[];
+  folders: TeacherLessonFolder[];
   courses: { id: string; title: string }[];
 }) {
   const serverOrderKey = lessons.map((lesson) => lesson.id).join(",");
@@ -581,6 +947,7 @@ export function LessonManager({
   );
   const [syncedOrderKey, setSyncedOrderKey] = useState(serverOrderKey);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [collapsedFolderIds, setCollapsedFolderIds] = useState<string[]>([]);
 
   // Drop the local drag order whenever the server sends a different lesson order.
   if (syncedOrderKey !== serverOrderKey) {
@@ -595,6 +962,15 @@ export function LessonManager({
       .map((lessonId) => lessonsById.get(lessonId))
       .filter(Boolean) as TeacherLesson[];
   }, [lessons, orderedLessonIds]);
+
+  const displayLessons = useMemo(() => {
+    const grouped = folders.flatMap((folder) =>
+      orderedLessons.filter((lesson) => lesson.folder_id === folder.id),
+    );
+    const ungrouped = orderedLessons.filter((lesson) => !lesson.folder_id);
+
+    return [...grouped, ...ungrouped];
+  }, [folders, orderedLessons]);
 
   function moveDraggedLesson(sourceId: string, targetId: string) {
     setOrderedLessonIds((current) => {
@@ -614,7 +990,13 @@ export function LessonManager({
 
   return (
     <div className="space-y-5">
-      <CreateLessonForm courseId={courseId} />
+      <CreateLessonForm courseId={courseId} folders={folders} />
+
+      <LessonFolderManager
+        courseId={courseId}
+        folders={folders}
+        lessons={lessons}
+      />
 
       {lessons.length > 0 ? (
         <div className="glass-panel-strong flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
@@ -652,135 +1034,208 @@ export function LessonManager({
       ) : null}
 
       <div className="glass-panel-strong overflow-hidden rounded-xl">
-        {orderedLessons.length > 0 ? (
-          orderedLessons.map((lesson, index) => (
-            <article
-              key={lesson.id}
-              draggable
-              onDragStart={(event) => {
-                event.dataTransfer.setData("text/plain", lesson.id);
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                moveDraggedLesson(
-                  event.dataTransfer.getData("text/plain"),
-                  lesson.id,
-                );
-              }}
-              className="space-y-4 border-b p-4 last:border-b-0"
-              style={{ borderColor: "rgb(208 227 218 / 0.55)" }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(lesson.id)}
-                    onChange={(event) => {
-                      setSelectedIds((current) =>
-                        event.target.checked
-                          ? [...current, lesson.id]
-                          : current.filter((item) => item !== lesson.id),
+        {displayLessons.length > 0 ? (
+          displayLessons.map((lesson, index) => {
+            const folder = lesson.folder_id
+              ? folders.find((item) => item.id === lesson.folder_id)
+              : undefined;
+            const isFolderStart = Boolean(
+              folder &&
+              (index === 0 ||
+                displayLessons[index - 1].folder_id !== folder.id),
+            );
+            const isCollapsed = folder
+              ? collapsedFolderIds.includes(folder.id)
+              : false;
+
+            return (
+              <div key={`${lesson.id}-wrapper`}>
+                {isFolderStart && folder ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsedFolderIds((current) =>
+                        current.includes(folder.id)
+                          ? current.filter((id) => id !== folder.id)
+                          : [...current, folder.id],
+                      )
+                    }
+                    aria-expanded={!isCollapsed}
+                    className="bg-primary-50/35 hover:bg-primary-50/65 flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className={`text-primary-700 h-5 w-5 shrink-0 transition-transform duration-200 ${
+                          isCollapsed ? "-rotate-90" : "rotate-0"
+                        }`}
+                        fill="none"
+                      >
+                        <path
+                          d="m6 9 6 6 6-6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                      <span className="truncate font-black">{folder.name}</span>
+                    </span>
+                    <span className="text-foreground/50 shrink-0 text-xs font-bold">
+                      {displayLessons
+                        .filter((item) => item.folder_id === folder.id)
+                        .length.toLocaleString("ar-EG")}{" "}
+                      حصة
+                    </span>
+                  </button>
+                ) : null}
+                {isCollapsed ? null : (
+                  <article
+                    key={lesson.id}
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("text/plain", lesson.id);
+                    }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      moveDraggedLesson(
+                        event.dataTransfer.getData("text/plain"),
+                        lesson.id,
                       );
                     }}
-                    className="accent-primary-600 h-4 w-4"
-                  />
-                  {courseThumbnailUrl ? (
-                    <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg">
-                      <Image
-                        src={courseThumbnailUrl}
-                        alt={lesson.title}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : null}
-                  <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
-                    {(index + 1).toLocaleString("ar-EG")}
-                  </span>
-                  <span className="text-foreground/55 rounded-lg bg-white/65 px-2.5 py-1 text-xs font-black">
-                    {lesson.video_provider === "youtube" ? "YouTube" : "Bunny"}
-                  </span>
-                  <p className="text-sm font-black">
-                    اسحب لإعادة الترتيب ثم اضغط حفظ الترتيب
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <form action={deleteLessonAction}>
-                    <input type="hidden" name="courseId" value={courseId} />
-                    <input type="hidden" name="lessonId" value={lesson.id} />
-                    <button
-                      type="submit"
-                      className="btn-secondary px-3 py-2 text-xs text-red-700"
-                    >
-                      حذف
-                    </button>
-                  </form>
-                </div>
-              </div>
-              <LessonEditForm lesson={lesson} courseId={courseId} />
-              {lesson.lesson_attachments.length > 0 ? (
-                <div className="grid gap-2">
-                  {lesson.lesson_attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="bg-primary-50/40 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold"
-                    >
-                      <a
-                        href={attachment.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary-700 hover:underline"
-                      >
-                        {attachment.title}
-                        {attachment.file_size
-                          ? ` - ${formatFileSize(attachment.file_size)}`
-                          : ""}
-                      </a>
-                      <form action={deleteLessonAttachmentAction}>
-                        <input type="hidden" name="courseId" value={courseId} />
+                    className="space-y-4 border-b p-4 last:border-b-0"
+                    style={{ borderColor: "rgb(208 227 218 / 0.55)" }}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
                         <input
-                          type="hidden"
-                          name="attachmentId"
-                          value={attachment.id}
+                          type="checkbox"
+                          checked={selectedIds.includes(lesson.id)}
+                          onChange={(event) => {
+                            setSelectedIds((current) =>
+                              event.target.checked
+                                ? [...current, lesson.id]
+                                : current.filter((item) => item !== lesson.id),
+                            );
+                          }}
+                          className="accent-primary-600 h-4 w-4"
                         />
-                        <button className="btn-secondary px-2.5 py-1.5 text-xs text-red-700">
-                          حذف المرفق
-                        </button>
-                      </form>
+                        {courseThumbnailUrl ? (
+                          <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-lg">
+                            <Image
+                              src={courseThumbnailUrl}
+                              alt={lesson.title}
+                              fill
+                              sizes="64px"
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : null}
+                        <span className="bg-primary-50 text-primary-700 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black">
+                          {(index + 1).toLocaleString("ar-EG")}
+                        </span>
+                        <span className="text-foreground/55 rounded-lg bg-white/65 px-2.5 py-1 text-xs font-black">
+                          {lesson.video_provider === "youtube"
+                            ? "YouTube"
+                            : "Bunny"}
+                        </span>
+                        <p className="text-sm font-black">
+                          اسحب لإعادة الترتيب ثم اضغط حفظ الترتيب
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <form action={deleteLessonAction}>
+                          <input
+                            type="hidden"
+                            name="courseId"
+                            value={courseId}
+                          />
+                          <input
+                            type="hidden"
+                            name="lessonId"
+                            value={lesson.id}
+                          />
+                          <button
+                            type="submit"
+                            className="btn-secondary px-3 py-2 text-xs text-red-700"
+                          >
+                            حذف
+                          </button>
+                        </form>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : null}
-              <form
-                action={moveLessonToCourseAction}
-                className="flex flex-wrap items-center gap-2"
-              >
-                <input type="hidden" name="courseId" value={courseId} />
-                <input type="hidden" name="lessonId" value={lesson.id} />
-                <select
-                  name="targetCourseId"
-                  defaultValue=""
-                  className="field bg-background/60 max-w-xs py-2 text-sm"
-                >
-                  <option value="" disabled>
-                    نقل لكورس آخر
-                  </option>
-                  {courses
-                    .filter((course) => course.id !== courseId)
-                    .map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                </select>
-                <button className="btn-secondary px-3 py-2 text-xs">
-                  نقل الحصة
-                </button>
-              </form>
-            </article>
-          ))
+                    <LessonEditForm
+                      lesson={lesson}
+                      courseId={courseId}
+                      folders={folders}
+                    />
+                    {lesson.lesson_attachments.length > 0 ? (
+                      <div className="grid gap-2">
+                        {lesson.lesson_attachments.map((attachment) => (
+                          <div
+                            key={attachment.id}
+                            className="bg-primary-50/40 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold"
+                          >
+                            <a
+                              href={attachment.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary-700 hover:underline"
+                            >
+                              {attachment.title}
+                              {attachment.file_size
+                                ? ` - ${formatFileSize(attachment.file_size)}`
+                                : ""}
+                            </a>
+                            <form action={deleteLessonAttachmentAction}>
+                              <input
+                                type="hidden"
+                                name="courseId"
+                                value={courseId}
+                              />
+                              <input
+                                type="hidden"
+                                name="attachmentId"
+                                value={attachment.id}
+                              />
+                              <button className="btn-secondary px-2.5 py-1.5 text-xs text-red-700">
+                                حذف المرفق
+                              </button>
+                            </form>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <form
+                      action={moveLessonToCourseAction}
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="courseId" value={courseId} />
+                      <input type="hidden" name="lessonId" value={lesson.id} />
+                      <select
+                        name="targetCourseId"
+                        defaultValue=""
+                        className="field bg-background/60 max-w-xs py-2 text-sm"
+                      >
+                        <option value="" disabled>
+                          نقل لكورس آخر
+                        </option>
+                        {courses
+                          .filter((course) => course.id !== courseId)
+                          .map((course) => (
+                            <option key={course.id} value={course.id}>
+                              {course.title}
+                            </option>
+                          ))}
+                      </select>
+                      <button className="btn-secondary px-3 py-2 text-xs">
+                        نقل الحصة
+                      </button>
+                    </form>
+                  </article>
+                )}
+              </div>
+            );
+          })
         ) : (
           <p className="text-foreground/60 px-5 py-10 text-center">
             لا توجد حصص لهذا الكورس حتى الآن.

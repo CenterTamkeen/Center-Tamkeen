@@ -11,6 +11,8 @@ export type TeacherLesson = Database["public"]["Tables"]["lessons"]["Row"] & {
   lesson_attachments: Database["public"]["Tables"]["lesson_attachments"]["Row"][];
   lesson_quiz_questions: Database["public"]["Tables"]["lesson_quiz_questions"]["Row"][];
 };
+export type TeacherLessonFolder =
+  Database["public"]["Tables"]["lesson_folders"]["Row"];
 export type TeacherReview = Pick<
   Database["public"]["Tables"]["reviews"]["Row"],
   "id" | "rating" | "comment" | "created_at"
@@ -218,6 +220,7 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
     return {
       course: null,
       lessons: [] as TeacherLesson[],
+      folders: [] as TeacherLessonFolder[],
     };
   }
 
@@ -225,7 +228,7 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, order_index, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
+      "id, course_id, folder_id, title, order_index, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview, created_at, updated_at, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)",
     )
     .eq("course_id", courseId)
     .order("order_index", { ascending: true })
@@ -236,12 +239,25 @@ export async function getTeacherLessons(teacherId: string, courseId: string) {
     return {
       course,
       lessons: [],
+      folders: [] as TeacherLessonFolder[],
     };
+  }
+
+  const { data: folders, error: foldersError } = await supabase
+    .from("lesson_folders")
+    .select("id, course_id, name, order_index, created_at, updated_at")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (foldersError) {
+    logTeacherError("lesson-folders", foldersError.message);
   }
 
   return {
     course,
     lessons: (data ?? []) as TeacherLesson[],
+    folders: (folders ?? []) as TeacherLessonFolder[],
   };
 }
 

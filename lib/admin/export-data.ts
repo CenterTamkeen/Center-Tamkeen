@@ -25,6 +25,7 @@ const tableOrderColumns: Record<TableName, string[]> = {
   students: ["created_at", "id"],
   teachers: ["created_at", "id"],
   courses: ["created_at", "id"],
+  lesson_folders: ["course_id", "order_index", "id"],
   lessons: ["course_id", "order_index"],
   orders: ["created_at", "id"],
   order_items: ["created_at", "id"],

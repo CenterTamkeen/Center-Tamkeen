@@ -16,6 +16,8 @@ import {
   couponSchema,
   couponUpdateSchema,
   courseSchema,
+  lessonFolderSchema,
+  lessonFolderUpdateSchema,
   lessonSchema,
   lessonUpdateSchema,
 } from "@/lib/validations/teacher";
@@ -299,6 +301,123 @@ async function replaceLessonQuiz(
   await supabase.from("lesson_quiz_questions").insert(questions);
 }
 
+async function getNextLessonFolderOrderIndex(courseId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lesson_folders")
+    .select("order_index")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (data?.order_index ?? -1) + 1;
+}
+
+export async function createLessonFolderAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const courseId = getString(formData, "courseId");
+  const values = getFormValues(formData, ["courseId", "name"]);
+  const { teacher } = await requireTeacher();
+
+  if (!(await assertOwnsCourse(teacher.id, courseId))) {
+    return failure("الكورس غير موجود أو ليس من كورساتك.", undefined, values);
+  }
+
+  const parsed = lessonFolderSchema.safeParse({
+    courseId,
+    name: getString(formData, "name"),
+  });
+
+  if (!parsed.success) {
+    return failure("راجع اسم الفولدر.", fieldErrors(parsed.error), values);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("lesson_folders").insert({
+    course_id: courseId,
+    name: parsed.data.name,
+    order_index: await getNextLessonFolderOrderIndex(courseId),
+  });
+
+  if (error) {
+    return failure(
+      error.code === "23505"
+        ? "اسم الفولدر مستخدم بالفعل داخل الكورس."
+        : "تعذر إنشاء الفولدر.",
+      error.code === "23505" ? { name: ["اكتب اسمًا مختلفًا."] } : undefined,
+      values,
+    );
+  }
+
+  revalidateLessonPaths(courseId);
+  return success("تم إنشاء الفولدر.");
+}
+
+export async function updateLessonFolderAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const courseId = getString(formData, "courseId");
+  const values = getFormValues(formData, ["courseId", "folderId", "name"]);
+  const { teacher } = await requireTeacher();
+
+  if (!(await assertOwnsCourse(teacher.id, courseId))) {
+    return failure("الكورس غير موجود أو ليس من كورساتك.", undefined, values);
+  }
+
+  const parsed = lessonFolderUpdateSchema.safeParse({
+    courseId,
+    folderId: getString(formData, "folderId"),
+    name: getString(formData, "name"),
+  });
+
+  if (!parsed.success) {
+    return failure("راجع اسم الفولدر.", fieldErrors(parsed.error), values);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("lesson_folders")
+    .update({ name: parsed.data.name })
+    .eq("id", parsed.data.folderId)
+    .eq("course_id", courseId);
+
+  if (error) {
+    return failure(
+      error.code === "23505"
+        ? "اسم الفولدر مستخدم بالفعل داخل الكورس."
+        : "تعذر تعديل الفولدر.",
+      error.code === "23505" ? { name: ["اكتب اسمًا مختلفًا."] } : undefined,
+      values,
+    );
+  }
+
+  revalidateLessonPaths(courseId);
+  return success("تم تعديل اسم الفولدر.");
+}
+
+export async function deleteLessonFolderAction(formData: FormData) {
+  const courseId = getString(formData, "courseId");
+  const folderId = getString(formData, "folderId");
+  const { teacher } = await requireTeacher();
+
+  if (!(await assertOwnsCourse(teacher.id, courseId))) {
+    return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("lesson_folders")
+    .delete()
+    .eq("id", folderId)
+    .eq("course_id", courseId);
+
+  revalidateLessonPaths(courseId);
+}
+
 async function getAllowedSubjects(fallbackSubject?: string | null) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -323,6 +442,22 @@ async function assertOwnsCourse(teacherId: string, courseId: string) {
     .select("id")
     .eq("teacher_id", teacherId)
     .eq("id", courseId)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
+async function assertCourseFolder(courseId: string, folderId?: string) {
+  if (!folderId) {
+    return true;
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lesson_folders")
+    .select("id")
+    .eq("id", folderId)
+    .eq("course_id", courseId)
     .maybeSingle();
 
   return Boolean(data);
@@ -642,6 +777,7 @@ export async function createLessonAction(
   const values = getFormValues(formData, [
     "courseId",
     "title",
+    "folderId",
     "durationMinutes",
     "attachmentTitle",
     "youtubeUrl",
@@ -655,6 +791,7 @@ export async function createLessonAction(
   const parsed = lessonSchema.safeParse({
     courseId,
     title: getString(formData, "title"),
+    folderId: getOptionalString(formData, "folderId") ?? "",
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     youtubeUrl: getOptionalString(formData, "youtubeUrl"),
     videoFile: getOptionalUpload(formData, "videoFile"),
@@ -667,6 +804,14 @@ export async function createLessonAction(
 
   if (!parsed.success) {
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
+  }
+
+  if (
+    !(await assertCourseFolder(courseId, parsed.data.folderId || undefined))
+  ) {
+    return failure("الفولدر غير تابع للكورس الحالي.", {
+      folderId: ["اختار فولدر من نفس الكورس."],
+    });
   }
 
   const videoSource = getLessonVideoSource({
@@ -699,6 +844,7 @@ export async function createLessonAction(
     .from("lessons")
     .insert({
       course_id: courseId,
+      folder_id: parsed.data.folderId || null,
       title: parsed.data.title,
       order_index: await getNextLessonOrderIndex(courseId),
       bunny_video_id: videoSource.bunnyVideoId,
@@ -767,6 +913,7 @@ export async function updateLessonAction(
     "lessonId",
     "courseId",
     "title",
+    "folderId",
     "durationMinutes",
     "attachmentTitle",
     "youtubeUrl",
@@ -781,6 +928,7 @@ export async function updateLessonAction(
     lessonId: getString(formData, "lessonId"),
     courseId,
     title: getString(formData, "title"),
+    folderId: getOptionalString(formData, "folderId") ?? "",
     bunnyVideoId: getOptionalString(formData, "bunnyVideoId"),
     youtubeUrl: getOptionalString(formData, "youtubeUrl"),
     videoFile: getOptionalUpload(formData, "videoFile"),
@@ -793,6 +941,14 @@ export async function updateLessonAction(
 
   if (!parsed.success) {
     return failure("راجع بيانات الحصة.", fieldErrors(parsed.error), values);
+  }
+
+  if (
+    !(await assertCourseFolder(courseId, parsed.data.folderId || undefined))
+  ) {
+    return failure("الفولدر غير تابع للكورس الحالي.", {
+      folderId: ["اختار فولدر من نفس الكورس."],
+    });
   }
 
   const videoSource = getLessonVideoSource({
@@ -831,6 +987,7 @@ export async function updateLessonAction(
     .from("lessons")
     .update({
       title: parsed.data.title,
+      folder_id: parsed.data.folderId || null,
       bunny_video_id: videoSource.bunnyVideoId,
       youtube_video_id: videoSource.youtubeVideoId,
       youtube_url: videoSource.youtubeUrl,
@@ -1038,7 +1195,7 @@ export async function duplicateLessonAction(formData: FormData) {
   const { data: lesson } = await supabase
     .from("lessons")
     .select(
-      "title, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview",
+      "title, folder_id, vdocipher_video_id, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, duration, is_free_preview",
     )
     .eq("id", lessonId)
     .eq("course_id", courseId)
@@ -1054,6 +1211,7 @@ export async function duplicateLessonAction(formData: FormData) {
 
   await supabase.from("lessons").insert({
     course_id: courseId,
+    folder_id: lesson.folder_id,
     title: `${lesson.title} - نسخة`,
     order_index: await getNextLessonOrderIndex(courseId),
     vdocipher_video_id: lesson.vdocipher_video_id,
@@ -1124,6 +1282,7 @@ export async function moveLessonToCourseAction(formData: FormData) {
     .from("lessons")
     .update({
       course_id: targetCourseId,
+      folder_id: null,
       order_index: await getNextLessonOrderIndex(targetCourseId),
     })
     .eq("id", lessonId)
