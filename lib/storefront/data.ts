@@ -87,9 +87,10 @@ export type CourseSummary = Pick<
   enrollments?: { id: string }[];
 };
 
-type CourseLessonDetails = Pick<
+export type CourseLessonDetails = Pick<
   LessonRow,
   | "id"
+  | "folder_id"
   | "title"
   | "order_index"
   | "duration"
@@ -104,9 +105,15 @@ type CourseLessonDetails = Pick<
   lesson_quiz_questions: Database["public"]["Tables"]["lesson_quiz_questions"]["Row"][];
 };
 
+export type CourseLessonFolder = Pick<
+  Database["public"]["Tables"]["lesson_folders"]["Row"],
+  "id" | "name" | "order_index"
+>;
+
 export type CourseDetails = CourseSummary & {
   lessonCount: number;
   lessons: CourseLessonDetails[];
+  folders: CourseLessonFolder[];
   reviews: (Pick<
     ReviewRow,
     "id" | "student_id" | "rating" | "comment" | "created_at"
@@ -1006,7 +1013,7 @@ export async function getCourseById(id: string) {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lessons(id, title, order_index, duration, is_free_preview, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)), reviews(id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)))",
+      "id, teacher_id, subject, title, description, price, target_grade, target_section, thumbnail_url, is_published, created_at, teacher:teachers!inner(slug, subject, is_active, avatar_url, profile:profiles(full_name)), enrollments(id), lesson_folders(id, name, order_index), lessons(id, folder_id, title, order_index, duration, is_free_preview, bunny_video_id, youtube_video_id, youtube_url, thumbnail_url, video_provider, lesson_attachments(id, lesson_id, title, file_url, file_type, file_size, created_at), lesson_quiz_questions(id, lesson_id, question, options, correct_option_index, order_index, created_at, updated_at)), reviews(id, student_id, rating, comment, created_at, student:students(photo_url, profile:profiles(full_name, avatar_url)))",
     )
     .eq("id", id)
     .eq("is_published", true)
@@ -1041,7 +1048,7 @@ export async function getCourseById(id: string) {
   const { data: lessonIndex, error: lessonIndexError } = admin
     ? await admin
         .from("lessons")
-        .select("id, title, order_index, duration, is_free_preview")
+        .select("id, folder_id, title, order_index, duration, is_free_preview")
         .eq("course_id", id)
         .order("order_index", { ascending: true })
     : { data: null, error: null };
@@ -1077,6 +1084,13 @@ export async function getCourseById(id: string) {
 
   return {
     ...(data as CourseDetails),
+    folders: ((data as CourseDetails).folders ?? [])
+      .slice()
+      .sort(
+        (first, second) =>
+          first.order_index - second.order_index ||
+          first.name.localeCompare(second.name, "ar"),
+      ),
     lessons,
     lessonCount: lessonIndex?.length ?? lessons.length,
   };
