@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 export type TeacherRow = Database["public"]["Tables"]["teachers"]["Row"];
+type TeacherEarningRow =
+  Database["public"]["Tables"]["teacher_earnings"]["Row"];
 export type TeacherCourse = Database["public"]["Tables"]["courses"]["Row"] & {
   lessons: { id: string }[];
   enrollments: { id: string; student_id: string }[];
@@ -94,6 +96,8 @@ export type TeacherStudent = {
     created_at: string;
   }[];
 };
+
+const TEACHER_PAGE_SIZE = 500;
 
 function logTeacherError(label: string, error: unknown) {
   if (process.env.NODE_ENV !== "production") {
@@ -513,30 +517,17 @@ export async function getTeacherCouponStudents(teacherId: string) {
 }
 
 export async function getTeacherStats(teacherId: string) {
-  const [courses, coupons] = await Promise.all([
+  const [courses, coupons, studentIds] = await Promise.all([
     getTeacherCourses(teacherId),
     getTeacherCoupons(teacherId),
+    getTeacherEnrollmentStudentIds(teacherId),
   ]);
   const supabase = await createClient();
-  const { data: earnings, error: earningsError } = await supabase
-    .from("teacher_earnings")
-    .select("amount")
-    .eq("teacher_id", teacherId);
-
-  if (earningsError) {
-    logTeacherError("earnings", earningsError.message);
-  }
-
-  const totalEarnings = (earnings ?? []).reduce(
+  const earnings = await getTeacherEarnings(teacherId, supabase);
+  const totalEarnings = earnings.reduce(
     (sum, earning) => sum + earning.amount,
     0,
   );
-  const studentCount = new Set(
-    courses.flatMap((course) =>
-      course.enrollments.map((item) => item.student_id),
-    ),
-  ).size;
-
   return {
     totalCourses: courses.length,
     publishedCourses: courses.filter((course) => course.is_published).length,
@@ -544,10 +535,120 @@ export async function getTeacherStats(teacherId: string) {
       (sum, course) => sum + course.lessons.length,
       0,
     ),
-    studentCount,
-    activeCoupons: coupons.filter((coupon) => coupon.is_active).length,
+    studentCount: new Set(studentIds).size,
+    activeCoupons: coupons.filter((coupon) => {
+      const notExpired =
+        !coupon.expires_at ||
+        new Date(coupon.expires_at).getTime() > Date.now();
+      const withinLimit =
+        coupon.usage_limit === null || coupon.used_count < coupon.usage_limit;
+
+      return coupon.is_active && notExpired && withinLimit;
+    }).length,
     totalEarnings,
   };
+}
+
+async function getTeacherEnrollmentStudentIds(teacherId: string) {
+  const supabase = await createClient();
+  const studentIds: string[] = [];
+
+  for (let offset = 0; ; offset += TEACHER_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("enrollments")
+      .select("student_id, course:courses!inner(teacher_id)")
+      .eq("course.teacher_id", teacherId)
+      .range(offset, offset + TEACHER_PAGE_SIZE - 1);
+
+    if (error) {
+      logTeacherError("enrollment-students", error.message);
+      break;
+    }
+
+    studentIds.push(...(data ?? []).map((row) => row.student_id));
+
+    if ((data ?? []).length < TEACHER_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return studentIds;
+}
+
+async function getTeacherEarnings(
+  teacherId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Pick<TeacherEarningRow, "amount" | "created_at">[]> {
+  const earnings: Pick<TeacherEarningRow, "amount" | "created_at">[] = [];
+
+  for (let offset = 0; ; offset += TEACHER_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("teacher_earnings")
+      .select("amount, created_at, order:orders!inner(status)")
+      .eq("teacher_id", teacherId)
+      .eq("order.status", "completed")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + TEACHER_PAGE_SIZE - 1);
+
+    if (error) {
+      logTeacherError("earnings", error.message);
+      break;
+    }
+
+    const page = (data ?? []) as Pick<
+      TeacherEarningRow,
+      "amount" | "created_at"
+    >[];
+    earnings.push(...page);
+
+    if (page.length < TEACHER_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return earnings;
+}
+
+async function getTeacherCourseSales(
+  teacherId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const salesByCourse = new Map<
+    string,
+    { enrollments: number; revenue: number }
+  >();
+
+  for (let offset = 0; ; offset += TEACHER_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("order_items")
+      .select(
+        "course_id, price_at_purchase, order:orders!inner(status), course:courses!inner(teacher_id)",
+      )
+      .eq("course.teacher_id", teacherId)
+      .eq("order.status", "completed")
+      .range(offset, offset + TEACHER_PAGE_SIZE - 1);
+
+    if (error) {
+      logTeacherError("course-sales", error.message);
+      break;
+    }
+
+    for (const row of data ?? []) {
+      const current = salesByCourse.get(row.course_id) ?? {
+        enrollments: 0,
+        revenue: 0,
+      };
+      current.enrollments += 1;
+      current.revenue += row.price_at_purchase;
+      salesByCourse.set(row.course_id, current);
+    }
+
+    if ((data ?? []).length < TEACHER_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return salesByCourse;
 }
 
 export async function getTeacherStudents(teacherId: string) {
@@ -611,15 +712,12 @@ export async function getTeacherStudents(teacherId: string) {
 export async function getTeacherDashboardDetails(teacherId: string) {
   const supabase = await createClient();
   const dashboardClient = getAdminClient() ?? supabase;
-  const [courses, coupons, earningsQuery, enrollmentsQuery] = await Promise.all(
-    [
+  const [courses, coupons, earnings, courseSales, enrollmentsQuery] =
+    await Promise.all([
       getTeacherCourses(teacherId),
       getTeacherCoupons(teacherId),
-      dashboardClient
-        .from("teacher_earnings")
-        .select("amount, created_at")
-        .eq("teacher_id", teacherId)
-        .order("created_at", { ascending: true }),
+      getTeacherEarnings(teacherId, dashboardClient),
+      getTeacherCourseSales(teacherId, dashboardClient),
       dashboardClient
         .from("enrollments")
         .select(
@@ -628,12 +726,7 @@ export async function getTeacherDashboardDetails(teacherId: string) {
         .eq("course.teacher_id", teacherId)
         .order("enrolled_at", { ascending: false })
         .limit(8),
-    ],
-  );
-
-  if (earningsQuery.error) {
-    logTeacherError("dashboard-earnings", earningsQuery.error.message);
-  }
+    ]);
 
   if (enrollmentsQuery.error) {
     logTeacherError("dashboard-enrollments", enrollmentsQuery.error.message);
@@ -641,7 +734,7 @@ export async function getTeacherDashboardDetails(teacherId: string) {
 
   const salesByMonth = new Map<string, number>();
 
-  for (const earning of earningsQuery.data ?? []) {
+  for (const earning of earnings) {
     const month = new Intl.DateTimeFormat("ar-EG", {
       month: "short",
       year: "numeric",
@@ -658,8 +751,8 @@ export async function getTeacherDashboardDetails(teacherId: string) {
       .map((course) => ({
         id: course.id,
         title: course.title,
-        enrollments: course.enrollments.length,
-        revenue: course.enrollments.length * course.price,
+        enrollments: courseSales.get(course.id)?.enrollments ?? 0,
+        revenue: courseSales.get(course.id)?.revenue ?? 0,
       }))
       .sort((a, b) => b.enrollments - a.enrollments)
       .slice(0, 5),

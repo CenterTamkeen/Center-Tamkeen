@@ -415,6 +415,7 @@ export async function buildExportSheets(
         (row) => row.student_id,
       );
       const ordersByStudent = groupBy(tables.orders, (row) => row.student_id);
+      const itemsByOrder = groupBy(tables.order_items, (row) => row.order_id);
       const platformBlocksByStudent = groupBy(
         (tables.student_blocks ?? []).filter((row) => !row.teacher_id),
         (row) => row.student_id,
@@ -455,9 +456,18 @@ export async function buildExportSheets(
                 .filter(Boolean),
             ),
           ];
-          const totalPaid = studentOrders
-            .filter((order) => order.status === "completed")
-            .reduce((sum, order) => sum + toNumber(order.total_amount), 0);
+          const totalPaid = studentOrders.reduce(
+            (sum, order) =>
+              order.status === "completed"
+                ? sum +
+                  (itemsByOrder.get(order.id) ?? []).reduce(
+                    (orderSum, item) =>
+                      orderSum + toNumber(item.price_at_purchase),
+                    0,
+                  )
+                : sum,
+            0,
+          );
 
           return [
             profileName(student.profile_id),

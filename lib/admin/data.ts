@@ -8,8 +8,16 @@ type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
+type TeacherEarningRow =
+  Database["public"]["Tables"]["teacher_earnings"]["Row"];
+type CouponRow = Database["public"]["Tables"]["coupons"]["Row"];
 type ActivationCodeRow =
   Database["public"]["Tables"]["activation_codes"]["Row"];
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+const ADMIN_PAGE_SIZE = 500;
+const ADMIN_ORDER_SELECT =
+  "id, total_amount, status, fawry_ref_no, rejection_reason, completed_at, created_at, student:students(student_phone, profile:profiles(full_name, phone)), order_items(id, course_id, price_at_purchase, course:courses(title, teacher:teachers(profile:profiles(full_name))))";
 
 export type AdminTeacher = Pick<
   TeacherRow,
@@ -72,6 +80,7 @@ export type AdminOrder = Pick<
   } | null;
   order_items: {
     id: string;
+    course_id: string;
     price_at_purchase: number;
     course: {
       title: string;
@@ -279,25 +288,37 @@ export async function getAdminCourses() {
 
 export async function getAdminOrders(status?: OrderStatus | "all") {
   const supabase = await createClient();
-  let query = supabase
-    .from("orders")
-    .select(
-      "id, total_amount, status, fawry_ref_no, rejection_reason, completed_at, created_at, student:students(student_phone, profile:profiles(full_name, phone)), order_items(id, price_at_purchase, course:courses(title, teacher:teachers(profile:profiles(full_name))))",
-    )
-    .order("created_at", { ascending: false });
+  const orders: AdminOrder[] = [];
 
-  if (status && status !== "all") {
-    query = query.eq("status", status);
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    let query = supabase
+      .from("orders")
+      .select(ADMIN_ORDER_SELECT)
+      .order("created_at", { ascending: false });
+
+    if (status && status !== "all") {
+      query = query.eq("status", status);
+    }
+
+    const { data, error } = await query.range(
+      offset,
+      offset + ADMIN_PAGE_SIZE - 1,
+    );
+
+    if (error) {
+      logAdminError("orders", error.message);
+      break;
+    }
+
+    const page = (data ?? []) as AdminOrder[];
+    orders.push(...page);
+
+    if (page.length < ADMIN_PAGE_SIZE) {
+      break;
+    }
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    logAdminError("orders", error.message);
-    return [];
-  }
-
-  return (data ?? []) as AdminOrder[];
+  return orders;
 }
 
 export async function getAdminActivationCodes() {
@@ -389,60 +410,46 @@ export async function getAdminStudents() {
 
 export async function getAdminStats() {
   const supabase = await createClient();
-  const [teachers, courses, orders, earnings, coupons, activationCodes] =
-    await Promise.all([
-      getAdminTeachers(),
-      getAdminCourses(),
-      getAdminOrders("all"),
-      supabase.from("teacher_earnings").select("amount, teacher_id"),
-      supabase
-        .from("coupons")
-        .select("used_count, discount_value, discount_type"),
-      supabase.from("activation_codes").select("used_at, expires_at"),
-    ]);
-
-  if (earnings.error) {
-    logAdminError("earnings", earnings.error.message);
-  }
-
-  if (coupons.error) {
-    logAdminError("coupons", coupons.error.message);
-  }
-
-  if (activationCodes.error) {
-    logAdminError("activation-codes-stats", activationCodes.error.message);
-  }
+  const [
+    teachers,
+    courses,
+    orders,
+    earnings,
+    coupons,
+    couponRedemptionDiscount,
+    activationCodeCounts,
+  ] = await Promise.all([
+    getAdminTeachers(),
+    getAdminCourses(),
+    getAdminOrders("all"),
+    getAdminTeacherEarnings(supabase),
+    getAdminCoupons(supabase),
+    getAdminCouponRedemptionDiscount(supabase),
+    getAdminActivationCodeCounts(supabase),
+  ]);
 
   const completedOrders = orders.filter(
     (order) => order.status === "completed",
   );
   const totalSales = completedOrders.reduce(
-    (sum, order) => sum + order.total_amount,
+    (sum, order) => sum + getOrderItemsTotal(order),
     0,
   );
-  const teacherEarnings = (earnings.data ?? []).reduce(
+  const teacherEarnings = earnings.reduce(
     (sum, earning) => sum + earning.amount,
     0,
   );
-  const usedCoupons = (coupons.data ?? []).reduce(
+  const usedCoupons = coupons.reduce(
     (sum, coupon) => sum + coupon.used_count,
     0,
   );
-  const couponDiscountImpact = (coupons.data ?? []).reduce((sum, coupon) => {
-    return sum + coupon.used_count * coupon.discount_value;
+  const fixedCouponDiscountImpact = coupons.reduce((sum, coupon) => {
+    return coupon.discount_type === "fixed"
+      ? sum + coupon.used_count * coupon.discount_value
+      : sum;
   }, 0);
-  const now = Date.now();
-  const activationCodeRows = activationCodes.data ?? [];
-  const usedActivationCodes = activationCodeRows.filter(
-    (code) => code.used_at,
-  ).length;
-  const availableActivationCodes = activationCodeRows.filter(
-    (code) => !code.used_at && new Date(code.expires_at).getTime() > now,
-  ).length;
-  const expiredActivationCodes = activationCodeRows.filter(
-    (code) => !code.used_at && new Date(code.expires_at).getTime() <= now,
-  ).length;
-
+  const couponDiscountImpact =
+    couponRedemptionDiscount ?? fixedCouponDiscountImpact;
   return {
     totalTeachers: teachers.length,
     activeTeachers: teachers.filter((teacher) => teacher.is_active).length,
@@ -457,24 +464,191 @@ export async function getAdminStats() {
     centerEarnings: Math.max(0, totalSales - teacherEarnings),
     usedCoupons,
     couponDiscountImpact,
-    totalActivationCodes: activationCodeRows.length,
-    usedActivationCodes,
-    availableActivationCodes,
-    expiredActivationCodes,
+    totalActivationCodes: activationCodeCounts.total,
+    usedActivationCodes: activationCodeCounts.used,
+    availableActivationCodes: activationCodeCounts.available,
+    expiredActivationCodes: activationCodeCounts.expired,
+  };
+}
+
+function getOrderItemsTotal(order: Pick<AdminOrder, "order_items">) {
+  return order.order_items.reduce(
+    (sum, item) => sum + item.price_at_purchase,
+    0,
+  );
+}
+
+async function getAdminTeacherEarnings(
+  supabase: SupabaseServerClient,
+): Promise<Pick<TeacherEarningRow, "amount" | "teacher_id">[]> {
+  const earnings: Pick<TeacherEarningRow, "amount" | "teacher_id">[] = [];
+
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("teacher_earnings")
+      .select("amount, teacher_id, order:orders!inner(status)")
+      .eq("order.status", "completed")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+
+    if (error) {
+      logAdminError("earnings", error.message);
+      break;
+    }
+
+    const page = (data ?? []) as Pick<
+      TeacherEarningRow,
+      "amount" | "teacher_id"
+    >[];
+    earnings.push(...page);
+
+    if (page.length < ADMIN_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return earnings;
+}
+
+async function getAdminCoupons(
+  supabase: SupabaseServerClient,
+): Promise<
+  Pick<CouponRow, "used_count" | "discount_value" | "discount_type">[]
+> {
+  const coupons: Pick<
+    CouponRow,
+    "used_count" | "discount_value" | "discount_type"
+  >[] = [];
+
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("used_count, discount_value, discount_type")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+
+    if (error) {
+      logAdminError("coupons", error.message);
+      break;
+    }
+
+    const page = (data ?? []) as Pick<
+      CouponRow,
+      "used_count" | "discount_value" | "discount_type"
+    >[];
+    coupons.push(...page);
+
+    if (page.length < ADMIN_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return coupons;
+}
+
+async function getAdminCouponRedemptionDiscount(
+  supabase: SupabaseServerClient,
+) {
+  const discounts: number[] = [];
+
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("coupon_redemptions")
+      .select("discount_amount")
+      .order("redeemed_at", { ascending: true })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+
+    if (error) {
+      if (!isMissingTable(error, "coupon_redemptions")) {
+        logAdminError("coupon-redemptions", error.message);
+      }
+      return null;
+    }
+
+    discounts.push(...(data ?? []).map((row) => row.discount_amount));
+
+    if ((data ?? []).length < ADMIN_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return discounts.reduce((sum, discount) => sum + discount, 0);
+}
+
+async function getAdminActivationCodeCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const now = new Date().toISOString();
+  const [total, used, available, expired] = await Promise.all([
+    supabase
+      .from("activation_codes")
+      .select("id", { count: "exact", head: true }),
+    supabase
+      .from("activation_codes")
+      .select("id", { count: "exact", head: true })
+      .not("used_at", "is", null),
+    supabase
+      .from("activation_codes")
+      .select("id", { count: "exact", head: true })
+      .is("used_at", null)
+      .gt("expires_at", now),
+    supabase
+      .from("activation_codes")
+      .select("id", { count: "exact", head: true })
+      .is("used_at", null)
+      .lte("expires_at", now),
+  ]);
+
+  for (const [label, result] of [
+    ["total", total],
+    ["used", used],
+    ["available", available],
+    ["expired", expired],
+  ] as const) {
+    if (result.error) {
+      logAdminError(`activation-codes-stats-${label}`, result.error.message);
+    }
+  }
+
+  return {
+    total: total.count ?? 0,
+    used: used.count ?? 0,
+    available: available.count ?? 0,
+    expired: expired.count ?? 0,
   };
 }
 
 export async function getAdminTeacherEarningsReport() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("teacher_earnings")
-    .select(
-      "amount, teacher_id, teacher:teachers(subject, profile:profiles(full_name))",
-    );
+  const rows: {
+    amount: number;
+    teacher_id: string;
+    teacher: {
+      subject: string;
+      profile: { full_name: string } | null;
+    } | null;
+  }[] = [];
 
-  if (error) {
-    logAdminError("teacher-earnings-report", error.message);
-    return [];
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("teacher_earnings")
+      .select(
+        "amount, teacher_id, teacher:teachers(subject, profile:profiles(full_name)), order:orders!inner(status)",
+      )
+      .eq("order.status", "completed")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+
+    if (error) {
+      logAdminError("teacher-earnings-report", error.message);
+      break;
+    }
+
+    rows.push(...((data ?? []) as typeof rows));
+
+    if ((data ?? []).length < ADMIN_PAGE_SIZE) {
+      break;
+    }
   }
 
   const report = new Map<
@@ -487,7 +661,7 @@ export async function getAdminTeacherEarningsReport() {
     }
   >();
 
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const current = report.get(row.teacher_id) ?? {
       teacherId: row.teacher_id,
       teacherName: row.teacher?.profile?.full_name ?? "مدرس غير معروف",
@@ -504,25 +678,43 @@ export async function getAdminTeacherEarningsReport() {
 
 export async function getAdminFinancialReportDetails() {
   const supabase = await createClient();
-  const [orders, courses, couponsQuery] = await Promise.all([
+  const [orders, courses, coupons] = await Promise.all([
     getAdminOrders("completed"),
     getAdminCourses(),
-    supabase
-      .from("coupons")
-      .select("id, code, used_count, discount_value, discount_type"),
+    getAdminCouponReportRows(supabase),
   ]);
-
-  if (couponsQuery.error) {
-    logAdminError("coupon-report", couponsQuery.error.message);
-  }
 
   const salesByDate = new Map<string, number>();
 
   for (const order of orders) {
+    const orderTotal = getOrderItemsTotal(order);
+
+    if (orderTotal === 0) {
+      continue;
+    }
+
     const date = new Date(order.completed_at ?? order.created_at)
       .toISOString()
       .slice(0, 10);
-    salesByDate.set(date, (salesByDate.get(date) ?? 0) + order.total_amount);
+    salesByDate.set(date, (salesByDate.get(date) ?? 0) + orderTotal);
+  }
+
+  const coursesById = new Map(courses.map((course) => [course.id, course]));
+  const topCourseStats = new Map<
+    string,
+    { enrollments: number; revenue: number }
+  >();
+
+  for (const order of orders) {
+    for (const item of order.order_items) {
+      const current = topCourseStats.get(item.course_id) ?? {
+        enrollments: 0,
+        revenue: 0,
+      };
+      current.enrollments += 1;
+      current.revenue += item.price_at_purchase;
+      topCourseStats.set(item.course_id, current);
+    }
   }
 
   return {
@@ -530,17 +722,20 @@ export async function getAdminFinancialReportDetails() {
       label,
       total,
     })),
-    topCourses: courses
-      .map((course) => ({
-        id: course.id,
-        title: course.title,
-        teacherName: course.teacher?.profile?.full_name ?? "مدرس غير معروف",
-        enrollments: course.enrollments.length,
-        revenue: course.enrollments.length * course.price,
-      }))
+    topCourses: Array.from(topCourseStats.entries())
+      .map(([courseId, stats]) => {
+        const course = coursesById.get(courseId);
+
+        return {
+          id: courseId,
+          title: course?.title ?? "كورس غير معروف",
+          teacherName: course?.teacher?.profile?.full_name ?? "مدرس غير معروف",
+          ...stats,
+        };
+      })
       .sort((a, b) => b.enrollments - a.enrollments)
       .slice(0, 10),
-    coupons: (couponsQuery.data ?? [])
+    coupons: coupons
       .map((coupon) => ({
         id: coupon.id,
         code: coupon.code,
@@ -550,6 +745,41 @@ export async function getAdminFinancialReportDetails() {
       }))
       .sort((a, b) => b.usedCount - a.usedCount),
   };
+}
+
+async function getAdminCouponReportRows(
+  supabase: SupabaseServerClient,
+): Promise<
+  Pick<
+    CouponRow,
+    "id" | "code" | "used_count" | "discount_value" | "discount_type"
+  >[]
+> {
+  const coupons: Pick<
+    CouponRow,
+    "id" | "code" | "used_count" | "discount_value" | "discount_type"
+  >[] = [];
+
+  for (let offset = 0; ; offset += ADMIN_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("id, code, used_count, discount_value, discount_type")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+
+    if (error) {
+      logAdminError("coupon-report", error.message);
+      break;
+    }
+
+    coupons.push(...(data ?? []));
+
+    if ((data ?? []).length < ADMIN_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return coupons;
 }
 
 export async function getAdminReviews() {
